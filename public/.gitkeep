@@ -1,0 +1,2 @@
+# Keep this directory in source control so Next.js's standalone build always
+# has a `public/` folder to point at, even when there are no static assets.

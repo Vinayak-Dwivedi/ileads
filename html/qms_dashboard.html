@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Quality360 - Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            body: ['Roboto Condensed', 'sans-serif']
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    body { overflow-x: hidden; }
+    .app.sidebar-collapsed { grid-template-columns: 0 1fr; }
+    .app.sidebar-collapsed .sidebar { width: 0; padding: 0; overflow: hidden; }
+    .scoreboard-table th,
+    .scoreboard-table td { white-space: nowrap; }
+  </style>
+  <style>
+    .app { margin-left: 16rem; min-width: 0; }
+    .main { min-width: 0; overflow: auto; }
+    @media (max-width: 1024px) {
+      .app { margin-left: 0; }
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-[#f5f6f8] font-body text-[14px] text-slate-700">
+  <div>
+    <aside id="sidebar" class="fixed left-0 top-0 h-full w-64 bg-gray-100 text-white transition-transform duration-300 z-50 lg:translate-x-0 -translate-x-full">
+            <div class="py-6 px-2">
+                <!-- Logo -->
+                <div class="flex items-center mb-8 px-4">
+                    <a href="javascript:void(0);" class="focus:outline-none"><img src="assets/images/ileads.png" class="max-w-[130px] h-auto"></a>
+                </div>
+
+                <!-- Navigation -->
+                <nav class="space-y-2">
+					
+					
+					
+          <div class="space-y-3 group open" id="qms_sidebar">
+						<div class="relative px-4 py-3 rounded-lg text-gray-700 hover:bg-sidebarHover hover:text-white transition-colors">
+							<a href="qms_dashboard.html" class="flex items-center gap-3" id="dropdown-home-btn">
+								<svg fill="currentColor" class="bi bi-file-earmark-bar-graph w-5 h-5" viewBox="0 0 16 16"><path d="M10 13.5a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5v-6a.5.5 0 0 0-.5-.5h-1a.5.5 0 0 0-.5.5zm-2.5.5a.5.5 0 0 1-.5-.5v-4a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-.5.5zm-3 0a.5.5 0 0 1-.5-.5v-2a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-.5.5z"/><path d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2M9.5 3A1.5 1.5 0 0 0 11 4.5h2V14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h5.5z"/></svg>
+								QMS Audit
+							</a>
+              <a href="#" id="qms_down_icon" class="absolute top-[53%] translate-y-[-50%] right-[15px] group open">
+								<svg width="16" height="16" fill="currentColor" class="bi bi-chevron-down w-4 h-4 relative group-[.open]:rotate-180 transition-all duration-500 ease-in-out" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708"/></svg>
+							</a>
+						</div>					
+						<ul class="list-none w-4/6 mx-auto space-y-2 transition-all duration-500 ease-in-out dropdown-content hidden group-[.open]:block" id="dropdown-home">
+							<li>
+								<a href="qms_dashboard.html" class="capitalize text-gray-700 hover:text-[#000] text-sm w-full block px-3 py-1.5 rounded-md">Dashboard</a>
+							</li>
+							<li>
+								<a href="Calls.html" class="capitalize text-gray-700 hover:text-[#000] text-sm w-full block px-3 py-1.5 rounded-md">Calls</a>
+							</li>
+							<li>
+								<a href="QA.html" class="capitalize text-gray-700 hover:text-[#000] text-sm w-full block px-3 py-1.5 rounded-md">QA</a>
+							</li>					
+						</ul>
+					</div>	
+				</nav>
+            </div>
+        </aside>
+  </div>
+
+  <div class="app min-h-screen transition-all duration-200">
+    
+
+    <main class="bg-[#f5f6f8]">
+      <div class="h-[72px] border-b border-slate-200 bg-white/90 backdrop-blur px-6 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          
+          <h2 class="text-[32px] font-semibold tracking-tight text-slate-800">Dashboard</h2>
+        </div>
+      </div>
+
+      <section class="p-5">
+        <section class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-3 mb-5">
+          <article class="bg-white rounded-xl border border-slate-200 shadow-sm p-4"><label class="block text-slate-500 text-lg">Total Call</label><div class="text-[38px] leading-none text-slate-900 mt-2">24,580</div><div class="text-green-600 mt-3">+6.4% <span class="text-slate-400">vs last month</span></div></article>
+          <article class="bg-white rounded-xl border border-slate-200 shadow-sm p-4"><label class="block text-slate-500 text-lg">AI Audited</label><div class="text-[38px] leading-none text-slate-900 mt-2">18,210</div><div class="text-green-600 mt-3">+3.1% <span class="text-slate-400">vs last month</span></div></article>
+          <article class="bg-white rounded-xl border border-slate-200 shadow-sm p-4"><label class="block text-slate-500 text-lg">Manual Reviewed</label><div class="text-[38px] leading-none text-slate-900 mt-2">6,370</div><div class="text-red-500 mt-3">-1.8% <span class="text-slate-400">vs last month</span></div></article>
+          <article class="bg-white rounded-xl border border-slate-200 shadow-sm p-4"><label class="block text-slate-500 text-lg">Avg Quality Score</label><div class="text-[38px] leading-none text-slate-900 mt-2">88.4%</div><div class="text-green-600 mt-3">+2.2% <span class="text-slate-400">vs last month</span></div></article>
+          <article class="bg-white rounded-xl border border-slate-200 shadow-sm p-4"><label class="block text-slate-500 text-lg">First Response Time</label><div class="text-[38px] leading-none text-slate-900 mt-2">00:43</div><div class="text-red-500 mt-3">-00:06 <span class="text-slate-400">vs last month</span></div></article>
+          <article class="bg-white rounded-xl border border-slate-200 shadow-sm p-4"><label class="block text-slate-500 text-lg">AHT</label><div class="text-[38px] leading-none text-slate-900 mt-2">06:18</div><div class="text-red-500 mt-3">+00:10 <span class="text-slate-400">vs last month</span></div></article>
+        </section>
+
+        <section class="grid grid-cols-1 2xl:grid-cols-[2.7fr_1fr] gap-4">
+          <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+            <article class="bg-white rounded-xl border border-slate-200 shadow-sm p-3">
+              <h3 class="text-lg font-semibold text-slate-800 mb-3">Customer Sentiment Distribution</h3>
+              <div class="rounded-xl p-4 border border-slate-100">
+                <div class="flex justify-between mb-2"><span>Positive</span><strong>65%</strong></div>
+                <div class="h-2 bg-slate-100 rounded-full mb-4"><div class="h-2 bg-emerald-500 rounded-full" style="width:65%"></div></div>
+                <div class="flex justify-between mb-2"><span>Neutral</span><strong>25%</strong></div>
+                <div class="h-2 bg-slate-100 rounded-full mb-4"><div class="h-2 bg-amber-500 rounded-full" style="width:25%"></div></div>
+                <div class="flex justify-between mb-2"><span>Negative</span><strong>10%</strong></div>
+                <div class="h-2 bg-slate-100 rounded-full"><div class="h-2 bg-red-500 rounded-full" style="width:10%"></div></div>
+              </div>
+            </article>
+
+            <article class="bg-white rounded-xl border border-slate-200 shadow-sm p-3">
+              <h3 class="text-lg font-semibold text-slate-800 mb-3">Average Quality Score</h3>
+              <div class="rounded-xl border border-slate-100 p-2 bg-white">
+                <svg viewBox="0 0 380 220" width="100%" height="100%" aria-label="Daily Call Audit chart" role="img">
+                  <rect x="0" y="0" width="380" height="220" fill="#ffffff" />
+                  <text x="14" y="22" font-size="14" font-weight="600" fill="#2f3440">Trainings (by Weekly)</text>
+                  <line x1="14" y1="30" x2="160" y2="30" stroke="#5b2e91" stroke-width="2" />
+                  <line x1="30" y1="40" x2="30" y2="185" stroke="#d9dde5" stroke-width="1" />
+                  <line x1="30" y1="185" x2="360" y2="185" stroke="#d9dde5" stroke-width="1" />
+                  <line x1="30" y1="145" x2="360" y2="145" stroke="#f1f3f7" stroke-width="1" />
+                  <line x1="30" y1="105" x2="360" y2="105" stroke="#f1f3f7" stroke-width="1" />
+                  <line x1="30" y1="65" x2="360" y2="65" stroke="#f1f3f7" stroke-width="1" />
+                  <text x="12" y="189" font-size="11" fill="#6b7280">0</text><text x="12" y="149" font-size="11" fill="#6b7280">1</text><text x="12" y="109" font-size="11" fill="#6b7280">2</text><text x="12" y="69" font-size="11" fill="#6b7280">3</text>
+                  <rect x="70" y="75" width="26" height="110" fill="#3f106b" rx="3" /><rect x="150" y="115" width="26" height="70" fill="#3f106b" rx="3" /><rect x="230" y="155" width="26" height="30" fill="#3f106b" rx="3" /><rect x="310" y="155" width="26" height="30" fill="#3f106b" rx="3" />
+                  <text x="60" y="205" font-size="11" fill="#6b7280">2022-02</text><text x="140" y="205" font-size="11" fill="#6b7280">2022-03</text><text x="220" y="205" font-size="11" fill="#6b7280">2022-05</text><text x="300" y="205" font-size="11" fill="#6b7280">2022-06</text>
+                </svg>
+              </div>
+            </article>
+
+            <article class="bg-white rounded-xl border border-slate-200 shadow-sm p-3 xl:col-span-2">
+              <h3 class="text-lg font-semibold text-slate-800 mb-3">Agent Scoreboard</h3>
+              <div class="overflow-x-auto rounded-xl border border-slate-100">
+                <table class="scoreboard-table w-full text-[13px]">
+                  <thead class="bg-slate-50 text-slate-500 uppercase text-xs"><tr><th class="px-3 py-2 text-left">Rank</th><th class="px-3 py-2 text-left">Agent</th><th class="px-3 py-2">Agent ID</th><th class="px-3 py-2">Campaign</th><th class="px-3 py-2">QA Score</th><th class="px-3 py-2">Calls</th><th class="px-3 py-2">AHT</th><th class="px-3 py-2">Compliance</th><th class="px-3 py-2">Trend</th></tr></thead>
+                  <tbody class="divide-y divide-slate-100">
+                    <tr><td class="px-3 py-2"><span class="inline-flex w-6 h-6 rounded-full bg-blue-50 text-blue-600 items-center justify-center font-bold">1</span></td><td class="px-3 py-2">Sarah Johnson</td><td class="px-3 py-2 text-center">AG-2451</td><td class="px-3 py-2 text-center">Campaign A</td><td class="px-3 py-2 text-center">95.2%</td><td class="px-3 py-2 text-center">156</td><td class="px-3 py-2 text-center">8:23</td><td class="px-3 py-2 text-center">99%</td><td class="px-3 py-2 text-center text-green-600 font-semibold">+8%</td></tr>
+                    <tr><td class="px-3 py-2"><span class="inline-flex w-6 h-6 rounded-full bg-blue-50 text-blue-600 items-center justify-center font-bold">2</span></td><td class="px-3 py-2">James Wilson</td><td class="px-3 py-2 text-center">AG-2384</td><td class="px-3 py-2 text-center">Campaign D</td><td class="px-3 py-2 text-center">94.5%</td><td class="px-3 py-2 text-center">143</td><td class="px-3 py-2 text-center">8:45</td><td class="px-3 py-2 text-center">98%</td><td class="px-3 py-2 text-center text-green-600 font-semibold">+12%</td></tr>
+                    <tr><td class="px-3 py-2"><span class="inline-flex w-6 h-6 rounded-full bg-blue-50 text-blue-600 items-center justify-center font-bold">3</span></td><td class="px-3 py-2">Emily Davis</td><td class="px-3 py-2 text-center">AG-2219</td><td class="px-3 py-2 text-center">Campaign C</td><td class="px-3 py-2 text-center">92.8%</td><td class="px-3 py-2 text-center">138</td><td class="px-3 py-2 text-center">9:12</td><td class="px-3 py-2 text-center">97%</td><td class="px-3 py-2 text-center text-green-600 font-semibold">+5%</td></tr>
+                    <tr><td class="px-3 py-2"><span class="inline-flex w-6 h-6 rounded-full bg-blue-50 text-blue-600 items-center justify-center font-bold">4</span></td><td class="px-3 py-2">Michael Chen</td><td class="px-3 py-2 text-center">AG-2310</td><td class="px-3 py-2 text-center">Campaign B</td><td class="px-3 py-2 text-center">91.3%</td><td class="px-3 py-2 text-center">162</td><td class="px-3 py-2 text-center">9:34</td><td class="px-3 py-2 text-center">96%</td><td class="px-3 py-2 text-center text-green-600 font-semibold">+3%</td></tr>
+                    <tr><td class="px-3 py-2"><span class="inline-flex w-6 h-6 rounded-full bg-blue-50 text-blue-600 items-center justify-center font-bold">5</span></td><td class="px-3 py-2">Lisa Rodriguez</td><td class="px-3 py-2 text-center">AG-2293</td><td class="px-3 py-2 text-center">Campaign A</td><td class="px-3 py-2 text-center">90.7%</td><td class="px-3 py-2 text-center">147</td><td class="px-3 py-2 text-center">8:56</td><td class="px-3 py-2 text-center">98%</td><td class="px-3 py-2 text-center text-green-600 font-semibold">+15%</td></tr>
+                    <tr><td class="px-3 py-2"><span class="inline-flex w-6 h-6 rounded-full bg-blue-50 text-blue-600 items-center justify-center font-bold">6</span></td><td class="px-3 py-2">David Park</td><td class="px-3 py-2 text-center">AG-2198</td><td class="px-3 py-2 text-center">Campaign E</td><td class="px-3 py-2 text-center">89.4%</td><td class="px-3 py-2 text-center">134</td><td class="px-3 py-2 text-center">10:02</td><td class="px-3 py-2 text-center">95%</td><td class="px-3 py-2 text-center text-red-500 font-semibold">-2%</td></tr>
+                    <tr><td class="px-3 py-2"><span class="inline-flex w-6 h-6 rounded-full bg-blue-50 text-blue-600 items-center justify-center font-bold">7</span></td><td class="px-3 py-2">Amanda White</td><td class="px-3 py-2 text-center">AG-2147</td><td class="px-3 py-2 text-center">Campaign B</td><td class="px-3 py-2 text-center">88.9%</td><td class="px-3 py-2 text-center">151</td><td class="px-3 py-2 text-center">9:48</td><td class="px-3 py-2 text-center">96%</td><td class="px-3 py-2 text-center text-green-600 font-semibold">+6%</td></tr>
+                    <tr><td class="px-3 py-2"><span class="inline-flex w-6 h-6 rounded-full bg-blue-50 text-blue-600 items-center justify-center font-bold">8</span></td><td class="px-3 py-2">Robert Martinez</td><td class="px-3 py-2 text-center">AG-2102</td><td class="px-3 py-2 text-center">Campaign C</td><td class="px-3 py-2 text-center">87.2%</td><td class="px-3 py-2 text-center">129</td><td class="px-3 py-2 text-center">11:15</td><td class="px-3 py-2 text-center">94%</td><td class="px-3 py-2 text-center text-red-500 font-semibold">-5%</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </article>
+          </div>
+
+          <div class="grid gap-4">
+            <article class="bg-white rounded-xl border border-slate-200 shadow-sm p-3">
+              <h3 class="text-lg font-semibold text-slate-800 mb-3">Recommendations</h3>
+              <div class="rounded-xl border border-slate-100 bg-white p-4 space-y-3">
+                <div class="flex items-center gap-3"><div class="w-9 h-9 rounded-lg bg-indigo-600 text-white grid place-items-center font-bold">*</div><div><div class="font-semibold">AI Insights</div><div class="text-xs text-slate-500">Real-time analysis from call data</div></div></div>
+                <div class="grid grid-cols-[32px_1fr] gap-2 rounded-xl border border-slate-100 bg-slate-50 p-3"><div class="w-8 h-8 rounded-lg bg-orange-100 text-orange-600 grid place-items-center font-bold">!</div><div><div class="text-xs font-semibold text-slate-500">Gap Identified</div><div>12 agents showing consistent empathy score decline</div></div></div>
+                <div class="grid grid-cols-[32px_1fr] gap-2 rounded-xl border border-slate-100 bg-slate-50 p-3"><div class="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-600 grid place-items-center font-bold">+</div><div><div class="text-xs font-semibold text-slate-500">Opportunity</div><div>Team B improved AHT by 18% after training module</div></div></div>
+                <div class="grid grid-cols-[32px_1fr] gap-2 rounded-xl border border-slate-100 bg-slate-50 p-3"><div class="w-8 h-8 rounded-lg bg-blue-100 text-blue-600 grid place-items-center font-bold">&#9788;</div><div><div class="text-xs font-semibold text-slate-500">Coaching Required</div><div>5 agents need script adherence refresher training</div></div></div>
+                <div class="grid grid-cols-[32px_1fr] gap-2 rounded-xl border border-slate-100 bg-slate-50 p-3"><div class="w-8 h-8 rounded-lg bg-violet-100 text-violet-600 grid place-items-center font-bold">&#9993;</div><div><div class="text-xs font-semibold text-slate-500">Customer Trend</div><div>New complaint category: Payment portal accessibility</div></div></div>
+                <div class="grid grid-cols-[32px_1fr] gap-2 rounded-xl border border-slate-100 bg-slate-50 p-3"><div class="w-8 h-8 rounded-lg bg-red-100 text-red-600 grid place-items-center font-bold">&#9888;</div><div><div class="text-xs font-semibold text-slate-500">Compliance Risk</div><div>3 calls detected without proper verification process</div></div></div>
+                <div class="text-center text-blue-600 font-semibold">View All Insights &rarr;</div>
+              </div>
+            </article>
+          </div>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  
+  <script>
+    (function () {
+      const sidebarGroup = document.getElementById("qms_sidebar");
+      const toggleButton = document.getElementById("qms_down_icon");
+
+      if (!sidebarGroup || !toggleButton) return;
+
+      toggleButton.addEventListener("click", function (event) {
+        event.preventDefault();
+        sidebarGroup.classList.toggle("open");
+        toggleButton.classList.toggle("open");
+      });
+    })();
+  </script>
+</body>
+</html>

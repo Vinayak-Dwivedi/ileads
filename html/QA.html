@@ -1,0 +1,1139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Quality360 - Parameters</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = { theme: { extend: { fontFamily: { body: ['Roboto Condensed','sans-serif'] } } } };
+  </script>
+  <style>
+    :root {
+      --bg: #f4f7fb;
+      --panel: #ffffff;
+      --border: #dce3ee;
+      --text: #182235;
+      --muted: #6b7280;
+      --nav: #0c1d3b;
+      --nav2: #102854;
+      --blue: #2f6fed;
+      --blue-dark: #2459cf;
+      --green: #24a148;
+      --yellow: #f59e0b;
+      --red: #ef4444;
+      --orange: #f97316;
+      --purple: #8b5cf6;
+      --shadow: 0 8px 24px rgba(16, 24, 40, 0.08);
+      --shadow-soft: 0 2px 8px rgba(16, 24, 40, 0.06);
+      --radius: 14px;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Inter, Arial, sans-serif;
+      overflow-x: hidden;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.6), rgba(255,255,255,0.6)),
+        linear-gradient(135deg, #eef3fb 0%, #f7f9fc 35%, #f3f6fb 100%);
+      color: var(--text);
+    }
+
+    .app {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 238px 1fr;
+    }
+    .app.sidebar-collapsed {
+      grid-template-columns: 0 1fr;
+    }
+
+    .sidebar {
+      background: linear-gradient(180deg, #10254c 0%, #0b1a35 100%);
+      color: white;
+      display: flex;
+      flex-direction: column;
+      padding: 22px 18px 18px;
+      position: relative;
+      overflow: hidden;
+      transition: width 0.2s ease, padding 0.2s ease;
+    }
+
+    .app.sidebar-collapsed .sidebar {
+      width: 0;
+      padding: 0;
+      border: 0;
+    }
+
+    .sidebar::before {
+      content: "";
+      position: absolute;
+      inset: -20% -40% auto auto;
+      width: 220px;
+      height: 220px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(68,115,255,0.16) 0%, rgba(68,115,255,0) 68%);
+      pointer-events: none;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 24px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .brand-mark {
+      width: 42px;
+      height: 42px;
+      display: grid;
+      place-items: center;
+      border-radius: 12px;
+      background: linear-gradient(180deg, rgba(48,111,237,0.25), rgba(48,111,237,0.08));
+      box-shadow: inset 0 0 0 1px rgba(140,171,255,0.18);
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: 22px;
+      line-height: 1.1;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .brand p {
+      margin: 3px 0 0;
+      font-size: 12px;
+      color: rgba(255,255,255,0.74);
+    }
+
+    .nav {
+      display: grid;
+      gap: 8px;
+      position: relative;
+      z-index: 1;
+      margin-top: 8px;
+    }
+
+    .nav a {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: rgba(255,255,255,0.92);
+      text-decoration: none;
+      padding: 15px 14px;
+      border-radius: 10px;
+      font-size: 15px;
+      line-height: 1;
+      background: transparent;
+      transition: background 0.15s ease, transform 0.15s ease;
+    }
+
+    .nav a.active {
+      background: linear-gradient(180deg, #2d6df5 0%, #2659cf 100%);
+      box-shadow: 0 10px 20px rgba(28, 87, 221, 0.25);
+    }
+
+    .nav a:not(.active):hover {
+      background: rgba(255,255,255,0.08);
+    }
+
+    .nav svg {
+      width: 20px;
+      height: 20px;
+      flex: 0 0 auto;
+      stroke: currentColor;
+    }
+
+    .sidebar-footer {
+      margin-top: auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 16px 10px 6px 6px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .profile {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .avatar {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: linear-gradient(180deg, #d7dee9 0%, #9ca8ba 100%);
+      display: grid;
+      place-items: center;
+      color: #fff;
+      font-weight: 700;
+      font-size: 18px;
+      box-shadow: inset 0 0 0 2px rgba(255,255,255,0.18);
+    }
+
+    .profile strong {
+      display: block;
+      font-size: 14px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .profile span {
+      display: block;
+      font-size: 12px;
+      color: rgba(255,255,255,0.72);
+    }
+
+    .chev-down {
+      width: 16px;
+      height: 16px;
+      color: rgba(255,255,255,0.82);
+      flex: 0 0 auto;
+    }
+
+    .main {
+      background: linear-gradient(180deg, rgba(255,255,255,0.8), rgba(255,255,255,0.3));
+      padding: 0;
+      overflow: auto;
+      min-width: 0;
+    }
+
+    .topbar {
+      min-height: 72px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 0 28px;
+      border-bottom: 1px solid rgba(215,223,233,0.8);
+      background: rgba(255,255,255,0.65);
+      backdrop-filter: blur(8px);
+    }
+
+    .topbar-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .sidebar-toggle {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      border: 1px solid #d8dfeb;
+      background: #fff;
+      color: #1f2937;
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+    }
+
+    .sidebar-toggle svg {
+      width: 18px;
+      height: 18px;
+      stroke: currentColor;
+    }
+
+    .page-title {
+      margin: 0;
+      font-size: 28px;
+      line-height: 1;
+      letter-spacing: -0.03em;
+      font-weight: 700;
+    }
+
+    .content {
+      padding: 18px 22px 26px;
+    }
+
+    .card {
+      background: white;
+      border: 1px solid #e1e7f0;
+      border-radius: 12px;
+      box-shadow: var(--shadow-soft);
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+
+    .filters-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      align-items: end;
+    }
+
+    .field label {
+      display: block;
+      font-size: 13px;
+      color: #5f6777;
+      margin: 0 0 6px 4px;
+    }
+
+    .input,
+    .select {
+      height: 40px;
+      border: 1px solid #d6dcea;
+      border-radius: 8px;
+      background: white;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 12px;
+      color: #374151;
+      font-size: 14px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.8);
+    }
+
+    .select select,
+    .input input,
+    .input textarea {
+      border: 0;
+      outline: none;
+      width: 100%;
+      font: inherit;
+      color: inherit;
+      background: transparent;
+    }
+
+    .btn {
+      height: 40px;
+      border-radius: 8px;
+      padding: 0 16px;
+      border: 1px solid #d7dde8;
+      background: white;
+      color: #1f2937;
+      font-size: 14px;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 1px 2px rgba(16,24,40,0.03);
+      cursor: pointer;
+    }
+
+    .btn.primary {
+      background: linear-gradient(180deg, #336eef 0%, #2d62df 100%);
+      color: white;
+      border-color: transparent;
+      box-shadow: 0 10px 20px rgba(45, 98, 223, 0.22);
+    }
+
+    .table-card {
+      background: white;
+      border: 1px solid #e1e7f0;
+      border-radius: 12px;
+      box-shadow: var(--shadow-soft);
+      overflow: hidden;
+    }
+
+    .table-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 16px;
+      border-bottom: 1px solid #e6ebf2;
+      background: #fcfdff;
+    }
+
+    .table-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .total-pill {
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: #f3f6fb;
+      border: 1px solid #e1e7f0;
+      font-size: 13px;
+      color: #1f2937;
+      font-weight: 600;
+    }
+
+    .table-head h3 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 700;
+      color: #1f2937;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+      table-layout: fixed;
+    }
+
+    .score-col,
+    th.score-col,
+    td.score-col {
+      text-align: center;
+    }
+
+    thead th {
+      text-align: center;
+      font-weight: 600;
+      color: #263244;
+      padding: 10px 12px;
+      border-bottom: 1px solid #e6ebf2;
+      background: #fcfdff;
+    }
+
+    tbody td {
+      padding: 8px 12px;
+      border-bottom: 1px solid #edf1f6;
+      color: #283142;
+      vertical-align: middle;
+    }
+
+    tbody td:nth-last-child(2),
+    tbody td:last-child {
+      text-align: center;
+    }
+
+    .param-cell {
+      font-weight: 700;
+      color: #1f2937;
+      text-align: center;
+      background: #f8fafc;
+    }
+
+    .subparam-cell {
+      background: #ffffff;
+    }
+
+    .group-start td {
+      border-top: 2px solid #e1e7f0;
+    }
+
+    .actions-cell {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      justify-content: center;
+    }
+
+    .icon-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: 1px solid #cfd7e5;
+      background: white;
+      display: grid;
+      place-items: center;
+      color: #3559eb;
+      cursor: pointer;
+    }
+
+    .icon-btn svg {
+      width: 14px;
+      height: 14px;
+      stroke: currentColor;
+    }
+
+    .form-wrap {
+      border: 1px solid #e6edf7;
+      border-radius: 12px;
+      padding: 16px;
+      background: #fbfcff;
+    }
+
+    .form-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .param-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 12px;
+      align-items: center;
+    }
+
+    .param-row .input {
+      height: 40px;
+    }
+
+    .subparam-section {
+      display: none;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .subparam-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .subparam-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 120px 36px;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .add-row-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      border: 1px solid #cfd7e5;
+      background: white;
+      color: #2f6fed;
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      font-weight: 700;
+    }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.45);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 20;
+    }
+
+    .modal.active {
+      display: flex;
+    }
+
+    .modal-card {
+      background: #ffffff;
+      border-radius: 14px;
+      width: min(720px, 100%);
+      border: 1px solid #e6edf7;
+      box-shadow: var(--shadow);
+      padding: 16px;
+    }
+
+    .modal-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .modal-title {
+      font-size: 16px;
+      font-weight: 700;
+      margin: 0;
+    }
+
+    .modal-close {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      border: 1px solid #d7dde8;
+      background: #fff;
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      color: #1f2937;
+    }
+
+    .table-card.hidden {
+      display: none;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .hint {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 6px;
+    }
+
+    @media (max-width: 1100px) {
+      .app { grid-template-columns: 1fr; }
+      .filters-grid { grid-template-columns: 1fr; }
+      .form-grid { grid-template-columns: 1fr; }
+      .param-row { grid-template-columns: 1fr; }
+      .subparam-row { grid-template-columns: 1fr; }
+      .topbar { padding: 10px 14px; }
+    }
+  </style>
+  <style>
+    .app { display: block !important; grid-template-columns: 1fr !important; min-width: 0; }
+    .main, .topbar { grid-column: 1 !important; }
+    @media (min-width: 1024px) {
+      .app { margin-left: 16rem; width: calc(100% - 16rem); }
+    }
+    @media (max-width: 1023px) {
+      .app { margin-left: 0; width: 100%; }
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-[#f5f6f8] font-body text-[14px] text-slate-700">
+  <div>
+    <aside id="sidebar" class="fixed left-0 top-0 h-full w-64 bg-gray-100 text-white transition-transform duration-300 z-50 lg:translate-x-0 -translate-x-full">
+            <div class="py-6 px-2">
+                <!-- Logo -->
+                <div class="flex items-center mb-8 px-4">
+                    <a href="javascript:void(0);" class="focus:outline-none"><img src="assets/images/ileads.png" class="max-w-[130px] h-auto"></a>
+                </div>
+
+                <!-- Navigation -->
+                <nav class="space-y-2">
+					
+          <div class="space-y-3 group open" id="qms_sidebar">
+						<div class="relative px-4 py-3 rounded-lg text-gray-700 hover:bg-sidebarHover hover:text-white transition-colors">
+							<a href="qms_dashboard.html" class="flex items-center gap-3" id="dropdown-home-btn">
+								<svg fill="currentColor" class="bi bi-file-earmark-bar-graph w-5 h-5" viewBox="0 0 16 16"><path d="M10 13.5a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5v-6a.5.5 0 0 0-.5-.5h-1a.5.5 0 0 0-.5.5zm-2.5.5a.5.5 0 0 1-.5-.5v-4a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-.5.5zm-3 0a.5.5 0 0 1-.5-.5v-2a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-.5.5z"/><path d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2M9.5 3A1.5 1.5 0 0 0 11 4.5h2V14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h5.5z"/></svg>
+								QMS Audit
+							</a>
+              <a href="#" id="qms_down_icon" class="absolute top-[53%] translate-y-[-50%] right-[15px] group open">
+								<svg width="16" height="16" fill="currentColor" class="bi bi-chevron-down w-4 h-4 relative group-[.open]:rotate-180 transition-all duration-500 ease-in-out" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708"/></svg>
+							</a>
+						</div>					
+						<ul class="list-none w-4/6 mx-auto space-y-2 transition-all duration-500 ease-in-out dropdown-content hidden group-[.open]:block" id="dropdown-home">
+							<li>
+								<a href="qms_dashboard.html" class="capitalize text-gray-700 hover:text-[#000] text-sm w-full block px-3 py-1.5 rounded-md">Dashboard</a>
+							</li>
+							<li>
+								<a href="Calls.html" class="capitalize text-gray-700 hover:text-[#000] text-sm w-full block px-3 py-1.5 rounded-md">Calls</a>
+							</li>
+							<li>
+								<a href="QA.html" class="capitalize text-gray-700 hover:text-[#000] text-sm w-full block px-3 py-1.5 rounded-md">QA</a>
+							</li>					
+						</ul>
+					</div>	
+				</nav>
+            </div>
+        </aside>
+  </div>
+  <div class="app">
+    
+
+    <main class="main">
+      <div class="topbar">
+        <div class="topbar-left">
+          
+          <h2 class="page-title">Parameters</h2>
+        </div>
+      </div>
+
+      <section class="content">
+        <section class="card">
+          <div class="filters-grid">
+            <div class="field">
+              <label>Process</label>
+              <div class="select">
+                <select id="filterProcess">
+                  <option value="">All Processes</option>
+                  <option>Outbound</option>
+                  <option>Inbound</option>
+                  <option>Follow-up</option>
+                </select>
+              </div>
+            </div>
+            <div class="field">
+              <label>Campaign</label>
+              <div class="select">
+                <select id="filterCampaign">
+                  <option value="">All Campaigns</option>
+                  <option>General Support</option>
+                  <option>Health Insurance</option>
+                  <option>Premium Care</option>
+                </select>
+              </div>
+            </div>
+            <div class="field">
+              <label>Parameters</label>
+              <div class="select">
+                <select id="filterParameter">
+                  <option value="">All Parameters</option>
+                  <option>Opening</option>
+                  <option>Call Handling</option>
+                  <option>Process handling</option>
+                  <option>Closing</option>
+                </select>
+              </div>
+            </div>
+            <div class="field">
+              <button class="btn primary" id="applyFilters" type="button" onclick="showParameterTable(event)">Apply Filter</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="table-card hidden" id="parameterTableCard">
+          <div class="table-head">
+            <h3>Parameters</h3>
+            <div class="table-actions">
+              <div class="total-pill">Total: 100</div>
+              <button class="btn primary" id="toggleForm">Add Parameters</button>
+            </div>
+          </div>
+          <table>
+            <colgroup>
+              <col style="width: 18%;" />
+              <col style="width: 62%;" />
+              <col class="score-col" style="width: 8%;" />
+              <col style="width: 12%;" />
+            </colgroup>
+            <thead>
+              <tr>
+                <th>Parameters</th>
+                <th>Sub Parameters</th>
+                <th class="score-col">Score</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="parameterTableBody">
+              <tr class="group-start">
+                <td class="param-cell" rowspan="3">Opening</td>
+                <td class="subparam-cell">Did associate open the call within 3 secs?</td>
+                <td>3</td>
+                <td>
+                  <div class="actions-cell">
+                    <button class="icon-btn" title="Edit">
+                      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                    </button>
+                    <button class="icon-btn" title="Delete" data-action="delete">
+                      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></svg>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td class="subparam-cell">Did associate greet the customer appropriately?</td>
+                <td>3</td>
+                <td>
+                  <div class="actions-cell">
+                    <button class="icon-btn" title="Edit">
+                      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                    </button>
+                    <button class="icon-btn" title="Delete" data-action="delete">
+                      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></svg>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td class="subparam-cell">Did associate do branding?</td>
+                <td>3</td>
+                <td>
+                  <div class="actions-cell">
+                    <button class="icon-btn" title="Edit">
+                      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                    </button>
+                    <button class="icon-btn" title="Delete" data-action="delete">
+                      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></svg>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+
+              <tr class="group-start">
+                <td class="param-cell" rowspan="16">Call Handling</td>
+                <td class="subparam-cell">Did associate ask for customer query/concern/relevant questions asked?</td>
+                <td>4</td>
+                <td>
+                  <div class="actions-cell">
+                    <button class="icon-btn" title="Edit">
+                      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                    </button>
+                    <button class="icon-btn" title="Delete" data-action="delete">
+                      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></svg>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td class="subparam-cell">Did associate acknowledge customer query / concern?</td>
+                <td>5</td>
+                <td><div class="actions-cell"><button class="icon-btn" title="Edit"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button><button class="icon-btn" title="Delete" data-action="delete"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></svg></button></div></td>
+              </tr>
+              <tr>
+                <td class="subparam-cell">Did associate apologized / sympathised (if required)</td>
+                <td>5</td>
+                <td><div class="actions-cell"><button class="icon-btn" title="Edit"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button><button class="icon-btn" title="Delete" data-action="delete"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></svg></button></div></td>
+              </tr>
+              <tr>
+                <td class="subparam-cell">Did associate address the customer by his / her last name using prefix (Mr./Ms.)?</td>
+                <td>5</td>
+                <td><div class="actions-cell"><button class="icon-btn" title="Edit"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button><button class="icon-btn" title="Delete" data-action="delete"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></svg></button></div></td>
+              </tr>
+              <tr>
+                <td class="subparam-cell">Was associate enthusiastic and energetic throughout the call?</td>
+                <td>5</td>
+                <td><div class="actions-cell"><button class="icon-btn" title="Edit"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button><button class="icon-btn" title="Delete" data-action="delete"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></svg></button></div></td>
+              </tr>
+              <tr>
+                <td class="subparam-cell">Did associate switch language as per customer language?</td>
+                <td>5</td>
+                <td><div class="actions-cell"><button class="icon-btn" title="Edit"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button><button class="icon-btn" title="Delete" data-action="delete"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></svg></button></div></td>
+              </tr>
+              <tr>
+                <td class="subparam-cell">Was associate attentive?</td>
+                <td>5</td>
+                <td><div class="actions-cell"><button class="icon-btn" title="Edit"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button><button class="icon-btn" title="Delete" data-action="delete"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></svg></button></div></td>
+              </tr>
+              <tr>
+                <td class="subparam-cell">Did associate control rate of speech?</td>
+                <td>5</td>
+                <td><div class="actions-cell"><button class="icon-btn" title="Edit"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button><button class="icon-btn" title="Delete" data-action="delete"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></svg></button></div></td>
+              </tr>
+              <tr>
+                <td class="subparam-cell">Was associate fluent throughout the call?</td>
+                <td>5</td>
+                <td><div class="actions-cell"><button class="icon-btn" title="Edit"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button><button class="icon-btn" title="Delete" data-action="delete"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></svg></button></div></td>
+              </tr>
+              <tr>
+                <td class="subparam-cell">Did not interrupt and waited for customer to complete first?</td>
+                <td>4</td>
+                <td><div class="actions-cell"><button class="icon-btn" title="Edit"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button><button class="icon-btn" title="Delete" data-action="delete"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></svg></button></div></td>
+              </tr>
+              <tr>
+                <td class="subparam-cell">Was the hold procedure followed? Call Flow</td>
+                <td>4</td>
+                <td><div class="actions-cell"><button class="icon-btn" title="Edit"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button><button class="icon-btn" title="Delete" data-action="delete"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></svg></button></div></td>
+              </tr>
+              <tr>
+                <td class="subparam-cell">Was sentence formation / pronunciation up to the mark?</td>
+                <td>4</td>
+                <td><div class="actions-cell"><button class="icon-btn" title="Edit"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button><button class="icon-btn" title="Delete" data-action="delete"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></svg></button></div></td>
+              </tr>
+              <tr>
+                <td class="subparam-cell">Was associate confident on call?</td>
+                <td>3</td>
+                <td><div class="actions-cell"><button class="icon-btn" title="Edit"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button><button class="icon-btn" title="Delete" data-action="delete"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></svg></button></div></td>
+              </tr>
+              <tr>
+                <td class="subparam-cell">Varied tone and courteous</td>
+                <td>3</td>
+                <td><div class="actions-cell"><button class="icon-btn" title="Edit"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button><button class="icon-btn" title="Delete" data-action="delete"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></svg></button></div></td>
+              </tr>
+              <tr>
+                <td class="subparam-cell">Dead air (should not exceed 5 sec)</td>
+                <td>3</td>
+                <td><div class="actions-cell"><button class="icon-btn" title="Edit"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button><button class="icon-btn" title="Delete" data-action="delete"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></svg></button></div></td>
+              </tr>
+              <tr>
+                <td class="subparam-cell">Did associate probe well to understand customer's query / concern?</td>
+                <td>5</td>
+                <td><div class="actions-cell"><button class="icon-btn" title="Edit"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button><button class="icon-btn" title="Delete" data-action="delete"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></svg></button></div></td>
+              </tr>
+
+              <tr class="group-start">
+                <td class="param-cell" rowspan="3">Process handling</td>
+                <td class="subparam-cell">Convincing for device pick-up/ Fake Leads generate</td>
+                <td>5</td>
+                <td><div class="actions-cell"><button class="icon-btn" title="Edit"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button><button class="icon-btn" title="Delete" data-action="delete"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></svg></button></div></td>
+              </tr>
+              <tr>
+                <td class="subparam-cell">Incorrect TAG the customer call</td>
+                <td>5</td>
+                <td><div class="actions-cell"><button class="icon-btn" title="Edit"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button><button class="icon-btn" title="Delete" data-action="delete"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></svg></button></div></td>
+              </tr>
+              <tr>
+                <td class="subparam-cell">Did associate provided correct information to customer and did not make false commitment?</td>
+                <td>5</td>
+                <td><div class="actions-cell"><button class="icon-btn" title="Edit"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button><button class="icon-btn" title="Delete" data-action="delete"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></svg></button></div></td>
+              </tr>
+
+              <tr class="group-start">
+                <td class="param-cell" rowspan="2">Closing</td>
+                <td class="subparam-cell">Did associate ask for further assistance?</td>
+                <td>3</td>
+                <td><div class="actions-cell"><button class="icon-btn" title="Edit"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button><button class="icon-btn" title="Delete" data-action="delete"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></svg></button></div></td>
+              </tr>
+              <tr>
+                <td class="subparam-cell">Did associate follow standard closing script?</td>
+                <td>3</td>
+                <td><div class="actions-cell"><button class="icon-btn" title="Edit"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button><button class="icon-btn" title="Delete" data-action="delete"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></svg></button></div></td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <div class="modal" id="parameterModal">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3 class="modal-title">Add Parameters</h3>
+        <button class="modal-close" id="closeModal" aria-label="Close">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12"/><path d="M18 6l-12 12"/></svg>
+        </button>
+      </div>
+      <div class="form-wrap" id="parameterFormWrap">
+        <div class="form-stack">
+          <div class="field">
+            <label>Parameters</label>
+            <div class="param-row">
+              <div class="select">
+                <select id="parameterSelect">
+                  <option value="">Select Parameter</option>
+                  <option value="__new">New Parameter...</option>
+                  <option>Opening</option>
+                  <option>Call Handling</option>
+                  <option>Process handling</option>
+                  <option>Closing</option>
+                </select>
+              </div>
+              <div class="input" id="newParameterWrap" style="display:none;">
+                <input type="text" id="newParameterInput" placeholder="Type new parameter" />
+              </div>
+            </div>
+          </div>
+
+          <div class="subparam-section" id="subParamSection">
+            <div class="field">
+              <label>Sub Parameters &amp; Score</label>
+              <div class="subparam-list" id="subParamList">
+                <div class="subparam-row">
+                  <div class="input">
+                    <input type="text" class="sub-parameter-input" placeholder="Type sub parameter" />
+                  </div>
+                  <div class="input">
+                    <input type="number" class="score-input" min="0" step="1" placeholder="0" />
+                  </div>
+                  <button class="add-row-btn" type="button" title="Add sub parameter" data-action="add-subrow">+</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="hint">Selecting "New Parameter..." lets you add it and reuse it later.</div>
+        <div style="margin-top: 12px; display: flex; gap: 10px;">
+          <button class="btn" id="cancelModal">Cancel</button>
+          <button class="btn primary" id="addParameterBtn">Save Parameter</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function showParameterTable(event) {
+      if (event) {
+        event.preventDefault();
+      }
+      const tableCardElement = document.getElementById("parameterTableCard");
+      if (tableCardElement) {
+        tableCardElement.classList.remove("hidden");
+      }
+    }
+
+    const toggleFormButton = document.getElementById("toggleForm");
+    const parameterModal = document.getElementById("parameterModal");
+    const closeModal = document.getElementById("closeModal");
+    const cancelModal = document.getElementById("cancelModal");
+    const parameterSelect = document.getElementById("parameterSelect");
+    const newParameterWrap = document.getElementById("newParameterWrap");
+    const newParameterInput = document.getElementById("newParameterInput");
+    const subParamSection = document.getElementById("subParamSection");
+    const subParamList = document.getElementById("subParamList");
+    const addParameterBtn = document.getElementById("addParameterBtn");
+    const tableBody = document.getElementById("parameterTableBody");
+    const tableCard = document.getElementById("parameterTableCard");
+    const applyFilters = document.getElementById("applyFilters");
+
+    if (toggleFormButton && parameterModal) {
+      toggleFormButton.addEventListener("click", function () {
+        parameterModal.classList.add("active");
+      });
+    }
+
+    function closeParameterModal() {
+      if (parameterModal) {
+        parameterModal.classList.remove("active");
+      }
+    }
+
+    if (closeModal) {
+      closeModal.addEventListener("click", closeParameterModal);
+    }
+
+    if (cancelModal) {
+      cancelModal.addEventListener("click", closeParameterModal);
+    }
+
+    if (parameterModal) {
+      parameterModal.addEventListener("click", function (event) {
+        if (event.target === parameterModal) {
+          closeParameterModal();
+        }
+      });
+    }
+
+    function toggleSubParamSection() {
+      if (!parameterSelect || !subParamSection) {
+        return;
+      }
+      const hasSelection = Boolean(parameterSelect.value);
+      subParamSection.style.display = hasSelection ? "flex" : "none";
+    }
+
+    if (parameterSelect && newParameterWrap) {
+      parameterSelect.addEventListener("change", function () {
+        const isNew = parameterSelect.value === "__new";
+        newParameterWrap.style.display = isNew ? "block" : "none";
+        if (!isNew) {
+          newParameterInput.value = "";
+        }
+        toggleSubParamSection();
+      });
+    }
+
+    function createSubParamRow() {
+      const row = document.createElement("div");
+      row.className = "subparam-row";
+      row.innerHTML =
+        "<div class=\"input\"><input type=\"text\" class=\"sub-parameter-input\" placeholder=\"Type sub parameter\" /></div>" +
+        "<div class=\"input\"><input type=\"number\" class=\"score-input\" min=\"0\" step=\"1\" placeholder=\"0\" /></div>" +
+        "<button class=\"add-row-btn\" type=\"button\" title=\"Add sub parameter\" data-action=\"add-subrow\">+</button>";
+      return row;
+    }
+
+    if (subParamList) {
+      subParamList.addEventListener("click", function (event) {
+        const target = event.target.closest("[data-action]");
+        if (!target) {
+          return;
+        }
+        if (target.getAttribute("data-action") === "add-subrow") {
+          subParamList.appendChild(createSubParamRow());
+        }
+      });
+    }
+
+    if (addParameterBtn) {
+      addParameterBtn.addEventListener("click", function () {
+        let parameterValue = parameterSelect.value;
+        if (!parameterValue) {
+          alert("Select a parameter.");
+          return;
+        }
+
+        if (parameterValue === "__new") {
+          const newParam = newParameterInput.value.trim();
+          if (!newParam) {
+            alert("Enter a new parameter name.");
+            return;
+          }
+          const option = document.createElement("option");
+          option.textContent = newParam;
+          option.value = newParam;
+          parameterSelect.appendChild(option);
+          parameterValue = newParam;
+          parameterSelect.value = newParam;
+          newParameterInput.value = "";
+          newParameterWrap.style.display = "none";
+        }
+
+        const subRows = Array.from(subParamList.querySelectorAll(".subparam-row"));
+        const entries = subRows.map(function (row) {
+          return {
+            sub: row.querySelector(".sub-parameter-input").value.trim(),
+            score: row.querySelector(".score-input").value.trim()
+          };
+        });
+
+        if (entries.length === 0) {
+          alert("Add at least one sub parameter.");
+          return;
+        }
+
+        for (let i = 0; i < entries.length; i += 1) {
+          if (!entries[i].sub) {
+            alert("Enter a sub parameter.");
+            return;
+          }
+          if (!entries[i].score) {
+            alert("Enter a score.");
+            return;
+          }
+        }
+
+        entries.forEach(function (entry) {
+          const row = document.createElement("tr");
+          row.innerHTML =
+            "<td>" + parameterValue + "</td>" +
+            "<td>" + entry.sub + "</td>" +
+            "<td>" + entry.score + "</td>" +
+            "<td><div class=\"actions-cell\">" +
+            "<button class=\"icon-btn\" title=\"Edit\">" +
+            "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 20h9\"/><path d=\"M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z\"/></svg>" +
+            "</button>" +
+            "<button class=\"icon-btn\" title=\"Delete\" data-action=\"delete\">" +
+            "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M3 6h18\"/><path d=\"M8 6V4h8v2\"/><path d=\"M19 6l-1 14H6L5 6\"/></svg>" +
+            "</button>" +
+            "</div></td>";
+          tableBody.appendChild(row);
+        });
+
+        parameterSelect.value = "";
+        toggleSubParamSection();
+        if (subParamList) {
+          subParamList.innerHTML = "";
+          subParamList.appendChild(createSubParamRow());
+        }
+        closeParameterModal();
+      });
+    }
+
+    if (tableBody) {
+      tableBody.addEventListener("click", function (event) {
+        const target = event.target.closest("[data-action]");
+        if (!target) {
+          return;
+        }
+        if (target.getAttribute("data-action") === "delete") {
+          const row = target.closest("tr");
+          if (row) {
+            row.remove();
+          }
+        }
+      });
+    }
+
+    if (applyFilters && tableCard) {
+      applyFilters.addEventListener("click", showParameterTable);
+    }
+  </script>
+  <script>
+    (function(){
+      const apply = (selector, classes) => document.querySelectorAll(selector).forEach(el => el.classList.add(...classes));
+      apply('.app', ['min-h-screen']);
+      apply('.main', ['bg-[#f5f6f8]']);
+      apply('.topbar', ['bg-white']);
+      apply('.card,.table-card,.filters,.info-panel,.transcript-section,.summary-panel,.audio-section,.commentary-panel', ['bg-white','rounded-xl','border','border-slate-200','shadow-sm']);
+      apply('.btn.primary', ['bg-blue-600','text-white']);
+      apply('.btn', ['rounded-lg']);
+    })();
+  </script>
+  <script>
+    (function () {
+      const sidebarGroup = document.getElementById("qms_sidebar");
+      const toggleButton = document.getElementById("qms_down_icon");
+
+      if (!sidebarGroup || !toggleButton) return;
+
+      toggleButton.addEventListener("click", function (event) {
+        event.preventDefault();
+        sidebarGroup.classList.toggle("open");
+        toggleButton.classList.toggle("open");
+      });
+    })();
+  </script>
+</body>
+</html>

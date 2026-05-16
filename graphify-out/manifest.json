@@ -1,0 +1,567 @@
+{
+  "/root/qms_demo/package.json": {
+    "mtime": 1778938911.3643978,
+    "ast_hash": "038c360426733d4ff23690541fdd51e2",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/tailwind.config.ts": {
+    "mtime": 1778914146.4245825,
+    "ast_hash": "541d39298994ce5e413d8cddad0d3a0b",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/next-env.d.ts": {
+    "mtime": 1778914904.350763,
+    "ast_hash": "2a74d3909800ca5467fa83b0ab4a4890",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/tsconfig.json": {
+    "mtime": 1778914904.3497632,
+    "ast_hash": "a80e217419a3d09938685afecdc2deb8",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/next.config.ts": {
+    "mtime": 1778930619.065864,
+    "ast_hash": "f102c682c9b136f0c5b75382076ba5aa",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/components.json": {
+    "mtime": 1778914149.1023676,
+    "ast_hash": "fed3a243ee75f34bdc28618e22f5b06c",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/postcss.config.mjs": {
+    "mtime": 1778914138.0782623,
+    "ast_hash": "c56b5f3c12f777a86e2513f45daab56a",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/.claude/settings.local.json": {
+    "mtime": 1778930234.8656728,
+    "ast_hash": "1070dd0fae048699cba2deec010bbdcd",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/.claude/settings.json": {
+    "mtime": 1778924775.6685865,
+    "ast_hash": "9276b535256dc065bd7b8b84e15abd95",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/.codex/hooks.json": {
+    "mtime": 1778924765.400387,
+    "ast_hash": "376dae27403c2213247694fae9f66954",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/src/proxy.ts": {
+    "mtime": 1778939331.243687,
+    "ast_hash": "09bb5a561d1daa1051bced19c9b19edd",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/src/lib/db.ts": {
+    "mtime": 1778914167.9609,
+    "ast_hash": "59b25b99eceff0dce8e07af7f759df07",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/src/lib/auth.ts": {
+    "mtime": 1778934658.6798127,
+    "ast_hash": "fdded08304d25b523b1fc4fbe3ba10f9",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/src/lib/utils.ts": {
+    "mtime": 1778926497.7012753,
+    "ast_hash": "98efe8197e9c42aee6f2f4933f4ba32b",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/src/lib/audio-storage.ts": {
+    "mtime": 1778935747.777469,
+    "ast_hash": "891e7d4ade475d7133abc4f1e2b5c9e3",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/src/lib/base-path.ts": {
+    "mtime": 1778934265.9125922,
+    "ast_hash": "db9e631ff965d321930bc67834f23fb6",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/src/lib/session.ts": {
+    "mtime": 1778914378.7395265,
+    "ast_hash": "0977e3cbdbdbdd19fcceff55235dc5af",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/src/lib/data/parameters.ts": {
+    "mtime": 1778926851.5002358,
+    "ast_hash": "b5486af347719cfae15a9b8335af64e3",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/src/lib/data/calls.ts": {
+    "mtime": 1778935310.9576957,
+    "ast_hash": "b837480f592d9d545742f9be93667bca",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/src/lib/data/clients.ts": {
+    "mtime": 1778926966.2666702,
+    "ast_hash": "765ee566ba14ee0367e9939c10b97d8b",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/src/lib/data/dashboard.ts": {
+    "mtime": 1778926486.5052576,
+    "ast_hash": "87724f7616e538caee4b6ff19dfd3284",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/src/components/ui/button.tsx": {
+    "mtime": 1778914277.4966936,
+    "ast_hash": "4c4c0276a709e56c40a4a0077bd1e7a1",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/src/components/ui/score-pill.tsx": {
+    "mtime": 1778926413.7781677,
+    "ast_hash": "a97da70f53555f99e01698e8ea930bd8",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/src/components/ui/sentiment-badge.tsx": {
+    "mtime": 1778926407.2571619,
+    "ast_hash": "f3215046bac8788ffdd2c027aead4a3d",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/src/components/ui/input.tsx": {
+    "mtime": 1778914294.2097576,
+    "ast_hash": "dcf9faf21368376aef3a81b6615390c2",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/src/components/ui/dialog.tsx": {
+    "mtime": 1778914322.95823,
+    "ast_hash": "b125a6a53165cd348e125186fb0e8b9d",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/src/components/ui/separator.tsx": {
+    "mtime": 1778914352.2727695,
+    "ast_hash": "1f10fa32f56ddd935d78cebe299bce6e",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/src/components/ui/metric-card.tsx": {
+    "mtime": 1778926401.217157,
+    "ast_hash": "8e5fbc19271f4392463b18bc86abcfce",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/src/components/ui/textarea.tsx": {
+    "mtime": 1778914349.2129176,
+    "ast_hash": "e34fe355a4dc0eb38ee313f14690d490",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/src/components/ui/table.tsx": {
+    "mtime": 1778914307.797023,
+    "ast_hash": "c7119c721eb53c95bb42bc1c54d78c1b",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/src/components/ui/label.tsx": {
+    "mtime": 1778914297.879557,
+    "ast_hash": "672673f266d9c8f6751205dcb98e4e9e",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/src/components/ui/card.tsx": {
+    "mtime": 1778914285.315251,
+    "ast_hash": "acb1a3ab3b331b511ea42ad5e464025c",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/src/components/ui/badge.tsx": {
+    "mtime": 1778914290.5499594,
+    "ast_hash": "213d4f76fcbd4737a80ee5d8c48d5da3",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/src/components/ui/page-shell.tsx": {
+    "mtime": 1778926419.6481733,
+    "ast_hash": "d4195c62316ea521cae9b95215a5ffc3",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/src/components/ui/pill.tsx": {
+    "mtime": 1778926393.3331509,
+    "ast_hash": "79d5814b3dc4444d015a84b13c68a747",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/src/components/ui/select.tsx": {
+    "mtime": 1778914346.0180733,
+    "ast_hash": "8252c002371857cd7b47baa71b21296a",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/src/components/layout/sidebar.tsx": {
+    "mtime": 1778938876.0176232,
+    "ast_hash": "9c222b9d90e5cb8fa475a246cf66ec54",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/src/components/layout/mobile-nav.tsx": {
+    "mtime": 1778926384.7231448,
+    "ast_hash": "bf7ea361c1a3c37d7969172c4ce2829d",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/src/components/layout/topbar.tsx": {
+    "mtime": 1778937337.011741,
+    "ast_hash": "7a4fd4c5d349751ab7bab94d41efba0e",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/src/services/stt/merger.ts": {
+    "mtime": 1778938795.2237902,
+    "ast_hash": "3a1b4b154d9a72d9aad987f99cffdb2e",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/src/services/stt/factory.ts": {
+    "mtime": 1778938772.9232676,
+    "ast_hash": "d7120ed9380348f014f901f7a75659ea",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/src/services/stt/base.ts": {
+    "mtime": 1778938768.7651694,
+    "ast_hash": "89efc84525921a50ed69d48402b524b3",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/src/services/stt/quality.ts": {
+    "mtime": 1778938781.0364587,
+    "ast_hash": "6b149102856ef760c56177f1ca2af86c",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/src/services/stt/types.ts": {
+    "mtime": 1778938758.1589172,
+    "ast_hash": "dc02e334a9366d88612960b4a7dbc4b7",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/src/services/audit/saveAuditResult.ts": {
+    "mtime": 1778938861.3822978,
+    "ast_hash": "248807ab24e5b319cbc53c97c8764578",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/src/services/audit/validateAuditResponse.ts": {
+    "mtime": 1778927852.0306883,
+    "ast_hash": "dc265c53ef15a97be8f5e25ea8ddd428",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/src/services/audit/index.ts": {
+    "mtime": 1778927910.2702305,
+    "ast_hash": "8b1079b3cd055b64df93273f647d2c46",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/src/services/audit/mockAuditResponse.ts": {
+    "mtime": 1778928195.2376397,
+    "ast_hash": "f71c9bb9d4f491054b84e290d64ff6c2",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/src/services/audit/buildAuditPrompt.ts": {
+    "mtime": 1778927770.899424,
+    "ast_hash": "1b53027bc80381df91358da878498f32",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/src/services/audit/types.ts": {
+    "mtime": 1778927732.517817,
+    "ast_hash": "965a2dd36fa7853352ff57398ff50fdf",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/src/services/audit/runAuditForCall.ts": {
+    "mtime": 1778927901.1822984,
+    "ast_hash": "9553ae1970f0915f6e74f42648571a8c",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/src/services/audit/getClientAuditParameters.ts": {
+    "mtime": 1778927738.470754,
+    "ast_hash": "3cd97743ebc2f71a43d60e640116949f",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/src/services/transcription/saveTranscript.ts": {
+    "mtime": 1778938731.7382815,
+    "ast_hash": "e8ccd41850b5a9bca7e14fa88bc4ed44",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/src/services/transcription/index.ts": {
+    "mtime": 1778938749.2187035,
+    "ast_hash": "d0f578a9eeeedafeebded52d39f91dd5",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/src/services/transcription/runMockTranscriptionForCall.ts": {
+    "mtime": 1778938740.4264917,
+    "ast_hash": "27a3d75895d74e2001a2658d26f57b04",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/src/services/transcription/mockTranscription.ts": {
+    "mtime": 1778938718.066948,
+    "ast_hash": "5fecb37291206de2a38e6084c9f763b6",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/src/services/transcription/types.ts": {
+    "mtime": 1778938687.0911796,
+    "ast_hash": "94028250edf4d46dfb2c2f8a0a941498",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/src/app/page.tsx": {
+    "mtime": 1778914419.0457551,
+    "ast_hash": "cfd4842cc6996290e7d8ef4b709fcecd",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/src/app/layout.tsx": {
+    "mtime": 1778937284.6720626,
+    "ast_hash": "b583a43320ac755f87e9cfb593a86145",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/src/app/api/calls/[callId]/audio/route.ts": {
+    "mtime": 1778935311.2846417,
+    "ast_hash": "44419528dc39777bba85d1bf9a143228",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/src/app/api/calls/upload/route.ts": {
+    "mtime": 1778935718.0688133,
+    "ast_hash": "bbf2767caae1d564717e5f33987279da",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/src/app/api/auth/logout/route.ts": {
+    "mtime": 1778934287.62514,
+    "ast_hash": "797cc31c38712d7dd9cf61f308cf634d",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/src/app/api/auth/login/route.ts": {
+    "mtime": 1778934283.5780387,
+    "ast_hash": "0383d9e2511d9d5d1703eaac43b35095",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/src/app/login/page.tsx": {
+    "mtime": 1778938881.7257493,
+    "ast_hash": "5243cb25e9b6716fb52e5293207b2bd0",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/src/app/(app)/layout.tsx": {
+    "mtime": 1778937290.180982,
+    "ast_hash": "5878aad45358019f0784708d3b938b23",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/src/app/(app)/settings/page.tsx": {
+    "mtime": 1778927058.2019916,
+    "ast_hash": "0360b3c05a464964f501c03bc660d6e4",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/src/app/(app)/dashboard/filter-bar.tsx": {
+    "mtime": 1778936348.606439,
+    "ast_hash": "04220d19c53d52c31681318ca742f0c7",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/src/app/(app)/dashboard/page.tsx": {
+    "mtime": 1778936333.6759164,
+    "ast_hash": "c381712820ab52115bf53e3ea24d3031",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/src/app/(app)/parameters/editor.tsx": {
+    "mtime": 1778937468.9533274,
+    "ast_hash": "4695d5e3ba93fced5d757bf9b2042fff",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/src/app/(app)/parameters/page.tsx": {
+    "mtime": 1778937417.2749114,
+    "ast_hash": "2e7dccd7d201bebd66ef5c4c572b6393",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/src/app/(app)/parameters/actions.ts": {
+    "mtime": 1778926870.8773057,
+    "ast_hash": "4a2b6c07b11fcc60ecb83763277ff2d1",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/src/app/(app)/calls/filter-bar.tsx": {
+    "mtime": 1778937400.5957162,
+    "ast_hash": "bfebd6625c31d289a0c4bf8437f52461",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/src/app/(app)/calls/page.tsx": {
+    "mtime": 1778937368.0292432,
+    "ast_hash": "a9073be21a9166c73d68aed5438e9322",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/src/app/(app)/calls/upload-calls-dialog.tsx": {
+    "mtime": 1778937408.8438096,
+    "ast_hash": "3d1e8e94de8b9ab5f32ec463c0f3446b",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/src/app/(app)/calls/[id]/manual-review-form.tsx": {
+    "mtime": 1778926818.0931182,
+    "ast_hash": "ce397636cfd06ead2c4c910803f5d690",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/src/app/(app)/calls/[id]/audio-player.tsx": {
+    "mtime": 1778937510.457087,
+    "ast_hash": "d2d9bc57312e61485a06cfa39e7f2def",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/src/app/(app)/calls/[id]/transcription-panel.tsx": {
+    "mtime": 1778938816.9162915,
+    "ast_hash": "15fd5c34e32e8aedbd665fe482e44a02",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/src/app/(app)/calls/[id]/page.tsx": {
+    "mtime": 1778938841.1718438,
+    "ast_hash": "064caa1480d77a1898b85aaee9c865b2",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/src/app/(app)/calls/[id]/notes-panel.tsx": {
+    "mtime": 1778926831.777166,
+    "ast_hash": "0c29e64607e9055689a0d1946a16a34d",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/src/app/(app)/calls/[id]/audit-panel.tsx": {
+    "mtime": 1778938828.0565462,
+    "ast_hash": "c80208236474f5bc82d3a552cad10e8e",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/src/app/(app)/calls/[id]/actions.ts": {
+    "mtime": 1778938802.2009523,
+    "ast_hash": "86746cdbb111a8c8db53fd88253d304c",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/src/app/(app)/clients/editor.tsx": {
+    "mtime": 1778927030.3809314,
+    "ast_hash": "fab30e641836979dca72ee2f24075830",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/src/app/(app)/clients/page.tsx": {
+    "mtime": 1778926996.246791,
+    "ast_hash": "e635592d5c5ad0f788496912c3674011",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/src/app/(app)/clients/actions.ts": {
+    "mtime": 1778926976.2717102,
+    "ast_hash": "d36dbef51c958e61320da0ffe2a13ba6",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/prisma/seed.ts": {
+    "mtime": 1778926166.4152665,
+    "ast_hash": "0d8ecd521c970834a0e57950d7ccae4f",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/prisma/migrations/20260516120000_call_quality_fields/migration.sql": {
+    "mtime": 1778926092.224454,
+    "ast_hash": "8556f90f2b4c0aa77b25055d45da23f1",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/prisma/migrations/20260516140000_audit_pipeline_fields/migration.sql": {
+    "mtime": 1778927592.459539,
+    "ast_hash": "ec884b9bfab1086f0a76ab3cd8489429",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/prisma/migrations/20260516152000_call_audio_upload_fields/migration.sql": {
+    "mtime": 1778935243.6572855,
+    "ast_hash": "52ef48419f0e678793ff597a08b0c239",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/prisma/migrations/20260516070637_init/migration.sql": {
+    "mtime": 1778915197.9182408,
+    "ast_hash": "c4866c6cfd8155ded1422a5aa1969a2d",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/prisma/migrations/20260516161000_transcript_segment_confidence/migration.sql": {
+    "mtime": 1778938678.2849581,
+    "ast_hash": "e85c684429fdaca4e912b9f85f1b622f",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/deploy/install-nginx-direct.sh": {
+    "mtime": 1778932842.7530055,
+    "ast_hash": "b855ad74a07198ceca0e46420eac8e8c",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/deploy/deploy-direct.sh": {
+    "mtime": 1778932851.2439857,
+    "ast_hash": "96b9f962ea7e453aad414282fc426c56",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/deploy/diagnose-direct.sh": {
+    "mtime": 1778932789.4091208,
+    "ast_hash": "588c439e3f946a79539fbe5c78c945b8",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/deploy/setup-postgres.sh": {
+    "mtime": 1778933077.1233385,
+    "ast_hash": "683dea4a664f29e7a80fd6639cb8263b",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/scripts/import-existing-audio.ts": {
+    "mtime": 1778938902.7652109,
+    "ast_hash": "698f718023054c3736f97a42f3873eb0",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/CLAUDE.md": {
+    "mtime": 1778924775.6675863,
+    "ast_hash": "da79aa9343cd2b362206f03762160abc",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/README.md": {
+    "mtime": 1778938957.20438,
+    "ast_hash": "16a94e6881753ba76e2eab9c366a26b1",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/AGENTS.md": {
+    "mtime": 1778924222.9467547,
+    "ast_hash": "a993bd9a8466b705f520b2a269a544bc",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/html/Calls.html": {
+    "mtime": 1778911576.0,
+    "ast_hash": "5fc032e4472f162ec4a4eb1f7913c4fd",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/html/QA.html": {
+    "mtime": 1778911576.0,
+    "ast_hash": "5f8bec1ea8d7e72c9136bfc78442729f",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/html/Calls Detail.html": {
+    "mtime": 1778911576.0,
+    "ast_hash": "b84377a9498c66a895e2072f1e89a262",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/html/qms_dashboard.html": {
+    "mtime": 1778911576.0,
+    "ast_hash": "7b5482e2779dcb8d19a3781f6f761e0c",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/src/services/audit/README.md": {
+    "mtime": 1778929166.5430043,
+    "ast_hash": "533cd5b21ce64800d2e29e0f2a8b9184",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/docs/html-conversion-audit.md": {
+    "mtime": 1778937605.0937805,
+    "ast_hash": "83da989140682e1640ee8578ee85ee00",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/docs/deployment-runbook.md": {
+    "mtime": 1778938969.6446426,
+    "ast_hash": "0181b1081d86df587d64c5822a317e76",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/src/app/ileads-logo.png": {
+    "mtime": 1778938259.0,
+    "ast_hash": "da535bf0adfa79faccc54120038ca853",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/public/ileads-logo.png": {
+    "mtime": 1778938663.3105779,
+    "ast_hash": "da535bf0adfa79faccc54120038ca853",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/storage/audio/call-20260516135048824-285904e6.wav": {
+    "mtime": 1778939448.8246787,
+    "ast_hash": "343a38895580ae4c65c3e585d12ff9ba",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/storage/audio/7006585665_1778818917.16095687.wav": {
+    "mtime": 1778849164.0,
+    "ast_hash": "9183d7182324407c3888e23b081772a1",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/storage/audio/7482024646_1778821602.16218505.wav": {
+    "mtime": 1778849069.0,
+    "ast_hash": "ddb3d91b1c0f7323ee330965d7bd8e0e",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/storage/audio/7027272712_1778822312.16249227.wav": {
+    "mtime": 1778849183.0,
+    "ast_hash": "a4e0e24a053b0ba83c6679cefc6d17b6",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/storage/audio/7051960448_1778817367.16038255.wav": {
+    "mtime": 1778849198.0,
+    "ast_hash": "27deb77d854502f2260bc9a0ec23f38c",
+    "semantic_hash": ""
+  },
+  "/root/qms_demo/storage/audio/7006925438_1778822652.16267877.wav": {
+    "mtime": 1778849247.0,
+    "ast_hash": "17c7b73a301a1dff32b45b5af6941e6a",
+    "semantic_hash": ""
+  }
+}
