@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 import { requireSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { saveAudioFile } from "@/lib/audio-storage";
+import { probeAudioDurationSeconds } from "@/lib/audio-duration";
 
 export const runtime = "nodejs";
 
@@ -81,6 +82,7 @@ export async function POST(request: Request) {
     const created = [];
     for (const [index, file] of files.entries()) {
       const audio = await saveAudioFile(file);
+      const durationSeconds = await probeAudioDurationSeconds(audio.audioPath);
       const call = await prisma.call.create({
         data: {
           clientId: session.clientId,
@@ -91,7 +93,7 @@ export async function POST(request: Request) {
           callerNumber,
           customerName,
           callStartedAt,
-          durationSeconds: null,
+          durationSeconds,
           status: "UNKNOWN",
           disposition: null,
           sentiment: null,

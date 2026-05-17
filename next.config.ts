@@ -9,10 +9,20 @@ const basePath = rawBasePath && rawBasePath !== "/" ? rawBasePath : "";
 
 const nextConfig: NextConfig = {
   ...(basePath ? { basePath } : {}),
+  serverExternalPackages: ["@prisma/client", "prisma"],
   experimental: {
     serverActions: {
       bodySizeLimit: "2mb",
     },
+  },
+  // Don't let Turbopack/Next walk into the Python venv or model weights.
+  outputFileTracingExcludes: {
+    "*": [
+      "**/.venv-stt/**",
+      "**/models/**",
+      "**/runtime/stt/**",
+      "**/storage/audio/**",
+    ],
   },
 };
 

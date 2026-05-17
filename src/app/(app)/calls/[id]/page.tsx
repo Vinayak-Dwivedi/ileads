@@ -25,6 +25,12 @@ import { NotesPanel } from "./notes-panel";
 import { AudioPlayerCard } from "./audio-player";
 import { AuditPanel } from "./audit-panel";
 import { TranscriptionPanel } from "./transcription-panel";
+import { ProcessDemoPanel } from "./process-demo-panel";
+import { SpeakerCorrectionPanel } from "./speaker-correction-panel";
+import { SegmentSpeakerSelect } from "./segment-speaker-select";
+import { hasSarvamKey, isMockMode, loadSttConfig, shouldShowMockActions } from "@/services/stt";
+import { hasOpenRouterKey } from "@/services/llm";
+import { isActivelyProcessing } from "@/lib/processing-lock";
 
 export const dynamic = "force-dynamic";
 
@@ -45,6 +51,36 @@ function eventLabel(type: string) {
   return type.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+function stringFlags(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
+}
+
+function speakerMappingNote(flags: string[]): string | null {
+  const mode = flags.find((flag) => flag.startsWith("speaker_mapping_mode_"))?.replace("speaker_mapping_mode_", "");
+  const confidence = flags
+    .find((flag) => flag.startsWith("speaker_mapping_confidence_"))
+    ?.replace("speaker_mapping_confidence_", "");
+  if (mode === "heuristic") {
+    return `Speaker labels from Sarvam diarization, mapped using heuristic confidence: ${confidence ?? "unknown"}.`;
+  }
+  if (mode === "fixed") {
+    return "Speaker labels from Sarvam diarization, fixed mapping: speaker 0 = Agent, speaker 1 = Customer.";
+  }
+  if (mode === "raw") {
+    return "Speaker labels from Sarvam diarization, raw speaker IDs preserved.";
+  }
+  return null;
+}
+
+function speakerSourceLabel(source: string | null, channel: string | null): string | null {
+  if (!source) return null;
+  if (source === "stereo_channel") return channel ?? "channel";
+  if (source === "manual_segment_correction") return "manual segment correction";
+  if (source.startsWith("manual_")) return "manual correction";
+  if (source.startsWith("sarvam_diarization") && channel) return `speaker ${channel} · ${source}`;
+  return source;
+}
+
 export default async function CallDetailPage({ params }: PageProps) {
   const { id } = await params;
   const session = await requireSession();
@@ -59,6 +95,20 @@ export default async function CallDetailPage({ params }: PageProps) {
   const existingReview = call.manualReviews[0] ?? null;
   const audioUrl = call.audioPath ? withBasePath(`/api/calls/${call.id}/audio`) : call.recordingUrl;
   const hasAudio = Boolean(call.audioPath || call.recordingUrl);
+  const processingActive = isActivelyProcessing(call.processingStatus, call.processingStartedAt);
+  const processingStatusText = processingActive ? call.processingStatus : null;
+  const processingFailed = call.processingStatus === "failed";
+  const processingStale = Boolean(call.processingStatus && !processingActive && call.processingStatus !== "idle" && call.processingStatus !== "failed");
+  const sttConfig = loadSttConfig();
+  const transcriptFlags = stringFlags(call.transcript?.qualityFlags);
+  const mappingNote = speakerMappingNote(transcriptFlags);
+  const speakerCorrectionNeedsAudit =
+    Boolean(call.transcript?.speakerLabelsCorrected && audit) &&
+    Boolean(
+      call.transcript?.speakerCorrectedAt &&
+        audit?.createdAt &&
+        call.transcript.speakerCorrectedAt > audit.createdAt,
+    );
 
   // group parameter scores by category for highlight cards
   const scoresByCategory = new Map<
@@ -197,7 +247,9 @@ export default async function CallDetailPage({ params }: PageProps) {
               <div className="flex items-center gap-2 text-sm font-bold text-slate-800 mb-3">
                 <MessageSquare className="h-4 w-4" /> Transcript
                 <span className="ml-auto text-xs font-normal text-slate-500">
-                  {call.transcript ? `${call.transcript.segments.length} segments` : "no transcript"}
+                  {call.transcript
+                    ? `${call.transcript.segments.length} segments · ${call.transcript.modelUsed ?? "unknown model"}`
+                    : "no transcript"}
                 </span>
               </div>
               {!call.transcript ? (
@@ -207,6 +259,37 @@ export default async function CallDetailPage({ params }: PageProps) {
                 />
               ) : (
                 <div className="space-y-3 max-h-[480px] overflow-y-auto pr-2">
+                  {call.transcript.fallbackUsed ? (
+                    <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                      Transcribed using fallback model: {call.transcript.modelUsed ?? "unknown"}.
+                      {call.transcript.fallbackReason ? ` Reason: ${call.transcript.fallbackReason}.` : ""}
+                    </div>
+                  ) : null}
+                  {transcriptFlags.includes("heuristic_speaker_labels") ? (
+                    <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
+                      Speaker labels are heuristic because this recording was processed as mono.
+                    </div>
+                  ) : null}
+                  {mappingNote ? (
+                    <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
+                      {mappingNote}
+                    </div>
+                  ) : null}
+                  {call.transcript.speakerLabelsCorrected ? (
+                    <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
+                      Speaker labels were manually corrected
+                      {call.transcript.speakerCorrectedAt
+                        ? ` on ${formatShortDate(call.transcript.speakerCorrectedAt)}.`
+                        : "."}
+                    </div>
+                  ) : null}
+                  <SpeakerCorrectionPanel
+                    callId={call.id}
+                    hasTranscript={!!call.transcript}
+                    hasAudit={!!audit}
+                    needsAuditRerun={speakerCorrectionNeedsAudit}
+                    processingStatus={processingStatusText}
+                  />
                   {call.transcript.segments.map((s) => (
                     <div
                       key={s.id}
@@ -225,8 +308,17 @@ export default async function CallDetailPage({ params }: PageProps) {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between text-xs">
-                          <span className="font-semibold text-slate-700">
-                            {s.speaker.charAt(0) + s.speaker.slice(1).toLowerCase()}
+                          <span className="inline-flex items-center gap-2 font-semibold text-slate-700">
+                            <SegmentSpeakerSelect
+                              segmentId={s.id}
+                              speaker={s.speaker === "SYSTEM" ? "UNKNOWN" : s.speaker}
+                              disabled={!!processingStatusText}
+                            />
+                            {speakerSourceLabel(s.speakerSource, s.channel) ? (
+                              <span className="ml-2 font-normal text-slate-400">
+                                {speakerSourceLabel(s.speakerSource, s.channel)}
+                              </span>
+                            ) : null}
                           </span>
                           <span className="text-slate-500">
                             {formatMmSs(Math.floor(s.startMs / 1000))}
@@ -336,10 +428,37 @@ export default async function CallDetailPage({ params }: PageProps) {
 
           {/* Right column: audit pipeline, events, manual review, notes */}
           <div className="space-y-5">
+            <ProcessDemoPanel
+              callId={call.id}
+              hasAudio={hasAudio}
+              hasTranscript={!!call.transcript}
+              hasParameters={activeParameterCount > 0}
+              hasAudit={!!audit}
+              durationSeconds={call.durationSeconds}
+              openrouterKeyConfigured={hasOpenRouterKey()}
+              mockMode={isMockMode()}
+              sttProvider={sttConfig.provider}
+              sarvamKeyConfigured={hasSarvamKey(sttConfig)}
+              processingStatus={processingStatusText}
+              processingStateLabel={call.processingStatus}
+              canResetProcessing={processingFailed || processingStale || processingActive}
+              processingError={call.processingError}
+            />
+
             <TranscriptionPanel
               callId={call.id}
               hasAudio={hasAudio}
               hasTranscript={!!call.transcript}
+              durationSeconds={call.durationSeconds}
+              mockMode={isMockMode()}
+              showMockActions={shouldShowMockActions()}
+              sttProvider={sttConfig.provider}
+              sarvamKeyConfigured={hasSarvamKey(sttConfig)}
+              sarvamModel={sttConfig.sarvam.model}
+              sarvamUseBatch={sttConfig.sarvam.useBatch}
+              processingStatus={processingStatusText}
+              processingFailed={processingFailed}
+              processingError={call.processingError}
             />
 
             <AuditPanel
@@ -349,6 +468,9 @@ export default async function CallDetailPage({ params }: PageProps) {
               hasParameters={activeParameterCount > 0}
               latestRunNo={audit?.auditRunNo ?? null}
               isDevelopment={process.env.NODE_ENV !== "production"}
+              showMockAuditButton={shouldShowMockActions()}
+              openrouterKeyConfigured={hasOpenRouterKey()}
+              processingStatus={processingStatusText}
             />
 
             <article className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">

@@ -1,5 +1,6 @@
 import "server-only";
 import { prisma } from "@/lib/db";
+import { shouldShowMockActions } from "@/services/stt";
 import { generateMockTranscript } from "./mockTranscription";
 import { saveTranscript } from "./saveTranscript";
 
@@ -11,8 +12,8 @@ export async function runMockTranscriptionForCall(callId: string, clientId: stri
   if (!call) throw new Error("Call not found.");
   if (!call.audioPath && !call.recordingUrl) throw new Error("Audio file required.");
 
-  if (process.env.MOCK_STT === "false") {
-    throw new Error("Live STT is not configured yet.");
+  if (process.env.MOCK_STT === "false" && !shouldShowMockActions()) {
+    throw new Error("Mock transcription is hidden. Set SHOW_MOCK_ACTIONS=true to enable it.");
   }
 
   const transcript = generateMockTranscript();

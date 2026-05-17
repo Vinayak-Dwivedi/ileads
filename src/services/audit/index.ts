@@ -13,10 +13,13 @@
 
 export { getClientAuditParameters } from "./getClientAuditParameters";
 export { buildAuditPrompt, PROMPT_VERSION } from "./buildAuditPrompt";
+export { buildLiveAuditPrompt, LIVE_PROMPT_VERSION } from "./buildLiveAuditPrompt";
 export { generateMockAuditResponse } from "./mockAuditResponse";
 export { validateAuditResponse } from "./validateAuditResponse";
 export { saveAuditResult } from "./saveAuditResult";
 export { runAuditForCall } from "./runAuditForCall";
+export { runLiveAuditForCall, LiveAuditError } from "./runLiveAuditForCall";
+export type { RunLiveAuditResult, LiveAuditUsage } from "./runLiveAuditForCall";
 export type {
   AuditCallContext,
   AuditMode,

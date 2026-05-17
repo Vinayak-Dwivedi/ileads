@@ -7,8 +7,9 @@ import { SentimentBadge } from "@/components/ui/sentiment-badge";
 import { requireSession } from "@/lib/auth";
 import { getCallUploadOptions, listCalls, type CallListFilters } from "@/lib/data/calls";
 import { getFilterOptions } from "@/lib/data/dashboard";
+import { withBasePath } from "@/lib/base-path";
 import { formatDuration, formatShortDate, formatTime } from "@/lib/utils";
-import { Download, FileText, Play, Search } from "lucide-react";
+import { FileText, Play, Search } from "lucide-react";
 import { CallsFilterBar } from "./filter-bar";
 import { UploadCallsDialog } from "./upload-calls-dialog";
 
@@ -42,6 +43,20 @@ function manualDispositionTone(d: string | null): "green" | "red" | "yellow" | "
   return "slate";
 }
 
+function pipelineStatus(call: {
+  processingStatus: string | null;
+  transcript: { id: string } | null;
+  aiScore: number | null;
+}): { label: string; tone: "green" | "red" | "yellow" | "blue" | "slate" } {
+  if (call.processingStatus && call.processingStatus !== "idle") {
+    if (call.processingStatus === "failed") return { label: "Failed", tone: "red" };
+    return { label: "Processing", tone: "blue" };
+  }
+  if (call.aiScore != null) return { label: "Audited", tone: "green" };
+  if (call.transcript) return { label: "Transcribed", tone: "yellow" };
+  return { label: "Uploaded", tone: "slate" };
+}
+
 export default async function CallsPage({
   searchParams,
 }: {
@@ -64,7 +79,7 @@ export default async function CallsPage({
         crumb="Library"
         right={
           <div className="flex flex-wrap items-center gap-[14px]">
-            <form action="/calls" className="hidden h-10 w-[360px] items-center gap-2 rounded-lg border border-[#d6dcea] bg-white px-3 text-sm text-slate-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] xl:flex">
+            <form action={withBasePath("/calls")} className="hidden h-10 w-[360px] items-center gap-2 rounded-lg border border-[#d6dcea] bg-white px-3 text-sm text-slate-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] xl:flex">
               <Search className="h-4 w-4 text-slate-500" />
               <input
                 name="q"
@@ -73,14 +88,10 @@ export default async function CallsPage({
                 placeholder="Search by Call ID, Agent Name, Customer Number..."
               />
             </form>
-            <button
-              type="button"
-              className="html-btn hidden sm:inline-flex"
-            >
-              <Download className="h-4 w-4" />
-              Export
-            </button>
-            <UploadCallsDialog options={uploadOptions} />
+            <UploadCallsDialog
+              options={uploadOptions}
+              maxFileMb={Number(process.env.MAX_AUDIO_UPLOAD_MB ?? "100") || 100}
+            />
           </div>
         }
       />
@@ -118,6 +129,7 @@ export default async function CallsPage({
                     <Th>Manual Score</Th>
                     <Th>Final Score</Th>
                     <Th>Sentiment</Th>
+                    <Th>Status</Th>
                     <Th>Audit Status</Th>
                     <Th>Manual Disposition</Th>
                     <Th>Actions</Th>
@@ -128,6 +140,7 @@ export default async function CallsPage({
                     const callIdText = c.externalCallId ?? `CALL-${c.id.slice(-6).toUpperCase()}`;
                     const auditStatus =
                       c.aiScore != null ? "COMPLETED" : c.manualReviews[0]?.status ?? "PENDING";
+                    const flow = pipelineStatus(c);
                     return (
                       <tr key={c.id} className="border-b border-[#edf1f6] hover:bg-[#fafcff]">
                         <Td>
@@ -170,6 +183,9 @@ export default async function CallsPage({
                         </Td>
                         <Td>
                           <SentimentBadge value={c.sentiment} />
+                        </Td>
+                        <Td>
+                          <Pill tone={flow.tone}>{flow.label}</Pill>
                         </Td>
                         <Td>
                           <AuditStatusPill status={auditStatus} />

@@ -1,5 +1,6 @@
 import "server-only";
 import { prisma } from "@/lib/db";
+import { Prisma } from "@prisma/client";
 import type { TranscriptResult } from "./types";
 
 export async function saveTranscript(callId: string, transcript: TranscriptResult) {
@@ -14,6 +15,10 @@ export async function saveTranscript(callId: string, transcript: TranscriptResul
         source: "AI",
         language: transcript.language,
         modelUsed: transcript.modelUsed,
+        fallbackUsed: transcript.fallbackUsed ?? false,
+        fallbackReason: transcript.fallbackReason ?? null,
+        attemptedModels: transcript.attemptedModels ?? Prisma.JsonNull,
+        qualityFlags: transcript.qualityFlags ?? Prisma.JsonNull,
         fullText: transcript.fullText,
         generatedAt: new Date(),
       },
@@ -22,6 +27,10 @@ export async function saveTranscript(callId: string, transcript: TranscriptResul
         source: "AI",
         language: transcript.language,
         modelUsed: transcript.modelUsed,
+        fallbackUsed: transcript.fallbackUsed ?? false,
+        fallbackReason: transcript.fallbackReason ?? null,
+        attemptedModels: transcript.attemptedModels ?? Prisma.JsonNull,
+        qualityFlags: transcript.qualityFlags ?? Prisma.JsonNull,
         fullText: transcript.fullText,
         generatedAt: new Date(),
       },
@@ -37,6 +46,8 @@ export async function saveTranscript(callId: string, transcript: TranscriptResul
         endMs: segment.endMs,
         text: segment.text,
         confidenceScore: segment.confidenceScore ?? null,
+        channel: segment.channel ?? null,
+        speakerSource: segment.speakerSource ?? null,
       })),
     });
 
@@ -45,16 +56,20 @@ export async function saveTranscript(callId: string, transcript: TranscriptResul
       data: { language: transcript.language },
     });
 
+    const isMock = /mock/i.test(transcript.modelUsed);
     await tx.callEvent.create({
       data: {
         callId,
         eventType: "TRANSCRIPT_READY",
-        title: "Mock transcription completed",
-        description: `${transcript.segments.length} transcript segments saved.`,
+        title: isMock ? "Mock transcription completed" : "Local STT transcription completed",
+        description: `${transcript.segments.length} transcript segments saved (${transcript.modelUsed}).`,
         payload: {
           modelUsed: transcript.modelUsed,
           language: transcript.language,
           segmentCount: transcript.segments.length,
+          fallbackUsed: transcript.fallbackUsed ?? false,
+          fallbackReason: transcript.fallbackReason ?? null,
+          qualityFlags: transcript.qualityFlags ?? [],
         },
       },
     });

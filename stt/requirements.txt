@@ -1,0 +1,38 @@
+# Local STT Python deps.
+# CPU-friendly defaults; torch is installed from PyPI by setup-stt-env.sh
+# (CPU wheel by default; user can swap for a CUDA build manually).
+
+# Core audio handling
+numpy>=1.26,<3
+soundfile>=0.12
+librosa>=0.10
+scipy>=1.11
+ffmpeg-python>=0.2
+
+# Hugging Face / Transformers stack (used by IndicConformer + Whisper fine-tune)
+transformers>=4.44
+accelerate>=0.30
+huggingface_hub>=0.24
+sentencepiece>=0.2
+tokenizers>=0.19
+safetensors>=0.4
+onnx>=1.20
+onnxruntime>=1.20
+
+# faster-whisper (CTranslate2 backend) for the small/base fallback
+faster-whisper>=1.0
+ctranslate2>=4.4
+
+# Sarvam Saaras v3 STT for the demo primary provider.
+sarvamai
+
+# torch / torchaudio are installed separately by setup-stt-env.sh so the
+# script can pick CPU vs CUDA wheel. Listing torchaudio here only as a
+# safety net for editors / type checkers.
+# torch>=2.2
+# torchaudio>=2.2
+
+# NeMo is only required if IndicConformer is exposed as a NeMo .nemo file.
+# It is HUGE (>1GB transitive) so we install it on demand from the setup
+# script if the model card needs it. Leave commented here.
+# nemo_toolkit[asr]>=1.23

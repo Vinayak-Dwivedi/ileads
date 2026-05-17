@@ -77,8 +77,9 @@ APP_PASSWORD="<seed login password>"
 NEXT_PUBLIC_BASE_PATH="/ileads-qms"
 APP_BASE_URL="http://187.127.139.47/ileads-qms"
 NODE_ENV="production"
-MOCK_STT="true"
-MOCK_LLM="true"
+MOCK_STT=false
+SHOW_MOCK_ACTIONS=false
+STT_PROVIDER=sarvam
 ```
 
 Generate a secret with:
@@ -248,11 +249,38 @@ Common issues:
 - DB errors: verify `DATABASE_URL`, PostgreSQL status, and
   `npx prisma migrate status`.
 
+## Upload Troubleshooting
+
+- **HTTP 413 (Request Entity Too Large)** on `POST /ileads-qms/api/calls/upload`
+  means Nginx is rejecting the body before it reaches Node. Increase
+  `client_max_body_size` in the active vhost (snippet below) — the app's
+  `MAX_AUDIO_UPLOAD_MB` is irrelevant until Nginx accepts the body.
+- The active vhost for `/ileads-qms` is
+  `/etc/nginx/sites-available/zepto-vb-demo.conf` (symlinked into
+  `sites-enabled/`). It sets `client_max_body_size 500M` at the server level
+  *and* inside both `/ileads-qms` location blocks, with 300s proxy timeouts so
+  large WAVs don't get cut off mid-upload.
+- Inspect the active limit:
+
+  ```bash
+  sudo nginx -T | grep -n "client_max_body_size" -C 10
+  ```
+
+- Reload after editing:
+
+  ```bash
+  sudo nginx -t && sudo systemctl reload nginx
+  ```
+
+- App-level cap is `MAX_AUDIO_UPLOAD_MB` in `.env` (currently `250`). The
+  upload dialog reads this from the calls page and rejects oversize files
+  client-side with a clear message; the `/api/calls/upload` route also enforces
+  it via `saveAudioFile()`.
+
 ## AI Pipeline Note
 
-Live IndicWhisper, IndicConformer, and OpenRouter execution are planned but
-not implemented here. Keep `MOCK_STT="true"` and `MOCK_LLM="true"` until the
-live pipeline lands.
+Sarvam Batch STT and OpenRouter/Gemma live audit are implemented. Keep
+`MOCK_STT=false` and `SHOW_MOCK_ACTIONS=false` for the production demo.
 
 For demo data, import existing local audio from `AUDIO_STORAGE_PATH` with:
 
@@ -261,7 +289,6 @@ npm run import:audio
 ```
 
 This creates one pending call per unlinked audio file and does not move,
-delete, or overwrite the recordings. Use call detail's `Run Mock
-Transcription` action to save a mock transcript before running the mock audit.
-OpenRouter/Gemma integration is text-only for a later step; raw audio must only
-go to the STT layer.
+delete, or overwrite the recordings. Use call detail's live transcription and
+AI audit actions for the demo. Raw audio goes only to the STT layer; OpenRouter
+receives transcript text only.

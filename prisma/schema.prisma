@@ -134,8 +134,28 @@ model Client {
   agents     Agent[]
   parameters ClientParameter[]
   calls      Call[]
+  auditPrompts ClientAuditPrompt[]
 
   @@map("clients")
+}
+
+// Editable, per-client audit prompt template. Only one row should have
+// isActive=true per client at a time. Versioned so future edits can be tracked.
+model ClientAuditPrompt {
+  id          String   @id @default(cuid())
+  clientId    String   @map("client_id")
+  promptName  String   @default("Default audit prompt") @map("prompt_name")
+  promptText  String   @map("prompt_text")
+  isActive    Boolean  @default(true) @map("is_active")
+  versionNo   Int      @default(1) @map("version_no")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+  @@index([clientId, isActive])
+  @@map("client_audit_prompts")
 }
 
 // Simple password-based access. One row per shared credential.
@@ -269,6 +289,9 @@ model Call {
   manualScore              Float?        @map("manual_score")
   finalScore               Float?        @map("final_score")
   manualDisposition        String?       @map("manual_disposition")
+  processingStatus         String?       @map("processing_status")
+  processingStartedAt      DateTime?     @map("processing_started_at")
+  processingError          String?       @map("processing_error")
   createdAt                DateTime      @default(now()) @map("created_at")
   updatedAt                DateTime      @updatedAt @map("updated_at")
 
@@ -282,6 +305,7 @@ model Call {
   insights       AiInsight[]
   manualReviews  ManualReview[]
   notes          CallNote[]
+  segmentCorrections TranscriptSegmentCorrection[]
 
   @@unique([clientId, externalCallId])
   @@index([clientId])
@@ -298,6 +322,13 @@ model CallTranscript {
   source      TranscriptSource @default(AI)
   language    String?
   modelUsed   String?          @map("model_used")
+  fallbackUsed Boolean         @default(false) @map("fallback_used")
+  fallbackReason String?       @map("fallback_reason")
+  attemptedModels Json?        @map("attempted_models")
+  qualityFlags Json?           @map("quality_flags")
+  speakerLabelsCorrected Boolean @default(false) @map("speaker_labels_corrected")
+  speakerCorrectionNote String?  @map("speaker_correction_note")
+  speakerCorrectedAt DateTime?   @map("speaker_corrected_at")
   fullText    String           @map("full_text")
   generatedAt DateTime?        @map("generated_at")
   createdAt   DateTime         @default(now()) @map("created_at")
@@ -305,6 +336,7 @@ model CallTranscript {
 
   call     Call                 @relation(fields: [callId], references: [id], onDelete: Cascade)
   segments TranscriptSegment[]
+  segmentCorrections TranscriptSegmentCorrection[]
 
   @@map("call_transcripts")
 }
@@ -318,12 +350,42 @@ model TranscriptSegment {
   endMs        Int         @map("end_ms")
   text         String
   confidenceScore Float?   @map("confidence_score")
+  channel      String?
+  speakerSource String?    @map("speaker_source")
   createdAt    DateTime    @default(now()) @map("created_at")
 
   transcript CallTranscript @relation(fields: [transcriptId], references: [id], onDelete: Cascade)
+  corrections TranscriptSegmentCorrection[]
 
   @@index([transcriptId, sequence])
   @@map("transcript_segments")
+}
+
+model TranscriptSegmentCorrection {
+  id                  String      @id @default(cuid())
+  transcriptSegmentId String      @map("transcript_segment_id")
+  callId              String      @map("call_id")
+  callTranscriptId    String      @map("call_transcript_id")
+  oldSpeaker          SpeakerRole @map("old_speaker")
+  newSpeaker          SpeakerRole @map("new_speaker")
+  oldSpeakerSource    String?     @map("old_speaker_source")
+  newSpeakerSource    String      @map("new_speaker_source")
+  segmentText         String      @map("segment_text")
+  startTimeSeconds    Float       @map("start_time_seconds")
+  endTimeSeconds      Float       @map("end_time_seconds")
+  rawSpeakerId        String?     @map("raw_speaker_id")
+  correctedAt         DateTime    @default(now()) @map("corrected_at")
+  correctedBy         String?     @map("corrected_by")
+  correctionReason    String?     @map("correction_reason")
+
+  transcriptSegment TranscriptSegment @relation(fields: [transcriptSegmentId], references: [id], onDelete: Cascade)
+  call              Call              @relation(fields: [callId], references: [id], onDelete: Cascade)
+  callTranscript    CallTranscript    @relation(fields: [callTranscriptId], references: [id], onDelete: Cascade)
+
+  @@index([transcriptSegmentId])
+  @@index([callId, correctedAt])
+  @@index([callTranscriptId])
+  @@map("transcript_segment_corrections")
 }
 
 // ---------- AI audit ----------

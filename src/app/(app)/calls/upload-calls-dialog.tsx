@@ -29,7 +29,14 @@ function formatBytes(bytes: number): string {
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
-export function UploadCallsDialog({ options }: { options: CallUploadOptions }) {
+export function UploadCallsDialog({
+  options,
+  maxFileMb = 100,
+}: {
+  options: CallUploadOptions;
+  maxFileMb?: number;
+}) {
+  const maxBytes = Math.max(1, maxFileMb) * 1024 * 1024;
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [open, setOpen] = useState(false);
@@ -45,23 +52,33 @@ export function UploadCallsDialog({ options }: { options: CallUploadOptions }) {
     if (!nextFiles) return;
     setError(null);
     setSuccess(null);
+    const rejected: string[] = [];
     setFiles((current) => {
       const byKey = new Map(current.map((file) => [`${file.name}-${file.size}-${file.lastModified}`, file]));
       for (const file of Array.from(nextFiles)) {
+        if (file.size > maxBytes) {
+          rejected.push(file.name);
+          continue;
+        }
         byKey.set(`${file.name}-${file.size}-${file.lastModified}`, file);
       }
       return Array.from(byKey.values());
     });
+    if (rejected.length > 0) {
+      setError(
+        `File${rejected.length === 1 ? " is" : "s are"} too large. Maximum allowed size is ${maxFileMb} MB. Skipped: ${rejected.join(", ")}`,
+      );
+    }
   }
 
   function removeFile(index: number) {
     setFiles((current) => current.filter((_, i) => i !== index));
   }
 
-  function reset() {
+  function reset(opts: { keepSuccess?: boolean } = {}) {
     setFiles([]);
     setError(null);
-    setSuccess(null);
+    if (!opts.keepSuccess) setSuccess(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
@@ -87,15 +104,62 @@ export function UploadCallsDialog({ options }: { options: CallUploadOptions }) {
         const response = await fetch(withBasePath("/api/calls/upload"), {
           method: "POST",
           body: form,
+          credentials: "same-origin",
         });
-        const body = (await response.json().catch(() => ({}))) as { error?: string; count?: number };
-        if (!response.ok) throw new Error(body.error ?? "Upload failed.");
+        const contentType = response.headers.get("content-type") ?? "";
+        const rawText = await response.text();
+        let body: { error?: string; count?: number; ok?: boolean } = {};
+        if (contentType.includes("application/json")) {
+          try {
+            body = JSON.parse(rawText) as typeof body;
+          } catch {
+            /* fall through; non-JSON path handled below */
+          }
+        }
+
+        if (!response.ok) {
+          console.error(`Upload failed: HTTP ${response.status}`, rawText.slice(0, 500));
+          if (response.status === 413) {
+            throw new Error(
+              `Upload failed: file is too large. Maximum allowed size is ${maxFileMb} MB. ` +
+                "Reduce the file or ask the server admin to raise MAX_AUDIO_UPLOAD_MB / Nginx client_max_body_size.",
+            );
+          }
+          if (response.status === 401 || response.status === 403) {
+            throw new Error(
+              `Upload failed: your session may have expired (HTTP ${response.status}). Sign out and sign back in.`,
+            );
+          }
+          if (response.status >= 500) {
+            throw new Error(
+              `Upload failed: server error (HTTP ${response.status}). Server response: ${rawText.slice(0, 200) || "(empty)"}`,
+            );
+          }
+          if (!contentType.includes("application/json")) {
+            throw new Error(
+              `Upload failed (HTTP ${response.status}). Non-JSON response: ${rawText.slice(0, 200) || "(empty)"}`,
+            );
+          }
+          throw new Error(body.error ?? `Upload failed (HTTP ${response.status}).`);
+        }
+
+        if (!body.ok) {
+          throw new Error(body.error ?? "Upload failed: server returned no confirmation.");
+        }
+
         const count = body.count ?? files.length;
         setSuccess(`${count} call${count === 1 ? "" : "s"} uploaded.`);
-        reset();
+        reset({ keepSuccess: true });
         router.refresh();
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Upload failed.");
+        console.error("Upload error:", e);
+        if (e instanceof TypeError && /failed to fetch|network/i.test(e.message)) {
+          setError(
+            "Could not reach the server. Check your network connection and try again.",
+          );
+        } else {
+          setError(e instanceof Error ? e.message : "Upload failed.");
+        }
       }
     });
   }
@@ -115,7 +179,7 @@ export function UploadCallsDialog({ options }: { options: CallUploadOptions }) {
         <DialogHeader className="border-b border-slate-100 px-6 py-5">
           <DialogTitle className="text-xl text-slate-900">Upload Calls</DialogTitle>
           <DialogDescription>
-            Add multiple audio recordings. They stay pending until transcription is enabled.
+            Add audio recordings. They stay uploaded until you run Sarvam transcription and AI audit.
           </DialogDescription>
         </DialogHeader>
 
@@ -232,9 +296,16 @@ export function UploadCallsDialog({ options }: { options: CallUploadOptions }) {
               )}
             </div>
 
+            {pending ? (
+              <div className="mt-4 flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-800">
+                <UploadCloud className="h-4 w-4 animate-pulse" />
+                Uploading {files.length} file{files.length === 1 ? "" : "s"} ({formatBytes(totalSize)})…
+                please keep this window open.
+              </div>
+            ) : null}
             {error ? (
-              <div className="mt-4 flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-                <AlertTriangle className="h-4 w-4" /> {error}
+              <div className="mt-4 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" /> {error}
               </div>
             ) : null}
             {success ? (
@@ -242,10 +313,16 @@ export function UploadCallsDialog({ options }: { options: CallUploadOptions }) {
                 <CheckCircle2 className="h-4 w-4" /> {success}
               </div>
             ) : null}
+            {!client ? (
+              <div className="mt-4 flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-700">
+                <AlertTriangle className="h-4 w-4" /> No active client is available for uploads.
+                Sign out and sign back in, or contact the admin.
+              </div>
+            ) : null}
           </div>
 
           <div className="flex items-center justify-between gap-3 border-t border-slate-100 bg-slate-50/80 px-6 py-4">
-            <button type="button" onClick={reset} className="h-10 rounded-lg border border-slate-200 bg-white px-4 text-sm text-slate-700 hover:bg-slate-50">
+            <button type="button" onClick={() => reset()} className="h-10 rounded-lg border border-slate-200 bg-white px-4 text-sm text-slate-700 hover:bg-slate-50">
               Clear
             </button>
             <div className="flex items-center gap-3">

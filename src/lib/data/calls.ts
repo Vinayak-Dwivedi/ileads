@@ -62,6 +62,7 @@ export async function listCalls(clientId: string, filters: CallListFilters = {},
       campaign: { select: { id: true, name: true } },
       team: { select: { id: true, name: true } },
       client: { select: { id: true, name: true } },
+      transcript: { select: { id: true, speakerLabelsCorrected: true, speakerCorrectedAt: true } },
       manualReviews: {
         orderBy: { createdAt: "desc" },
         take: 1,

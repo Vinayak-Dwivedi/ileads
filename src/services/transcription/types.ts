@@ -7,6 +7,8 @@ export interface TranscriptSegmentInput {
   endMs: number;
   text: string;
   confidenceScore?: number | null;
+  channel?: string | null;
+  speakerSource?: string | null;
 }
 
 export interface TranscriptResult {
@@ -14,4 +16,8 @@ export interface TranscriptResult {
   modelUsed: string;
   fullText: string;
   segments: TranscriptSegmentInput[];
+  fallbackUsed?: boolean;
+  fallbackReason?: string | null;
+  attemptedModels?: unknown;
+  qualityFlags?: string[];
 }

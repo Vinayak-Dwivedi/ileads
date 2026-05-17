@@ -27,12 +27,15 @@ export interface AuditCallContext {
   parameters: ClientParameter[];
   transcript: {
     fullText: string;
+    speakerLabelNote?: string | null;
     segments: Array<{
       sequence: number;
       speaker: string;
       startMs: number;
       endMs: number;
       text: string;
+      channel?: string | null;
+      speakerSource?: string | null;
     }>;
   };
 }

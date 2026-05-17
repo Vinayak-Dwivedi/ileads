@@ -24,6 +24,16 @@ graphify-out/
 html/
 storage/audio/
 
+# STT: never commit weights; keep folders via .gitkeep
+models/*
+!models/.gitkeep
+!models/*/
+models/*/*
+!models/*/.gitkeep
+runtime/stt/*
+!runtime/stt/.gitkeep
+.venv-stt/
+
 AGENTS.md
 CLAUDE.md
 .env.example
