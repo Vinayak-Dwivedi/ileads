@@ -158,7 +158,7 @@ export function PromptEditor({ clientId, clientName, defaultPromptText, customPr
             </div>
           </>
         ) : (
-          <pre className="max-h-[520px] overflow-y-auto whitespace-pre-wrap break-words rounded-lg border border-slate-200 bg-slate-50 p-3 text-[12px] leading-relaxed font-mono text-slate-700">
+          <pre className="max-h-[520px] overflow-y-auto whitespace-pre-wrap wrap-break-word rounded-lg border border-slate-200 bg-slate-50 p-3 text-[12px] leading-relaxed font-mono text-slate-700">
             {displayedText}
           </pre>
         )}
