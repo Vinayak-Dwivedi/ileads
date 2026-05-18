@@ -16,14 +16,19 @@ import { AuditStatusPill } from "@/components/ui/score-pill";
 import { SentimentBadge } from "@/components/ui/sentiment-badge";
 import { requireSession } from "@/lib/auth";
 import { withBasePath } from "@/lib/base-path";
+import { prisma } from "@/lib/db";
 import { getCallDetail } from "@/lib/data/calls";
 import { formatDuration, formatMmSs, formatShortDate, formatTime, formatPercent } from "@/lib/utils";
 import { ManualReviewForm } from "./manual-review-form";
 import { AudioPlayerCard } from "./audio-player";
+import { AuditPanel } from "./audit-panel";
+import { TranscriptionActionButton } from "./transcription-action-button";
 import { SpeakerCorrectionPanel } from "./speaker-correction-panel";
 import { SegmentSpeakerSelect } from "./segment-speaker-select";
 import { isActivelyProcessing } from "@/lib/processing-lock";
 import { DetailTabs } from "./detail-tabs";
+import { hasOpenRouterKey } from "@/services/llm";
+import { hasSarvamKey, isMockMode, loadSttConfig, shouldShowMockActions } from "@/services/stt";
 
 export const dynamic = "force-dynamic";
 
@@ -73,7 +78,10 @@ function speakerSourceLabel(source: string | null, channel: string | null): stri
 export default async function CallDetailPage({ params }: PageProps) {
   const { id } = await params;
   const session = await requireSession();
-  const call = await getCallDetail(session.clientId, id);
+  const [call, activeParameterCount] = await Promise.all([
+    getCallDetail(session.clientId, id),
+    prisma.clientParameter.count({ where: { clientId: session.clientId, isActive: true } }),
+  ]);
   if (!call) notFound();
 
   const audit = call.aiAudits[0] ?? null;
@@ -82,6 +90,10 @@ export default async function CallDetailPage({ params }: PageProps) {
   const audioUrl = call.audioPath ? withBasePath(`/api/calls/${call.id}/audio`) : call.recordingUrl;
   const processingActive = isActivelyProcessing(call.processingStatus, call.processingStartedAt);
   const processingStatusText = processingActive ? call.processingStatus : null;
+  const processingFailed = call.processingStatus === "failed";
+  const processingStale = Boolean(call.processingStatus && !processingActive && call.processingStatus !== "idle" && call.processingStatus !== "failed");
+  const hasAudio = Boolean(audioUrl);
+  const sttConfig = loadSttConfig();
   const transcriptFlags = stringFlags(call.transcript?.qualityFlags);
   const mappingNote = speakerMappingNote(transcriptFlags);
   const speakerCorrectionNeedsAudit =
@@ -124,7 +136,7 @@ export default async function CallDetailPage({ params }: PageProps) {
         <EmptyState title="No insights" description="No AI insights yet for this call." />
       ) : (
         <div className="space-y-2.5">
-          {call.insights.map((i) => {
+          {call.insights.map((i: { id: string; severity: string; insightType: string; title: string; body: string }) => {
             const tone =
               i.severity === "CRITICAL" || i.severity === "HIGH"
                 ? "red"
@@ -147,7 +159,7 @@ export default async function CallDetailPage({ params }: PageProps) {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2">
                     <div className="text-sm font-semibold text-slate-700">{i.title}</div>
-                    <Pill tone={tone}>{i.severity}</Pill>
+                      <Pill tone={tone}>{i.severity}</Pill>
                   </div>
                   <div className="text-xs text-slate-500 mt-1">{i.body}</div>
                 </div>
@@ -184,13 +196,25 @@ export default async function CallDetailPage({ params }: PageProps) {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {audit.parameterScores.map((ps) => (
+              {audit.parameterScores.map((ps: {
+                id: string;
+                maxScore: number;
+                score: number;
+                isPassed: boolean;
+                reasoning: string | null;
+                evidenceText: string | null;
+                parameter: {
+                  parameterCategory: string;
+                  parameterName: string;
+                  parameterDescription: string | null;
+                };
+              }) => (
                 <tr key={ps.id}>
                   <td className="px-3 py-2 text-slate-500 align-top">{ps.parameter.parameterCategory}</td>
                   <td className="px-3 py-2 align-top">
                     <div className="font-medium text-slate-700">{ps.parameter.parameterName}</div>
                     <div className="text-xs text-slate-500">{ps.parameter.parameterDescription}</div>
-                  </td>
+                    </td>
                   <td className="px-3 py-2 align-top">{ps.maxScore}</td>
                   <td className="px-3 py-2 align-top font-medium">{ps.score}</td>
                   <td className="px-3 py-2 align-top">
@@ -229,14 +253,29 @@ export default async function CallDetailPage({ params }: PageProps) {
   );
 
   const transcriptTab = (
-    <article className="html-card p-5">
-      <div className="flex items-center gap-2 text-sm font-bold text-slate-800 mb-3">
-        <MessageSquare className="h-4 w-4" /> Transcript
-        <span className="ml-auto text-xs font-normal text-slate-500">
+    <article className="html-card p-5 min-w-0">
+      <div className="mb-3">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2 text-sm font-bold text-slate-800">
+            <MessageSquare className="h-4 w-4" /> Transcript
+          </div>
+          <TranscriptionActionButton
+            callId={call.id}
+            hasAudio={hasAudio}
+            hasTranscript={!!call.transcript}
+            mockMode={isMockMode()}
+            sttProvider={sttConfig.provider}
+            sarvamKeyConfigured={hasSarvamKey(sttConfig)}
+            processingStatus={processingStatusText}
+            processingFailed={processingFailed}
+            compact
+          />
+        </div>
+        <div className="mt-2 text-right text-xs font-normal text-slate-500">
           {call.transcript
             ? `${call.transcript.segments.length} segments · ${call.transcript.modelUsed ?? "unknown model"}`
             : "no transcript"}
-        </span>
+        </div>
       </div>
       {!call.transcript ? (
         <EmptyState
@@ -244,7 +283,7 @@ export default async function CallDetailPage({ params }: PageProps) {
           description="No transcript available. Run transcription first when STT is enabled."
         />
       ) : (
-        <div className="space-y-3 max-h-[520px] overflow-y-auto pr-2">
+        <div className="space-y-3 max-h-[760px] overflow-y-auto pr-2">
           {call.transcript.fallbackUsed ? (
             <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
               Transcribed using fallback model: {call.transcript.modelUsed ?? "unknown"}.
@@ -276,8 +315,16 @@ export default async function CallDetailPage({ params }: PageProps) {
             needsAuditRerun={speakerCorrectionNeedsAudit}
             processingStatus={processingStatusText}
           />
-          {call.transcript.segments.map((s) => (
-            <div key={s.id} className="flex gap-3 p-3 bg-slate-50 rounded-lg text-[13px]">
+          {call.transcript.segments.map((s: {
+            id: string;
+            speaker: string;
+            speakerSource: string | null;
+            channel: string | null;
+            startMs: number;
+            confidenceScore: number | null;
+            text: string;
+          }) => (
+              <div key={s.id} className="flex gap-3 p-3 bg-slate-50 rounded-lg text-[13px]">
               <div
                 className={`w-8 h-8 rounded-full grid place-items-center font-bold flex-none text-sm ${
                   s.speaker === "AGENT"
@@ -294,7 +341,7 @@ export default async function CallDetailPage({ params }: PageProps) {
                   <span className="inline-flex items-center gap-2 font-semibold text-slate-700">
                     <SegmentSpeakerSelect
                       segmentId={s.id}
-                      speaker={s.speaker === "SYSTEM" ? "UNKNOWN" : s.speaker}
+                      speaker={s.speaker === "SYSTEM" ? "UNKNOWN" : (s.speaker as "AGENT" | "CUSTOMER" | "UNKNOWN")}
                       disabled={!!processingStatusText}
                     />
                     {speakerSourceLabel(s.speakerSource, s.channel) ? (
@@ -315,6 +362,20 @@ export default async function CallDetailPage({ params }: PageProps) {
         </div>
       )}
     </article>
+  );
+
+  const auditPipelineTab = (
+    <AuditPanel
+      callId={call.id}
+      hasAudit={!!audit}
+      hasTranscript={!!call.transcript}
+      hasParameters={activeParameterCount > 0}
+      latestRunNo={audit?.auditRunNo ?? null}
+      isDevelopment={process.env.NODE_ENV !== "production"}
+      showMockAuditButton={shouldShowMockActions()}
+      openrouterKeyConfigured={hasOpenRouterKey()}
+      processingStatus={processingStatusText}
+    />
   );
 
   return (
@@ -357,6 +418,7 @@ export default async function CallDetailPage({ params }: PageProps) {
                 { id: "scoring", label: "Scoring", content: scoringTab },
                 { id: "manual", label: "Manual review", content: manualReviewTab },
                 { id: "transcript", label: "Transcript", content: transcriptTab },
+                { id: "audit", label: "AI Audit Pipeline", content: auditPipelineTab },
               ]}
             />
           </div>
@@ -365,7 +427,7 @@ export default async function CallDetailPage({ params }: PageProps) {
             <AudioPlayerCard
               recordingUrl={audioUrl}
               durationSeconds={call.durationSeconds}
-              events={call.events.map((e) => ({
+              events={call.events.map((e: { id: string; eventType: string; occurredAt: Date }) => ({
                 id: e.id,
                 type: e.eventType,
                 occurredAt: e.occurredAt.toISOString(),
