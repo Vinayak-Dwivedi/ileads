@@ -4,6 +4,11 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/auth";
 
+export interface ParameterActionResult {
+  ok: boolean;
+  error?: string;
+}
+
 interface ParameterInput {
   id?: string;
   clientId: string;
@@ -59,68 +64,114 @@ async function assertClientAccess(clientId: string) {
   }
 }
 
-export async function upsertParameter(formData: FormData) {
-  const input = parseInput(formData);
-  await assertClientAccess(input.clientId);
-  if (input.id) {
+function revalidateParameterRoutes(clientId: string) {
+  // "layout" scope re-renders the dynamic [clientId] child segment as well.
+  revalidatePath("/parameters", "layout");
+  revalidatePath(`/parameters/${clientId}`);
+  revalidatePath("/dashboard");
+}
+
+export async function upsertParameter(
+  formData: FormData,
+): Promise<ParameterActionResult> {
+  try {
+    const input = parseInput(formData);
+    await assertClientAccess(input.clientId);
+    if (input.id) {
+      const existing = await prisma.clientParameter.findFirst({
+        where: { id: input.id, clientId: input.clientId },
+        select: { id: true },
+      });
+      if (!existing) return { ok: false, error: "Parameter not found." };
+      await prisma.clientParameter.update({
+        where: { id: existing.id },
+        data: {
+          parameterCategory: input.parameterCategory,
+          parameterName: input.parameterName,
+          parameterDescription: input.parameterDescription,
+          maxScore: input.maxScore,
+          aiInstruction: input.aiInstruction,
+          displayOrder: input.displayOrder,
+          isActive: input.isActive,
+        },
+      });
+    } else {
+      await prisma.clientParameter.create({
+        data: {
+          clientId: input.clientId,
+          parameterCategory: input.parameterCategory,
+          parameterName: input.parameterName,
+          parameterDescription: input.parameterDescription,
+          maxScore: input.maxScore,
+          aiInstruction: input.aiInstruction,
+          displayOrder: input.displayOrder,
+          isActive: input.isActive,
+        },
+      });
+    }
+    revalidateParameterRoutes(input.clientId);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Failed to save parameter." };
+  }
+}
+
+export async function toggleParameterActive(
+  formData: FormData,
+): Promise<ParameterActionResult> {
+  try {
+    const id = String(formData.get("id") ?? "");
+    if (!id) return { ok: false, error: "Missing parameter id." };
+    const param = await prisma.clientParameter.findUnique({
+      where: { id },
+      select: { id: true, clientId: true, isActive: true },
+    });
+    if (!param) return { ok: false, error: "Parameter not found." };
+    await assertClientAccess(param.clientId);
     await prisma.clientParameter.update({
-      where: { id: input.id },
-      data: {
-        parameterCategory: input.parameterCategory,
-        parameterName: input.parameterName,
-        parameterDescription: input.parameterDescription,
-        maxScore: input.maxScore,
-        aiInstruction: input.aiInstruction,
-        displayOrder: input.displayOrder,
-        isActive: input.isActive,
-      },
+      where: { id: param.id },
+      data: { isActive: !param.isActive },
     });
-  } else {
-    await prisma.clientParameter.create({
-      data: {
-        clientId: input.clientId,
-        parameterCategory: input.parameterCategory,
-        parameterName: input.parameterName,
-        parameterDescription: input.parameterDescription,
-        maxScore: input.maxScore,
-        aiInstruction: input.aiInstruction,
-        displayOrder: input.displayOrder,
-        isActive: input.isActive,
-      },
-    });
+    revalidateParameterRoutes(param.clientId);
+    return { ok: true };
+  } catch (e) {
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : "Failed to update parameter.",
+    };
   }
-  revalidatePath("/parameters");
 }
 
-export async function toggleParameterActive(formData: FormData) {
-  const id = String(formData.get("id") ?? "");
-  if (!id) throw new Error("Missing id.");
-  const session = await requireSession();
-  const param = await prisma.clientParameter.findFirst({
-    where: { id, clientId: session.clientId },
-  });
-  if (!param) throw new Error("Parameter not found.");
-  await prisma.clientParameter.update({
-    where: { id: param.id },
-    data: { isActive: !param.isActive },
-  });
-  revalidatePath("/parameters");
-}
-
-export async function deleteParameter(formData: FormData) {
-  const id = String(formData.get("id") ?? "");
-  if (!id) throw new Error("Missing id.");
-  const session = await requireSession();
-  const param = await prisma.clientParameter.findFirst({
-    where: { id, clientId: session.clientId },
-    include: { _count: { select: { aiParameterScores: true } } },
-  });
-  if (!param) throw new Error("Parameter not found.");
-  if (param._count.aiParameterScores > 0) {
-    throw new Error(
-      "Parameter has audit history and cannot be deleted. Deactivate it instead.",
-    );
+export async function deleteParameter(
+  formData: FormData,
+): Promise<ParameterActionResult> {
+  try {
+    const id = String(formData.get("id") ?? "");
+    if (!id) return { ok: false, error: "Missing parameter id." };
+    const param = await prisma.clientParameter.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        clientId: true,
+        _count: { select: { aiParameterScores: true } },
+      },
+    });
+    if (!param) return { ok: false, error: "Parameter not found." };
+    await assertClientAccess(param.clientId);
+    if (param._count.aiParameterScores > 0) {
+      return {
+        ok: false,
+        error:
+          "This parameter has audit history and cannot be deleted. Deactivate it instead.",
+      };
+    }
+    await prisma.clientParameter.delete({ where: { id: param.id } });
+    revalidateParameterRoutes(param.clientId);
+    return { ok: true };
+  } catch (e) {
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : "Failed to delete parameter.",
+    };
   }
-  await prisma.clientParameter.delete({ where: { id: param.id } });
-  revalidatePath("/parameters");
 }

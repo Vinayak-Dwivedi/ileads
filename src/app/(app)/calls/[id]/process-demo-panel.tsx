@@ -94,8 +94,8 @@ export function ProcessDemoPanel({
         <Wand2 className="h-4 w-4" /> Process Demo Call
       </div>
       <p className="text-xs text-slate-500 mb-3">
-        One-click convenience: runs live transcription (if missing) then the live AI audit.
-        Longer calls may take a few minutes.
+        One-click: runs transcription (if missing), then the AI audit.
+        Longer calls may take several minutes. Keep this page open while processing.
       </p>
       {longCall ? (
         <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
@@ -144,7 +144,7 @@ export function ProcessDemoPanel({
         <div className="mt-3 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-800">
           {hasTranscript
             ? "Running AI audit… up to 2 minutes. Keep this page open."
-            : "Step 1/2: transcribing audio (a few minutes), then step 2/2: AI audit (up to 2 min)."}
+            : "Step 1/2 transcribing audio, then step 2/2 AI audit. Longer calls may take several minutes — keep this page open."}
         </div>
       ) : null}
 

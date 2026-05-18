@@ -52,7 +52,10 @@ export function SpeakerCorrectionPanel({
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <div className="font-semibold text-slate-800">Speaker correction</div>
-          <div>Use the dropdown beside a transcript segment to correct only that line.</div>
+          <div>
+            Speaker labels are estimated. Use the dropdown beside a transcript segment to correct
+            any wrong speaker, then re-run AI Audit.
+          </div>
         </div>
       </div>
 
