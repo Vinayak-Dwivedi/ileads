@@ -86,12 +86,12 @@ export default async function DashboardPage({
 
         <section className="grid grid-cols-1 gap-4 2xl:grid-cols-[2.7fr_1fr]">
           <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-            <article className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+            <article className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
               <h3 className="mb-3 text-lg font-semibold text-slate-800">Customer Sentiment Distribution</h3>
               {sentiment.total === 0 ? (
                 <EmptyState title="No sentiment data" description="No calls have sentiment values in this filter." />
               ) : (
-                <div className="[&>*:not(:last-child)]:mb-2!">
+                <div className="rounded-xl border border-slate-100 p-4">
                   <Bar label="Positive" pct={pct(sentiment.positive, sentiment.total)} color="bg-emerald-500" />
                   <Bar label="Neutral" pct={pct(sentiment.neutral, sentiment.total)} color="bg-amber-500" />
                   <Bar label="Negative" pct={pct(sentiment.negative, sentiment.total)} color="bg-red-500" />
@@ -99,15 +99,15 @@ export default async function DashboardPage({
               )}
             </article>
 
-            <article className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-              <h3 className=" text-lg font-semibold text-slate-800 mb-3">Average Quality Score</h3>
+            <article className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+              <h3 className="mb-3 text-lg font-semibold text-slate-800">Average Quality Score</h3>
               {kpis.averageQualityPercent == null ? (
                 <EmptyState
                   title="Trend data will appear after more calls are processed."
                   description="No quality score is available for the selected filters."
                 />
               ) : (
-                <div className="flex flex-col justify-center rounded-xl">
+                <div className="flex min-h-[220px] flex-col justify-center rounded-xl border border-slate-100 bg-white p-4">
                   <div className="text-[40px] font-bold leading-none text-slate-900">
                     {formatPercent(kpis.averageQualityPercent, 1)}
                   </div>
@@ -172,8 +172,16 @@ export default async function DashboardPage({
 
           <article className="h-fit rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
             <h3 className="mb-3 text-lg font-semibold text-slate-800">Recommendations</h3>
-            <div className="space-y-3 ">
-
+            <div className="space-y-3 rounded-xl border border-slate-100 bg-white p-4">
+              <div className="flex items-center gap-3">
+                <div className="grid h-9 w-9 place-items-center rounded-lg bg-indigo-600 text-white">
+                  <Sparkles className="h-4 w-4" />
+                </div>
+                <div>
+                  <div className="font-semibold text-slate-800">AI Insights</div>
+                  <div className="text-xs text-slate-500">Stored analysis from audited calls</div>
+                </div>
+              </div>
               {insights.length === 0 ? (
                 <EmptyState
                   title="No insights yet"
@@ -207,9 +215,9 @@ export default async function DashboardPage({
 function DashboardStat({ label, value }: { label: string; value: string }) {
   return (
     <article className="min-h-[120px] rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-      <label className="block text-slate-500">{label}</label>
+      <label className="block text-lg text-slate-500">{label}</label>
       <div className="mt-2 text-[34px] leading-none text-slate-900 md:text-[38px]">{value}</div>
-      {/* <div className="mt-3 text-sm text-slate-400">Current filter</div> */}
+      
     </article>
   );
 }

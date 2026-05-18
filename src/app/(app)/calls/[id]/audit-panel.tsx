@@ -236,7 +236,7 @@ function Block({ label, content }: { label: string; content: string }) {
   return (
     <div>
       <p className="text-[11px] uppercase tracking-wide text-slate-500 mb-1">{label}</p>
-      <pre className="text-[11px] leading-snug whitespace-pre-wrap wrap-break-word bg-white border border-slate-200 rounded-md p-2 max-h-64 overflow-y-auto">
+      <pre className="text-[11px] leading-snug whitespace-pre-wrap break-words bg-white border border-slate-200 rounded-md p-2 max-h-64 overflow-y-auto">
         {content}
       </pre>
     </div>
