@@ -22,7 +22,7 @@ function redirectTo(request: NextRequest, location: string): NextResponse {
   return NextResponse.redirect(new URL(location, publicOrigin(request)));
 }
 
-export async function proxy(request: NextRequest) {
+export async function proxy(request: NextRequest) {  
   const { pathname } = request.nextUrl;
   const token = request.cookies.get(SESSION_COOKIE_NAME)?.value;
   const session = await verifySession(token);
