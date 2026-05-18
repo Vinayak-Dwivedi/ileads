@@ -72,15 +72,15 @@ export default async function DashboardPage({
           <DashboardStat label="Manual Reviewed" value={kpis.manualReviewed.toLocaleString()} />
           <DashboardStat
             label="Avg Quality Score"
-            value={kpis.averageQualityPercent != null ? formatPercent(kpis.averageQualityPercent, 1) : "Not available"}
+            value={kpis.averageQualityPercent != null ? formatPercent(kpis.averageQualityPercent, 1) : "NA"}
           />
           <DashboardStat
             label="First Response Time"
-            value={kpis.firstResponseSeconds != null ? formatMmSs(kpis.firstResponseSeconds) : "Not available"}
+            value={kpis.firstResponseSeconds != null ? formatMmSs(kpis.firstResponseSeconds) : "NA"}
           />
           <DashboardStat
             label="AHT"
-            value={kpis.averageHandleSeconds != null ? formatMmSs(kpis.averageHandleSeconds) : "Not available"}
+            value={kpis.averageHandleSeconds != null ? formatMmSs(kpis.averageHandleSeconds) : "NA"}
           />
         </section>
 
@@ -217,7 +217,7 @@ function DashboardStat({ label, value }: { label: string; value: string }) {
     <article className="min-h-[120px] rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
       <label className="block text-lg text-slate-500">{label}</label>
       <div className="mt-2 text-[34px] leading-none text-slate-900 md:text-[38px]">{value}</div>
-      <div className="mt-3 text-sm text-slate-400">Current filter</div>
+      
     </article>
   );
 }
