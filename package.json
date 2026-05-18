@@ -17,7 +17,8 @@
     "smoke:stt": "tsx --require ./scripts/_stt-preload.cjs scripts/smoke-test-stt.ts",
     "smoke:audit": "tsx --require ./scripts/_stt-preload.cjs scripts/smoke-test-live-audit.ts",
     "calibrate:speakers": "tsx scripts/calibrate-speakers.ts",
-    "truncate:demo-calls": "tsx --require ./scripts/_stt-preload.cjs scripts/truncate-demo-call-data.ts"
+    "truncate:demo-calls": "tsx --require ./scripts/_stt-preload.cjs scripts/truncate-demo-call-data.ts",
+    "import:beetel-parameters": "tsx scripts/import-beetel-parameters.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

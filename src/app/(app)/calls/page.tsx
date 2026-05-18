@@ -109,8 +109,8 @@ export default async function CallsPage({
           {calls.length === 0 ? (
             <EmptyState
               className="m-4"
-              title="No calls match"
-              description="Try clearing filters or upload audio files to create pending calls."
+              title="No calls yet"
+              description="Upload a call to begin. Try clearing filters if calls already exist."
             />
           ) : (
             <div className="overflow-x-auto">

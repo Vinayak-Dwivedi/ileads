@@ -16,13 +16,13 @@ async function main() {
 
   // --- Tenant: a single demo client with seeded password access -----------
   const client = await prisma.client.upsert({
-    where: { slug: "acme-bpo" },
+    where: { slug: "beetel" },
     update: {},
     create: {
-      name: "Acme BPO",
-      slug: "acme-bpo",
+      name: "Beetel",
+      slug: "beetel",
       industry: "Outsourced contact centre",
-      contactEmail: "ops@acmebpo.example",
+      contactEmail: "ops@beetel.example",
     },
   });
 
@@ -96,11 +96,11 @@ async function main() {
   // --- Agents --------------------------------------------------------------
   const agents = await Promise.all(
     [
-      { slug: "agent-priya", name: "Priya Shah", code: "ACM-001", team: teams[0] },
-      { slug: "agent-marcus", name: "Marcus Lee", code: "ACM-002", team: teams[0] },
-      { slug: "agent-amelia", name: "Amelia Rivera", code: "ACM-003", team: teams[1] },
-      { slug: "agent-david", name: "David Okafor", code: "ACM-004", team: teams[1] },
-      { slug: "agent-naomi", name: "Naomi Chen", code: "ACM-005", team: teams[2] },
+      { slug: "agent-priya", name: "Priya Shah", code: "BTL-001", team: teams[0] },
+      { slug: "agent-marcus", name: "Marcus Lee", code: "BTL-002", team: teams[0] },
+      { slug: "agent-amelia", name: "Amelia Rivera", code: "BTL-003", team: teams[1] },
+      { slug: "agent-david", name: "David Okafor", code: "BTL-004", team: teams[1] },
+      { slug: "agent-naomi", name: "Naomi Chen", code: "BTL-005", team: teams[2] },
     ].map((a) =>
       prisma.agent.upsert({
         where: { id: `${client.id}-${a.slug}` },
@@ -111,7 +111,7 @@ async function main() {
           teamId: a.team.id,
           name: a.name,
           employeeCode: a.code,
-          email: `${a.slug.replace("agent-", "")}@acmebpo.example`,
+          email: `${a.slug.replace("agent-", "")}@beetel.example`,
           hiredOn: daysAgo(300),
         },
       })
@@ -119,90 +119,234 @@ async function main() {
   );
 
   // --- Client parameters ---------------------------------------------------
+  // 24-row Beetel evaluation sheet. Total max score = 100.
+  const BINARY_RULE =
+    "Binary scoring: mark pass only if behavior is clearly fulfilled in the transcript; " +
+    "if evidence is missing, mark not_found; if not fulfilled, mark fail. " +
+    "pass = full score; fail or not_found = 0.";
+
   const parameterSeeds: Array<{
     slug: string;
     category: string;
     name: string;
     description: string;
     maxScore: number;
-    aiInstruction: string;
     order: number;
   }> = [
     {
-      slug: "opening-greeting",
+      slug: "opening-within-3s",
       category: "Opening",
-      name: "Standard greeting",
-      description:
-        "Agent must greet the customer, state their name, and identify the company within the first 15 seconds.",
-      maxScore: 10,
-      aiInstruction:
-        "Mark as fulfilled only if the agent's first turn includes a salutation, their name, and the company name.",
+      name: "Did associate open the call with in 3 secs?",
+      description: "Opening should be prompt within 3 seconds. If followed, mark Yes; otherwise No.",
+      maxScore: 3,
       order: 10,
     },
     {
-      slug: "identity-verification",
-      category: "Compliance",
-      name: "Identity verification",
+      slug: "greeting-appropriate",
+      category: "Opening",
+      name: "Did associate greet the customer appropriately?",
       description:
-        "Agent must verify customer identity using at least two pieces of information before discussing account details.",
-      maxScore: 20,
-      aiInstruction:
-        "Look for the agent asking for two distinct identifiers (name + DOB / postcode / last 4 digits) before any account discussion.",
+        "In greeting, agent should not use hello, hi, or casual words. If followed, mark Yes; otherwise No.",
+      maxScore: 3,
       order: 20,
     },
     {
-      slug: "needs-discovery",
-      category: "Discovery",
-      name: "Needs discovery",
+      slug: "branding",
+      category: "Opening",
+      name: "Did associate do branding?",
       description:
-        "Agent asks at least one open-ended question to understand the customer's situation.",
-      maxScore: 15,
-      aiInstruction: "Open-ended = starts with What/How/Why/Tell me. Closed yes/no does not count.",
+        "Proper and clear usage of brand name on call. If followed, mark Yes; otherwise No.",
+      maxScore: 3,
       order: 30,
     },
     {
-      slug: "solution-clarity",
-      category: "Solution",
-      name: "Clear solution explanation",
+      slug: "probing-relevant-questions",
+      category: "Call Handling/ Soft skills",
+      name: "Did associate ask for customer query/concern/relevant questions asked?",
       description:
-        "Agent explains the proposed product or solution clearly, including key terms and any obligations.",
-      maxScore: 15,
-      aiInstruction:
-        "Fulfilled if the agent describes what the customer is getting, any cost, and any commitment period.",
+        "Appropriate probing should be done on call as per call scenario. If agent did not probe to clarify customer concern or give appropriate answer, mark down. If followed, mark Yes; otherwise No.",
+      maxScore: 4,
       order: 40,
     },
     {
-      slug: "compliance-disclosures",
-      category: "Compliance",
-      name: "Required disclosures",
+      slug: "acknowledge-query",
+      category: "Call Handling/ Soft skills",
+      name: "Did associate acknowledge customer query / concern?",
       description:
-        "Agent reads required regulatory disclosures verbatim before closing the sale.",
-      maxScore: 20,
-      aiInstruction:
-        "Fulfilled only if the disclosures appear before any explicit consent/commitment from the customer.",
+        "Provide frequent indicators or acknowledgement that the agent is listening to the customer. Customer should feel that their voice is being listened to and captured properly. If followed, mark Yes; otherwise No.",
+      maxScore: 5,
       order: 50,
     },
     {
-      slug: "empathy",
-      category: "Soft skills",
-      name: "Empathy",
+      slug: "apologise-sympathise",
+      category: "Call Handling/ Soft skills",
+      name: "Did associate apologized / sympathised (if required)",
       description:
-        "Agent acknowledges the customer's situation or feelings with an empathy statement.",
-      maxScore: 10,
-      aiInstruction:
-        "Look for phrases like \"I understand\", \"that sounds frustrating\", \"I'm sorry to hear that\".",
+        "Approach customer with compassion and apologies when necessary. If customer is upset due to services or product issue, agent should show empathy. If followed, mark Yes; otherwise No.",
+      maxScore: 5,
       order: 60,
     },
     {
-      slug: "call-closure",
-      category: "Closure",
-      name: "Closing & next steps",
+      slug: "address-by-name",
+      category: "Call Handling/ Soft skills",
+      name: "Did associate address the customer by his / her name?",
       description:
-        "Agent summarises the outcome, confirms next steps, and thanks the customer.",
-      maxScore: 10,
-      aiInstruction:
-        "Fulfilled if the agent recaps what will happen next and offers a polite close.",
+        "Agent should ask for customer name and address the customer appropriately. Use customer name and build rapport. If followed, mark Yes; otherwise No.",
+      maxScore: 5,
       order: 70,
+    },
+    {
+      slug: "enthusiastic-energetic",
+      category: "Call Handling/ Soft skills",
+      name: "Was associate enthusiastic and energetic throughout the call?",
+      description:
+        "Agent should be energetic and enthusiastic throughout the call. Energy should be constant. If followed, mark Yes; otherwise No.",
+      maxScore: 5,
+      order: 80,
+    },
+    {
+      slug: "switch-language",
+      category: "Call Handling/ Soft skills",
+      name: "Did associate switch language as per customer language?",
+      description:
+        "Agent should switch language as per customer and use language that is easy for customer to understand. If followed, mark Yes; otherwise No.",
+      maxScore: 5,
+      order: 90,
+    },
+    {
+      slug: "attentive",
+      category: "Call Handling/ Soft skills",
+      name: "Was associate attentive?",
+      description:
+        "Agent needs to be attentive to handle the call correctly. If followed, mark Yes; otherwise No.",
+      maxScore: 5,
+      order: 100,
+    },
+    {
+      slug: "control-rate-of-speech",
+      category: "Call Handling/ Soft skills",
+      name: "Did associate control rate of speech?",
+      description:
+        "Rate of speech should be controlled and moderate. If followed, mark Yes; otherwise No.",
+      maxScore: 5,
+      order: 110,
+    },
+    {
+      slug: "fluent",
+      category: "Call Handling/ Soft skills",
+      name: "Was associate fluent throughout the call?",
+      description:
+        "Agent should speak fluently and should not fumble or use fillers during conversation. If followed, mark Yes; otherwise No.",
+      maxScore: 5,
+      order: 120,
+    },
+    {
+      slug: "no-interruption",
+      category: "Call Handling/ Soft skills",
+      name: "Did not interrupt and waited for customer to complete first?",
+      description:
+        "Agent should not interrupt customer while speaking. Let customer speak first and then answer. Agent should pause between information, listen without interrupting. If followed, mark Yes; otherwise No.",
+      maxScore: 4,
+      order: 130,
+    },
+    {
+      slug: "hold-procedure",
+      category: "Call Handling/ Soft skills",
+      name: "Was the hold procedure followed?",
+      description:
+        "Agent should adhere to script for hold and un-hold procedure. Hold duration should be according to process. If followed, mark Yes; otherwise No.",
+      maxScore: 4,
+      order: 140,
+    },
+    {
+      slug: "sentence-formation",
+      category: "Call Handling/ Soft skills",
+      name: "Was sentence formation / pronunciation up to the mark?",
+      description:
+        "Use complete sentences with correct pronunciation. Avoid grammatical errors. Use verbiage as per guidelines.",
+      maxScore: 4,
+      order: 150,
+    },
+    {
+      slug: "confident",
+      category: "Call Handling/ Soft skills",
+      name: "Was associate confident on call?",
+      description:
+        "Associate needs to be confident throughout the call. If followed, mark Yes; otherwise No.",
+      maxScore: 3,
+      order: 160,
+    },
+    {
+      slug: "varied-tone-courteous",
+      category: "Call Handling/ Soft skills",
+      name: "Varied tone and courteous",
+      description:
+        "Agent should change tone as per conversation and keep tone positive. If followed, mark Yes; otherwise No.",
+      maxScore: 3,
+      order: 170,
+    },
+    {
+      slug: "dead-air",
+      category: "Call Handling/ Soft skills",
+      name: "Dead air (should not exceed 10 sec)",
+      description:
+        "Avoid dead air on calls. Dead air should not exceed 10 seconds. If followed, mark Yes; otherwise No.",
+      maxScore: 3,
+      order: 180,
+    },
+    {
+      slug: "probe-understand-query",
+      category: "Call Handling/ Soft skills",
+      name: "Did associate probe well to understand customer's query / concern?",
+      description:
+        "Appropriate probing should be done on call to understand customer need or concern. If agent did not probe to clarify customer concern or give appropriate answer, mark down.",
+      maxScore: 5,
+      order: 190,
+    },
+    {
+      slug: "convincing-device-pickup",
+      category: "Product/Process handling",
+      name: "Convincing for device pick-up/ Fake Leads generate",
+      description:
+        "Associate should convince the customer for device pickup. Mark down if associate generates leads without confirmation or closes sales incorrectly.",
+      maxScore: 5,
+      order: 200,
+    },
+    {
+      slug: "tag-call-correctly",
+      category: "Product/Process handling",
+      name: "TAG the customer call correctly",
+      description:
+        "Call should be tagged with correct disposition. CRM should also be updated correctly and completely as per conversation. If followed, mark Yes; otherwise No.",
+      maxScore: 5,
+      order: 210,
+    },
+    {
+      slug: "correct-information-no-false-commitment",
+      category: "Product/Process handling",
+      name: "Did associate provided correct information to customer and did not make false commitment?",
+      description:
+        "Agent should provide correct and complete information to customer and must not make false commitments.",
+      maxScore: 5,
+      order: 220,
+    },
+    {
+      slug: "ask-further-assistance",
+      category: "Closing",
+      name: "Did associate ask for further assistance?",
+      description:
+        "Agent should thank the customer for their time and ask for further assistance if required. If followed, mark Yes; otherwise No.",
+      maxScore: 3,
+      order: 230,
+    },
+    {
+      slug: "standard-closing-script",
+      category: "Closing",
+      name: "Did associate follow standard closing script?",
+      description:
+        "Agent should close the call as per closing guidelines. Do not mark down if call gets disconnected by customer before closing script. If followed, mark Yes; otherwise No.",
+      maxScore: 3,
+      order: 240,
     },
   ];
 
@@ -218,7 +362,7 @@ async function main() {
           parameterName: p.name,
           parameterDescription: p.description,
           maxScore: p.maxScore,
-          aiInstruction: p.aiInstruction,
+          aiInstruction: `${p.description} ${BINARY_RULE}`,
           displayOrder: p.order,
         },
       })
@@ -280,7 +424,7 @@ async function main() {
       customerName: "John Mitchell",
       firstResponseSec: 5,
       transcript: [
-        { speaker: "AGENT", text: "Good morning, this is Priya from Acme Bank. Am I speaking with John?", startMs: 0, endMs: 4500 },
+        { speaker: "AGENT", text: "Good morning, this is Priya from Beetel. Am I speaking with John?", startMs: 0, endMs: 4500 },
         { speaker: "CUSTOMER", text: "Yes, this is John.", startMs: 4500, endMs: 6200 },
         { speaker: "AGENT", text: "To verify, could you confirm your date of birth and the last four digits of your card?", startMs: 6200, endMs: 12000 },
         { speaker: "CUSTOMER", text: "Sure, 12 March 1985 and the last four are 4421.", startMs: 12000, endMs: 17000 },
@@ -295,13 +439,25 @@ async function main() {
         summary: "Strong, compliant sale. Agent verified identity, presented value clearly, and read required disclosures before closing.",
         sentiment: "POSITIVE",
         passedSlugs: [
-          "opening-greeting",
-          "identity-verification",
-          "needs-discovery",
-          "solution-clarity",
-          "compliance-disclosures",
-          "empathy",
-          "call-closure",
+          "opening-within-3s",
+          "greeting-appropriate",
+          "branding",
+          "probing-relevant-questions",
+          "acknowledge-query",
+          "address-by-name",
+          "enthusiastic-energetic",
+          "attentive",
+          "control-rate-of-speech",
+          "fluent",
+          "no-interruption",
+          "sentence-formation",
+          "confident",
+          "varied-tone-courteous",
+          "probe-understand-query",
+          "tag-call-correctly",
+          "correct-information-no-false-commitment",
+          "ask-further-assistance",
+          "standard-closing-script",
         ],
       },
       manualReview: {
@@ -337,16 +493,16 @@ async function main() {
       customerName: "Maria Lopez",
       firstResponseSec: 4,
       transcript: [
-        { speaker: "AGENT", text: "Hi, Marcus calling from Acme. Who am I talking to?", startMs: 0, endMs: 3500 },
+        { speaker: "AGENT", text: "Hi, Marcus calling from Beetel. Who am I talking to?", startMs: 0, endMs: 3500 },
         { speaker: "CUSTOMER", text: "This is Maria. What's this about?", startMs: 3500, endMs: 6000 },
         { speaker: "AGENT", text: "We're offering a new card with cashback rewards.", startMs: 6000, endMs: 10000 },
         { speaker: "CUSTOMER", text: "Not interested, thanks.", startMs: 10000, endMs: 12000 },
         { speaker: "AGENT", text: "Okay. Goodbye.", startMs: 12000, endMs: 13500 },
       ],
       audit: {
-        summary: "Agent skipped identity verification and required disclosures. Short call, no rapport built.",
+        summary: "Agent skipped probing and rapport building. Short call ended quickly.",
         sentiment: "NEGATIVE",
-        passedSlugs: ["call-closure"],
+        passedSlugs: ["greeting-appropriate", "branding"],
       },
       insights: [
         {
@@ -377,7 +533,7 @@ async function main() {
       customerName: "Daniel Kumar",
       firstResponseSec: 7,
       transcript: [
-        { speaker: "AGENT", text: "Thank you for calling Acme retention, this is Naomi. How can I help today?", startMs: 0, endMs: 5000 },
+        { speaker: "AGENT", text: "Thank you for calling Beetel retention, this is Naomi. How can I help today?", startMs: 0, endMs: 5000 },
         { speaker: "CUSTOMER", text: "Hi Naomi, I'm thinking of cancelling my plan.", startMs: 5000, endMs: 9000 },
         { speaker: "AGENT", text: "I'm sorry to hear that. Could I grab your account number and the postcode on file so I can look into it?", startMs: 9000, endMs: 16000 },
         { speaker: "CUSTOMER", text: "Sure, account is 8821-2231 and postcode 10001.", startMs: 16000, endMs: 22000 },
@@ -387,18 +543,32 @@ async function main() {
         { speaker: "CUSTOMER", text: "Okay, that helps. Let's do that.", startMs: 44000, endMs: 47000 },
         { speaker: "AGENT", text: "Wonderful. I'll apply it now. You'll see the discounted price on your next bill. Anything else I can help with?", startMs: 47000, endMs: 54000 },
         { speaker: "CUSTOMER", text: "No, that's it. Thanks Naomi.", startMs: 54000, endMs: 57000 },
-        { speaker: "AGENT", text: "Thanks for staying with Acme. Have a great day!", startMs: 57000, endMs: 61000 },
+        { speaker: "AGENT", text: "Thanks for staying with Beetel. Have a great day!", startMs: 57000, endMs: 61000 },
       ],
       audit: {
-        summary: "Effective retention save with empathy and a clear offer. Disclosures not applicable on this flow.",
+        summary: "Effective retention save with empathy and a clear offer. Closing was warm.",
         sentiment: "POSITIVE",
         passedSlugs: [
-          "opening-greeting",
-          "identity-verification",
-          "needs-discovery",
-          "solution-clarity",
-          "empathy",
-          "call-closure",
+          "opening-within-3s",
+          "greeting-appropriate",
+          "branding",
+          "probing-relevant-questions",
+          "acknowledge-query",
+          "apologise-sympathise",
+          "address-by-name",
+          "enthusiastic-energetic",
+          "attentive",
+          "control-rate-of-speech",
+          "fluent",
+          "no-interruption",
+          "sentence-formation",
+          "confident",
+          "varied-tone-courteous",
+          "probe-understand-query",
+          "tag-call-correctly",
+          "correct-information-no-false-commitment",
+          "ask-further-assistance",
+          "standard-closing-script",
         ],
       },
       manualReview: {
@@ -430,7 +600,7 @@ async function main() {
       customerName: "Mike Ng",
       firstResponseSec: 3,
       transcript: [
-        { speaker: "AGENT", text: "Acme support, Amelia speaking.", startMs: 0, endMs: 2800 },
+        { speaker: "AGENT", text: "Beetel support, Amelia speaking.", startMs: 0, endMs: 2800 },
         { speaker: "CUSTOMER", text: "Hi, my app keeps crashing when I log in.", startMs: 2800, endMs: 7000 },
         { speaker: "AGENT", text: "Sorry to hear that. Can I have your username so I can take a look?", startMs: 7000, endMs: 12000 },
         { speaker: "CUSTOMER", text: "It's mike_82.", startMs: 12000, endMs: 13500 },
@@ -438,12 +608,29 @@ async function main() {
         { speaker: "CUSTOMER", text: "Done, updating now... okay, looks better.", startMs: 22000, endMs: 28000 },
         { speaker: "AGENT", text: "Great. Anything else I can help with?", startMs: 28000, endMs: 31000 },
         { speaker: "CUSTOMER", text: "No that's all.", startMs: 31000, endMs: 32500 },
-        { speaker: "AGENT", text: "Thanks for calling Acme support.", startMs: 32500, endMs: 35000 },
+        { speaker: "AGENT", text: "Thanks for calling Beetel support.", startMs: 32500, endMs: 35000 },
       ],
       audit: {
         summary: "Quick technical fix. Agent only collected username (single identifier); compliance and disclosures not applicable for this support flow.",
         sentiment: "NEUTRAL",
-        passedSlugs: ["opening-greeting", "needs-discovery", "solution-clarity", "call-closure"],
+        passedSlugs: [
+          "opening-within-3s",
+          "greeting-appropriate",
+          "branding",
+          "probing-relevant-questions",
+          "acknowledge-query",
+          "attentive",
+          "control-rate-of-speech",
+          "fluent",
+          "no-interruption",
+          "sentence-formation",
+          "confident",
+          "probe-understand-query",
+          "tag-call-correctly",
+          "correct-information-no-false-commitment",
+          "ask-further-assistance",
+          "standard-closing-script",
+        ],
       },
       notes: [{ author: "Floor lead", body: "Good first-call resolution." }],
     },
@@ -461,7 +648,7 @@ async function main() {
       customerName: "Unknown",
       firstResponseSec: 2,
       transcript: [
-        { speaker: "AGENT", text: "Hello, David from Acme.", startMs: 0, endMs: 2200 },
+        { speaker: "AGENT", text: "Hello, David from Beetel.", startMs: 0, endMs: 2200 },
         { speaker: "CUSTOMER", text: "Hello?", startMs: 2200, endMs: 3500 },
         { speaker: "AGENT", text: "I'm calling about a new offer—", startMs: 3500, endMs: 6500 },
         { speaker: "CUSTOMER", text: "(line drops)", startMs: 6500, endMs: 8000 },
@@ -487,7 +674,7 @@ async function main() {
       customerName: "Jane Brown",
       firstResponseSec: 6,
       transcript: [
-        { speaker: "AGENT", text: "Acme retention, Naomi speaking.", startMs: 0, endMs: 3000 },
+        { speaker: "AGENT", text: "Beetel retention, Naomi speaking.", startMs: 0, endMs: 3000 },
         { speaker: "CUSTOMER", text: "I want to speak to a manager right now. I've been charged twice.", startMs: 3000, endMs: 9000 },
         { speaker: "AGENT", text: "I completely understand and I'm sorry for the trouble. Let me pull up your account — could you confirm your name and postcode?", startMs: 9000, endMs: 18000 },
         { speaker: "CUSTOMER", text: "Jane Brown, postcode 10010.", startMs: 18000, endMs: 22000 },
@@ -501,12 +688,25 @@ async function main() {
         summary: "Excellent handling of an upset caller. Refund issued and supervisor escalation initiated.",
         sentiment: "POSITIVE",
         passedSlugs: [
-          "opening-greeting",
-          "identity-verification",
-          "needs-discovery",
-          "solution-clarity",
-          "empathy",
-          "call-closure",
+          "opening-within-3s",
+          "greeting-appropriate",
+          "branding",
+          "probing-relevant-questions",
+          "acknowledge-query",
+          "apologise-sympathise",
+          "address-by-name",
+          "attentive",
+          "control-rate-of-speech",
+          "fluent",
+          "no-interruption",
+          "sentence-formation",
+          "confident",
+          "varied-tone-courteous",
+          "probe-understand-query",
+          "tag-call-correctly",
+          "correct-information-no-false-commitment",
+          "ask-further-assistance",
+          "standard-closing-script",
         ],
       },
       insights: [

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { Pencil, Trash2, Plus, Search, Power } from "lucide-react";
 import { Pill } from "@/components/ui/pill";
 import { EmptyState } from "@/components/ui/page-shell";
@@ -45,6 +45,17 @@ export function ParameterEditor({
   const [editing, setEditing] = useState<ParameterRow | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [banner, setBanner] = useState<
+    | { kind: "success" | "error"; message: string }
+    | null
+  >(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!banner || banner.kind !== "success") return;
+    const t = setTimeout(() => setBanner(null), 3500);
+    return () => clearTimeout(t);
+  }, [banner]);
 
   function updateParam(key: string, value: string) {
     const next = new URLSearchParams(sp);
@@ -72,32 +83,60 @@ export function ParameterEditor({
   function submitForm(formData: FormData) {
     setError(null);
     startTransition(async () => {
-      try {
-        await upsertParameter(formData);
+      const result = await upsertParameter(formData);
+      if (result.ok) {
         setModalOpen(false);
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Failed");
+        setBanner({ kind: "success", message: editing ? "Parameter updated." : "Parameter added." });
+        router.refresh();
+      } else {
+        setError(result.error ?? "Failed to save parameter.");
       }
     });
   }
 
-  function onToggle(id: string) {
+  function onToggle(id: string, isActive: boolean) {
     const fd = new FormData();
     fd.set("id", id);
-    startTransition(() => {
-      void toggleParameterActive(fd);
+    setBusyId(id);
+    startTransition(async () => {
+      const result = await toggleParameterActive(fd);
+      setBusyId(null);
+      if (result.ok) {
+        setBanner({
+          kind: "success",
+          message: isActive ? "Parameter deactivated." : "Parameter activated.",
+        });
+        router.refresh();
+      } else {
+        setBanner({ kind: "error", message: result.error ?? "Failed to update parameter." });
+      }
     });
   }
 
-  function onDelete(id: string) {
-    if (!confirm("Delete this parameter? This cannot be undone.")) return;
+  function onDelete(p: ParameterRow) {
+    if (p.scoreCount > 0) {
+      setBanner({
+        kind: "error",
+        message:
+          "This parameter has audit history and cannot be deleted. Deactivate it instead.",
+      });
+      return;
+    }
+    if (!confirm(`Delete "${p.parameterName}"? This cannot be undone.`)) return;
     const fd = new FormData();
-    fd.set("id", id);
+    fd.set("id", p.id);
+    setBusyId(p.id);
     startTransition(async () => {
-      try {
-        await deleteParameter(fd);
-      } catch (e) {
-        alert(e instanceof Error ? e.message : "Failed");
+      const result = await deleteParameter(fd);
+      setBusyId(null);
+      if (result.ok) {
+        setBanner({ kind: "success", message: `Deleted "${p.parameterName}".` });
+        router.refresh();
+      } else {
+        setBanner({
+          kind: "error",
+          message: result.error ?? "Failed to delete parameter.",
+        });
       }
     });
   }
@@ -168,12 +207,34 @@ export function ParameterEditor({
         </div>
       </section>
 
+      {banner ? (
+        <div
+          role="status"
+          className={
+            "mb-3 flex items-start justify-between gap-3 rounded-lg border px-3 py-2 text-sm " +
+            (banner.kind === "success"
+              ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+              : "border-rose-200 bg-rose-50 text-rose-800")
+          }
+        >
+          <span>{banner.message}</span>
+          <button
+            type="button"
+            onClick={() => setBanner(null)}
+            className="ml-2 text-xs font-medium opacity-70 hover:opacity-100"
+            aria-label="Dismiss"
+          >
+            ✕
+          </button>
+        </div>
+      ) : null}
+
       <section className="html-card overflow-hidden">
         <div className="flex items-center justify-between border-b border-[#e6ebf2] bg-[#fcfdff] px-4 py-3.5">
           <h3 className="text-base font-bold text-[#1f2937]">Parameters</h3>
           <div className="flex items-center gap-3">
             <div className="rounded-full border border-[#e1e7f0] bg-[#f3f6fb] px-3 py-1 text-[13px] font-semibold text-[#1f2937]">
-              Total: {parameters.reduce((sum, p) => sum + p.maxScore, 0)}
+              Total: {parameters.reduce((sum, p) => sum + (p.isActive ? p.maxScore : 0), 0)}
             </div>
             {trigger ? (
               <span onClick={openCreate}>{trigger}</span>
@@ -221,6 +282,7 @@ export function ParameterEditor({
                     onToggle={onToggle}
                     onDelete={onDelete}
                     pending={pending}
+                    busyId={busyId}
                   />
                 ))}
               </tbody>
@@ -252,63 +314,80 @@ function CategoryGroup({
   onToggle,
   onDelete,
   pending,
+  busyId,
 }: {
   category: string;
   rows: ParameterRow[];
   onEdit: (p: ParameterRow) => void;
-  onToggle: (id: string) => void;
-  onDelete: (id: string) => void;
+  onToggle: (id: string, isActive: boolean) => void;
+  onDelete: (p: ParameterRow) => void;
   pending: boolean;
+  busyId: string | null;
 }) {
   return (
     <>
-      {rows.map((p, idx) => (
-        <tr key={p.id} className="border-t border-[#edf1f6] hover:bg-[#fafcff]">
-          {idx === 0 ? (
-            <td rowSpan={rows.length} className="bg-[#f8fafc] px-3 py-2 text-center align-middle font-bold text-[#1f2937]">
-              {category}
-            </td>
-          ) : null}
-          <td className="px-3 py-2">
-            <div className="font-medium text-slate-800">{p.parameterName}</div>
-            <div className="text-xs text-slate-500 mt-1 max-w-2xl">{p.parameterDescription}</div>
-            {p.aiInstruction ? (
-              <div className="text-[11px] text-slate-400 mt-1">AI: {p.aiInstruction}</div>
+      {rows.map((p, idx) => {
+        const hasHistory = p.scoreCount > 0;
+        const isBusy = busyId === p.id;
+        return (
+          <tr key={p.id} className="border-t border-[#edf1f6] hover:bg-[#fafcff]">
+            {idx === 0 ? (
+              <td rowSpan={rows.length} className="bg-[#f8fafc] px-3 py-2 text-center align-middle font-bold text-[#1f2937]">
+                {category}
+              </td>
             ) : null}
-          </td>
-          <td className="px-3 py-2 text-center font-mono text-slate-700">{p.maxScore}</td>
-          <td className="px-3 py-2 text-center">
-            <div className="flex items-center justify-center gap-2">
-              <button
-                onClick={() => onEdit(p)}
-                className="grid h-7 w-7 place-items-center rounded-full border border-[#cfd7e5] bg-white text-[#3559eb] hover:bg-slate-50"
-                title="Edit"
-              >
-                <Pencil className="h-3.5 w-3.5" />
-              </button>
-              <button
-                onClick={() => onToggle(p.id)}
-                disabled={pending}
-                className="grid h-7 w-7 place-items-center rounded-full border border-[#cfd7e5] bg-white text-slate-600 hover:bg-slate-50"
-                title={p.isActive ? "Deactivate" : "Activate"}
-              >
-                <Power className="h-3.5 w-3.5" />
-              </button>
-              <button
-                onClick={() => onDelete(p.id)}
-                disabled={pending}
-                className="grid h-7 w-7 place-items-center rounded-full border border-[#cfd7e5] bg-white text-red-500 hover:bg-red-50"
-                title={p.scoreCount > 0 ? "Has audit history — cannot delete" : "Delete"}
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </button>
-            </div>
-            <div className="mt-2">
-              <Pill tone={p.isActive ? "green" : "slate"}>{p.isActive ? "Active" : "Inactive"}</Pill>
-            </div>
-          </td>
-        </tr>
-      ))}
+            <td className="px-3 py-2">
+              <div className="font-medium text-slate-800">{p.parameterName}</div>
+              <div className="text-xs text-slate-500 mt-1 max-w-2xl">{p.parameterDescription}</div>
+              {p.aiInstruction ? (
+                <div className="text-[11px] text-slate-400 mt-1">AI: {p.aiInstruction}</div>
+              ) : null}
+              {hasHistory ? (
+                <div className="text-[11px] text-amber-700 mt-1">
+                  Used in {p.scoreCount} audit{p.scoreCount === 1 ? "" : "s"} — deactivate instead of delete.
+                </div>
+              ) : null}
+            </td>
+            <td className="px-3 py-2 text-center font-mono text-slate-700">{p.maxScore}</td>
+            <td className="px-3 py-2 text-center">
+              <div className="flex items-center justify-center gap-2">
+                <button
+                  onClick={() => onEdit(p)}
+                  className="grid h-7 w-7 place-items-center rounded-full border border-[#cfd7e5] bg-white text-[#3559eb] hover:bg-slate-50"
+                  title="Edit"
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  onClick={() => onToggle(p.id, p.isActive)}
+                  disabled={pending}
+                  className="grid h-7 w-7 place-items-center rounded-full border border-[#cfd7e5] bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+                  title={p.isActive ? "Deactivate" : "Activate"}
+                >
+                  <Power className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  onClick={() => onDelete(p)}
+                  disabled={pending || hasHistory}
+                  className="grid h-7 w-7 place-items-center rounded-full border border-[#cfd7e5] bg-white text-red-500 hover:bg-red-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                  title={
+                    hasHistory
+                      ? "Used in audit history. Deactivate instead."
+                      : isBusy
+                        ? "Deleting…"
+                        : "Delete"
+                  }
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              </div>
+              <div className="mt-2">
+                <Pill tone={p.isActive ? "green" : "slate"}>{p.isActive ? "Active" : "Inactive"}</Pill>
+              </div>
+            </td>
+          </tr>
+        );
+      })}
     </>
   );
 }

@@ -67,6 +67,18 @@ npx prisma migrate deploy
 npm run db:seed
 ```
 
+The demo client is **Beetel**. Its active evaluation sheet has **24 parameters**
+across Opening / Call Handling & Soft skills / Product & Process handling /
+Closing categories, totalling **100** points. Parameters that already have
+audit history should be deactivated, not deleted; the UI enforces this.
+
+To re-import or refresh the Beetel parameter set against an existing client
+record (idempotent), run:
+
+```bash
+npm run import:beetel-parameters
+```
+
 ## Local Development
 
 For local root-path development, set `NEXT_PUBLIC_BASE_PATH=""` in `.env`.

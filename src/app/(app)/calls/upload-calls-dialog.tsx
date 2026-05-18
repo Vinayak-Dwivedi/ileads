@@ -179,7 +179,8 @@ export function UploadCallsDialog({
         <DialogHeader className="border-b border-slate-100 px-6 py-5">
           <DialogTitle className="text-xl text-slate-900">Upload Calls</DialogTitle>
           <DialogDescription>
-            Add audio recordings. They stay uploaded until you run Sarvam transcription and AI audit.
+            Add one or more audio recordings. After upload, open the call detail page and click
+            Process Demo Call to run transcription and AI audit. Longer calls may take several minutes.
           </DialogDescription>
         </DialogHeader>
 

@@ -72,15 +72,15 @@ export default async function DashboardPage({
           <DashboardStat label="Manual Reviewed" value={kpis.manualReviewed.toLocaleString()} />
           <DashboardStat
             label="Avg Quality Score"
-            value={kpis.averageQualityPercent != null ? formatPercent(kpis.averageQualityPercent, 1) : "Not available"}
+            value={kpis.averageQualityPercent != null ? formatPercent(kpis.averageQualityPercent, 1) : "NA"}
           />
           <DashboardStat
             label="First Response Time"
-            value={kpis.firstResponseSeconds != null ? formatMmSs(kpis.firstResponseSeconds) : "Not available"}
+            value={kpis.firstResponseSeconds != null ? formatMmSs(kpis.firstResponseSeconds) : "NA"}
           />
           <DashboardStat
             label="AHT"
-            value={kpis.averageHandleSeconds != null ? formatMmSs(kpis.averageHandleSeconds) : "Not available"}
+            value={kpis.averageHandleSeconds != null ? formatMmSs(kpis.averageHandleSeconds) : "NA"}
           />
         </section>
 

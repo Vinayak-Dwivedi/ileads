@@ -4,14 +4,20 @@
 //            client_parameters, client_audit_prompts, app settings,
 //            uploaded audio files (storage/audio/*).
 //
-// Deletes: calls, call_transcripts, transcript_segments, ai_audits,
-//          ai_parameter_scores, call_events, ai_insights, manual_reviews,
-//          call_notes.
+// Deletes: calls, call_transcripts, transcript_segments,
+//          transcript_segment_corrections, ai_audits, ai_parameter_scores,
+//          call_events, ai_insights, manual_reviews, call_notes.
+//
+// (The schema does not have a manual_parameter_scores table — manual reviews
+//  store a single aggregate score per call. If that ever changes, add the new
+//  table here.)
 //
 // Usage:
-//   npm run truncate:demo-calls -- --yes
+//   npm run truncate:demo-calls            # dry-run, prints counts and exits
+//   npm run truncate:demo-calls -- --yes   # actually deletes
 //
-// Without --yes the script prints the planned counts and exits.
+// Without --yes the script prints the planned counts and exits (or, on a TTY,
+// prompts for explicit "yes" confirmation).
 
 import "dotenv/config";
 import readline from "node:readline/promises";
@@ -22,19 +28,41 @@ function hasYesFlag(argv: string[]): boolean {
 }
 
 async function countAll() {
-  const [calls, transcripts, segments, audits, scores, events, insights, reviews, notes] =
-    await Promise.all([
-      prisma.call.count(),
-      prisma.callTranscript.count(),
-      prisma.transcriptSegment.count(),
-      prisma.aiAudit.count(),
-      prisma.aiParameterScore.count(),
-      prisma.callEvent.count(),
-      prisma.aiInsight.count(),
-      prisma.manualReview.count(),
-      prisma.callNote.count(),
-    ]);
-  return { calls, transcripts, segments, audits, scores, events, insights, reviews, notes };
+  const [
+    calls,
+    transcripts,
+    segments,
+    corrections,
+    audits,
+    scores,
+    events,
+    insights,
+    reviews,
+    notes,
+  ] = await Promise.all([
+    prisma.call.count(),
+    prisma.callTranscript.count(),
+    prisma.transcriptSegment.count(),
+    prisma.transcriptSegmentCorrection.count(),
+    prisma.aiAudit.count(),
+    prisma.aiParameterScore.count(),
+    prisma.callEvent.count(),
+    prisma.aiInsight.count(),
+    prisma.manualReview.count(),
+    prisma.callNote.count(),
+  ]);
+  return {
+    calls,
+    transcripts,
+    segments,
+    corrections,
+    audits,
+    scores,
+    events,
+    insights,
+    reviews,
+    notes,
+  };
 }
 
 async function countPreserved() {
@@ -80,7 +108,10 @@ async function main(): Promise<number> {
 
   console.log("\nDeleting call-scoped data…");
   // Order matters because of FKs that are not all CASCADE.
+  // Children first (corrections → segments → transcripts; scores → audits)
+  // and finally Call.
   await prisma.$transaction(async (tx) => {
+    await tx.transcriptSegmentCorrection.deleteMany({});
     await tx.aiParameterScore.deleteMany({});
     await tx.aiInsight.deleteMany({});
     await tx.callEvent.deleteMany({});

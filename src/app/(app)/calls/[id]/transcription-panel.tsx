@@ -168,11 +168,8 @@ export function TranscriptionPanel({
         <FileText className="h-4 w-4" /> Transcription
       </div>
       <p className="mb-3 text-xs text-slate-500">
-        {sttProvider === "sarvam"
-          ? sarvamUseBatch
-            ? "Uses live transcription with diarization. Longer calls may take a few minutes."
-            : `Uses Sarvam ${sarvamModel} for demo transcription. Falls back to local STT if Sarvam fails.`
-          : "Live STT runs the configured local model chain on the audio file."}
+        Live transcription with speaker diarization. Longer calls may take several minutes —
+        keep this page open while it runs.
       </p>
       {longCall ? (
         <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">

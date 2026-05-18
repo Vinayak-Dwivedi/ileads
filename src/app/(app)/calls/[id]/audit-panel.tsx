@@ -95,8 +95,8 @@ export function AuditPanel({
         ) : null}
       </div>
       <p className="text-xs text-slate-500 mb-3">
-        Live audit (OpenRouter / Gemma): metadata, parameters, and transcript segments are
-        sent as text only. Audio is never uploaded. Binary scoring is enforced server-side.
+        AI audit scores this call against active parameters using the transcript only — audio is
+        never sent. Re-run after any speaker correction.
       </p>
       <div className="flex flex-wrap items-center gap-2">
         <button
