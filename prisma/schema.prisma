@@ -189,6 +189,7 @@ model Campaign {
 
   client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
   calls  Call[]
+  agents Agent[]
 
   @@index([clientId])
   @@map("campaigns")
@@ -214,6 +215,7 @@ model Agent {
   id           String    @id @default(cuid())
   clientId     String    @map("client_id")
   teamId       String?   @map("team_id")
+  campaignId   String?   @map("campaign_id")
   name         String
   employeeCode String?   @map("employee_code")
   email        String?
@@ -222,12 +224,14 @@ model Agent {
   createdAt    DateTime  @default(now()) @map("created_at")
   updatedAt    DateTime  @updatedAt @map("updated_at")
 
-  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  team   Team?  @relation(fields: [teamId], references: [id], onDelete: SetNull)
-  calls  Call[]
+  client   Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  team     Team?     @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  campaign Campaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  calls    Call[]
 
   @@index([clientId])
   @@index([teamId])
+  @@index([campaignId])
   @@map("agents")
 }
 

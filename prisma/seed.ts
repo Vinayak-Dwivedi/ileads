@@ -118,6 +118,79 @@ async function main() {
     )
   );
 
+  // --- Standard audit parameters (the 10 parent KPI categories) ------------
+  const STANDARD_PARAMS = [
+    {
+      name: "Opening / Greeting",
+      description: "Prompt, branded, professional call opening within the first few seconds.",
+      sortOrder: 10,
+    },
+    {
+      name: "Customer Verification",
+      description: "Addressing the customer by name and confirming identity / context.",
+      sortOrder: 20,
+    },
+    {
+      name: "Call Purpose Identification",
+      description: "Establishing the reason for the call and confirming the customer's language/channel preferences.",
+      sortOrder: 30,
+    },
+    {
+      name: "Communication Skills",
+      description: "Energy, attentiveness, rate of speech, confidence, fluency, sentence formation.",
+      sortOrder: 40,
+    },
+    {
+      name: "Listening & Probing",
+      description: "Asking the right questions and probing to understand the customer's query/concern.",
+      sortOrder: 50,
+    },
+    {
+      name: "Empathy & Courtesy",
+      description: "Acknowledging the concern, apologising / sympathising as required, varied courteous tone.",
+      sortOrder: 60,
+    },
+    {
+      name: "Product / Process Knowledge",
+      description: "Correct handling of the product/process and the conversion/pickup pitch.",
+      sortOrder: 70,
+    },
+    {
+      name: "Resolution / Assistance Quality",
+      description: "Hold procedure, interruptions, dead-air control during resolution.",
+      sortOrder: 80,
+    },
+    {
+      name: "Compliance",
+      description: "Correct disposition tagging, accurate information, no false commitments.",
+      sortOrder: 90,
+    },
+    {
+      name: "Closing & Documentation",
+      description: "Standard closing script and offer of further assistance.",
+      sortOrder: 100,
+    },
+  ];
+
+  const standardParamMap = new Map<string, string>();
+  for (const sp of STANDARD_PARAMS) {
+    const created = await prisma.standardAuditParameter.upsert({
+      where: { name: sp.name },
+      update: {
+        description: sp.description,
+        sortOrder: sp.sortOrder,
+        isActive: true,
+      },
+      create: {
+        name: sp.name,
+        description: sp.description,
+        sortOrder: sp.sortOrder,
+        isActive: true,
+      },
+    });
+    standardParamMap.set(sp.name, created.id);
+  }
+
   // --- Client parameters ---------------------------------------------------
   // 24-row Beetel evaluation sheet. Total max score = 100.
   const BINARY_RULE =
@@ -135,7 +208,7 @@ async function main() {
   }> = [
     {
       slug: "opening-within-3s",
-      category: "Opening",
+      category: "Opening / Greeting",
       name: "Did associate open the call with in 3 secs?",
       description: "Opening should be prompt within 3 seconds. If followed, mark Yes; otherwise No.",
       maxScore: 3,
@@ -143,7 +216,7 @@ async function main() {
     },
     {
       slug: "greeting-appropriate",
-      category: "Opening",
+      category: "Opening / Greeting",
       name: "Did associate greet the customer appropriately?",
       description:
         "In greeting, agent should not use hello, hi, or casual words. If followed, mark Yes; otherwise No.",
@@ -152,7 +225,7 @@ async function main() {
     },
     {
       slug: "branding",
-      category: "Opening",
+      category: "Opening / Greeting",
       name: "Did associate do branding?",
       description:
         "Proper and clear usage of brand name on call. If followed, mark Yes; otherwise No.",
@@ -161,7 +234,7 @@ async function main() {
     },
     {
       slug: "probing-relevant-questions",
-      category: "Call Handling/ Soft skills",
+      category: "Listening & Probing",
       name: "Did associate ask for customer query/concern/relevant questions asked?",
       description:
         "Appropriate probing should be done on call as per call scenario. If agent did not probe to clarify customer concern or give appropriate answer, mark down. If followed, mark Yes; otherwise No.",
@@ -170,7 +243,7 @@ async function main() {
     },
     {
       slug: "acknowledge-query",
-      category: "Call Handling/ Soft skills",
+      category: "Empathy & Courtesy",
       name: "Did associate acknowledge customer query / concern?",
       description:
         "Provide frequent indicators or acknowledgement that the agent is listening to the customer. Customer should feel that their voice is being listened to and captured properly. If followed, mark Yes; otherwise No.",
@@ -179,7 +252,7 @@ async function main() {
     },
     {
       slug: "apologise-sympathise",
-      category: "Call Handling/ Soft skills",
+      category: "Empathy & Courtesy",
       name: "Did associate apologized / sympathised (if required)",
       description:
         "Approach customer with compassion and apologies when necessary. If customer is upset due to services or product issue, agent should show empathy. If followed, mark Yes; otherwise No.",
@@ -188,7 +261,7 @@ async function main() {
     },
     {
       slug: "address-by-name",
-      category: "Call Handling/ Soft skills",
+      category: "Customer Verification",
       name: "Did associate address the customer by his / her name?",
       description:
         "Agent should ask for customer name and address the customer appropriately. Use customer name and build rapport. If followed, mark Yes; otherwise No.",
@@ -197,7 +270,7 @@ async function main() {
     },
     {
       slug: "enthusiastic-energetic",
-      category: "Call Handling/ Soft skills",
+      category: "Communication Skills",
       name: "Was associate enthusiastic and energetic throughout the call?",
       description:
         "Agent should be energetic and enthusiastic throughout the call. Energy should be constant. If followed, mark Yes; otherwise No.",
@@ -206,7 +279,7 @@ async function main() {
     },
     {
       slug: "switch-language",
-      category: "Call Handling/ Soft skills",
+      category: "Call Purpose Identification",
       name: "Did associate switch language as per customer language?",
       description:
         "Agent should switch language as per customer and use language that is easy for customer to understand. If followed, mark Yes; otherwise No.",
@@ -215,7 +288,7 @@ async function main() {
     },
     {
       slug: "attentive",
-      category: "Call Handling/ Soft skills",
+      category: "Communication Skills",
       name: "Was associate attentive?",
       description:
         "Agent needs to be attentive to handle the call correctly. If followed, mark Yes; otherwise No.",
@@ -224,7 +297,7 @@ async function main() {
     },
     {
       slug: "control-rate-of-speech",
-      category: "Call Handling/ Soft skills",
+      category: "Communication Skills",
       name: "Did associate control rate of speech?",
       description:
         "Rate of speech should be controlled and moderate. If followed, mark Yes; otherwise No.",
@@ -233,7 +306,7 @@ async function main() {
     },
     {
       slug: "fluent",
-      category: "Call Handling/ Soft skills",
+      category: "Communication Skills",
       name: "Was associate fluent throughout the call?",
       description:
         "Agent should speak fluently and should not fumble or use fillers during conversation. If followed, mark Yes; otherwise No.",
@@ -242,7 +315,7 @@ async function main() {
     },
     {
       slug: "no-interruption",
-      category: "Call Handling/ Soft skills",
+      category: "Resolution / Assistance Quality",
       name: "Did not interrupt and waited for customer to complete first?",
       description:
         "Agent should not interrupt customer while speaking. Let customer speak first and then answer. Agent should pause between information, listen without interrupting. If followed, mark Yes; otherwise No.",
@@ -251,7 +324,7 @@ async function main() {
     },
     {
       slug: "hold-procedure",
-      category: "Call Handling/ Soft skills",
+      category: "Resolution / Assistance Quality",
       name: "Was the hold procedure followed?",
       description:
         "Agent should adhere to script for hold and un-hold procedure. Hold duration should be according to process. If followed, mark Yes; otherwise No.",
@@ -260,7 +333,7 @@ async function main() {
     },
     {
       slug: "sentence-formation",
-      category: "Call Handling/ Soft skills",
+      category: "Communication Skills",
       name: "Was sentence formation / pronunciation up to the mark?",
       description:
         "Use complete sentences with correct pronunciation. Avoid grammatical errors. Use verbiage as per guidelines.",
@@ -269,7 +342,7 @@ async function main() {
     },
     {
       slug: "confident",
-      category: "Call Handling/ Soft skills",
+      category: "Communication Skills",
       name: "Was associate confident on call?",
       description:
         "Associate needs to be confident throughout the call. If followed, mark Yes; otherwise No.",
@@ -278,7 +351,7 @@ async function main() {
     },
     {
       slug: "varied-tone-courteous",
-      category: "Call Handling/ Soft skills",
+      category: "Empathy & Courtesy",
       name: "Varied tone and courteous",
       description:
         "Agent should change tone as per conversation and keep tone positive. If followed, mark Yes; otherwise No.",
@@ -287,7 +360,7 @@ async function main() {
     },
     {
       slug: "dead-air",
-      category: "Call Handling/ Soft skills",
+      category: "Resolution / Assistance Quality",
       name: "Dead air (should not exceed 10 sec)",
       description:
         "Avoid dead air on calls. Dead air should not exceed 10 seconds. If followed, mark Yes; otherwise No.",
@@ -296,7 +369,7 @@ async function main() {
     },
     {
       slug: "probe-understand-query",
-      category: "Call Handling/ Soft skills",
+      category: "Listening & Probing",
       name: "Did associate probe well to understand customer's query / concern?",
       description:
         "Appropriate probing should be done on call to understand customer need or concern. If agent did not probe to clarify customer concern or give appropriate answer, mark down.",
@@ -305,7 +378,7 @@ async function main() {
     },
     {
       slug: "convincing-device-pickup",
-      category: "Product/Process handling",
+      category: "Product / Process Knowledge",
       name: "Convincing for device pick-up/ Fake Leads generate",
       description:
         "Associate should convince the customer for device pickup. Mark down if associate generates leads without confirmation or closes sales incorrectly.",
@@ -314,7 +387,7 @@ async function main() {
     },
     {
       slug: "tag-call-correctly",
-      category: "Product/Process handling",
+      category: "Compliance",
       name: "TAG the customer call correctly",
       description:
         "Call should be tagged with correct disposition. CRM should also be updated correctly and completely as per conversation. If followed, mark Yes; otherwise No.",
@@ -323,7 +396,7 @@ async function main() {
     },
     {
       slug: "correct-information-no-false-commitment",
-      category: "Product/Process handling",
+      category: "Compliance",
       name: "Did associate provided correct information to customer and did not make false commitment?",
       description:
         "Agent should provide correct and complete information to customer and must not make false commitments.",
@@ -332,7 +405,7 @@ async function main() {
     },
     {
       slug: "ask-further-assistance",
-      category: "Closing",
+      category: "Closing & Documentation",
       name: "Did associate ask for further assistance?",
       description:
         "Agent should thank the customer for their time and ask for further assistance if required. If followed, mark Yes; otherwise No.",
@@ -341,7 +414,7 @@ async function main() {
     },
     {
       slug: "standard-closing-script",
-      category: "Closing",
+      category: "Closing & Documentation",
       name: "Did associate follow standard closing script?",
       description:
         "Agent should close the call as per closing guidelines. Do not mark down if call gets disconnected by customer before closing script. If followed, mark Yes; otherwise No.",
@@ -351,10 +424,22 @@ async function main() {
   ];
 
   const parameters = await Promise.all(
-    parameterSeeds.map((p) =>
-      prisma.clientParameter.upsert({
+    parameterSeeds.map((p) => {
+      const standardId = standardParamMap.get(p.category);
+      if (!standardId) {
+        throw new Error(`Standard parameter id not found for category "${p.category}"`);
+      }
+      return prisma.clientParameter.upsert({
         where: { id: `${client.id}-${p.slug}` },
-        update: {},
+        update: {
+          parameterCategory: p.category,
+          parameterName: p.name,
+          parameterDescription: p.description,
+          maxScore: p.maxScore,
+          aiInstruction: `${p.description} ${BINARY_RULE}`,
+          displayOrder: p.order,
+          standardParameterId: standardId,
+        },
         create: {
           id: `${client.id}-${p.slug}`,
           clientId: client.id,
@@ -364,9 +449,10 @@ async function main() {
           maxScore: p.maxScore,
           aiInstruction: `${p.description} ${BINARY_RULE}`,
           displayOrder: p.order,
+          standardParameterId: standardId,
         },
-      })
-    )
+      });
+    })
   );
 
   const maxPossibleScore = parameters.reduce((sum, p) => sum + p.maxScore, 0);

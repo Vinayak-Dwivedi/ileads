@@ -31,7 +31,8 @@ export function NavMain({
     isActive?: boolean
     items?: {
       title: string
-      url: string
+      url?: string
+      onClick?: () => void
     }[]
   }[]
 }) {
@@ -65,18 +66,27 @@ export function NavMain({
                 <SidebarMenuSub>
                   {item.items?.map((subItem) => (
                     <SidebarMenuSubItem key={subItem.title}>
-                      <SidebarMenuSubButton
-                        asChild
-                        isActive={isActive(subItem.url)}
-                        className={cn(
-                          isActive(subItem.url) &&
-                            "bg-blue-50 font-semibold text-blue-700 ring-1 ring-blue-100"
-                        )}
-                      >
-                        <Link href={subItem.url}>
+                      {subItem.onClick ? (
+                        <SidebarMenuSubButton
+                          onClick={subItem.onClick}
+                          className="cursor-pointer"
+                        >
                           <span>{subItem.title}</span>
-                        </Link>
-                      </SidebarMenuSubButton>
+                        </SidebarMenuSubButton>
+                      ) : (
+                        <SidebarMenuSubButton
+                          asChild
+                          isActive={subItem.url ? isActive(subItem.url) : false}
+                          className={cn(
+                            subItem.url && isActive(subItem.url) &&
+                              "bg-blue-50 font-semibold text-blue-700 ring-1 ring-blue-100"
+                          )}
+                        >
+                          <Link href={subItem.url || "#"}>
+                            <span>{subItem.title}</span>
+                          </Link>
+                        </SidebarMenuSubButton>
+                      )}
                     </SidebarMenuSubItem>
                   ))}
                 </SidebarMenuSub>

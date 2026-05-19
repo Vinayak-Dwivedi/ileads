@@ -17,7 +17,7 @@
 
 import { prisma } from "../src/lib/db";
 
-const TARGET_CLIENT_ID = "cmp8awxnz0000l4n9g9wzs8vy"; // Beetel
+let TARGET_CLIENT_ID = "cmp8awxnz0000l4n9g9wzs8vy"; // Beetel
 
 const BINARY_RULE =
   "Binary scoring: mark pass only if behavior is clearly fulfilled in the transcript; " +
@@ -257,6 +257,14 @@ async function assertCallDataEmpty() {
 }
 
 async function main() {
+  const beetelClient = await prisma.client.findFirst({
+    where: { slug: "beetel" },
+  });
+  if (!beetelClient) {
+    throw new Error("Beetel client not found in database.");
+  }
+  TARGET_CLIENT_ID = beetelClient.id;
+
   const totalScore = BEETEL_PARAMS.reduce((s, p) => s + p.maxScore, 0);
   if (BEETEL_PARAMS.length !== 24) {
     throw new Error(`Expected 24 Beetel parameters, got ${BEETEL_PARAMS.length}.`);
@@ -319,7 +327,7 @@ async function main() {
     await prisma.clientParameter.create({
       data: {
         clientId: TARGET_CLIENT_ID,
-        parameterCategory: p.category,
+        parameterCategory: p.standardName,
         parameterName: p.name,
         parameterDescription: p.description,
         maxScore: p.maxScore,

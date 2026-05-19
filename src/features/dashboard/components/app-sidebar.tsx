@@ -1,7 +1,6 @@
-"use client"
+"use client";
 
 import * as React from "react"
-
 import { NavMain } from "@/features/dashboard-01/components/nav-main"
 import { NavSecondary } from "@/features/dashboard-01/components/nav-secondary"
 import { NavUser } from "@/features/dashboard/components/nav-user"
@@ -18,8 +17,12 @@ import { FileChartColumn } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { withBasePath } from "@/lib/base-path"
 
-const data = {
-  navMain: [
+export function AppSidebar({
+  ...props
+}: React.ComponentProps<typeof Sidebar>) {
+  const router = useRouter()
+
+  const navMain = React.useMemo(() => [
     {
       title: "QMS Audit",
       url: "/dashboard",
@@ -38,14 +41,14 @@ const data = {
           title: "Parameters",
           url: "/parameters",
         },
+        {
+          title: "Agents",
+          url: "/agents",
+        },
       ],
     }
-  ],
-  navSecondary: [],
-}
+  ], [])
 
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const router = useRouter()
   return (
     <Sidebar collapsible="offcanvas" {...props}>
       <SidebarHeader>
@@ -62,8 +65,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={data.navMain} />
-        <NavSecondary items={data.navSecondary} className="mt-auto" />
+        <NavMain items={navMain} />
+        <NavSecondary items={[]} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
         <NavUser />

@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { SESSION_COOKIE_NAME, verifySession } from "@/lib/session";
 import { BASE_PATH } from "@/lib/base-path";
+import { prisma } from "@/lib/db";
 
 // Notes on basePath handling here:
 //  - `request.nextUrl.pathname` is ALREADY stripped of basePath, so the path
@@ -25,7 +26,30 @@ function redirectTo(request: NextRequest, location: string): NextResponse {
 export async function proxy(request: NextRequest) {  
   const { pathname } = request.nextUrl;
   const token = request.cookies.get(SESSION_COOKIE_NAME)?.value;
-  const session = await verifySession(token);
+  const payload = await verifySession(token);
+
+  let session = null;
+  let shouldClearCookie = false;
+  if (payload) {
+    const access = await prisma.clientAccess.findFirst({
+      where: { id: payload.accessId, isActive: true },
+      include: { client: true },
+    });
+    if (access && access.client.id === payload.clientId && access.client.isActive) {
+      session = payload;
+    } else {
+      shouldClearCookie = true;
+    }
+  }
+
+  // If the session is invalid, immediately clear the cookie.
+  if (shouldClearCookie) {
+    const response = pathname === "/login"
+      ? NextResponse.next()
+      : redirectTo(request, `${BASE_PATH}/login`);
+    response.cookies.delete(SESSION_COOKIE_NAME);
+    return response;
+  }
 
   // Auth API endpoints are always reachable so login/logout work.
   if (pathname.startsWith("/api/auth/")) {

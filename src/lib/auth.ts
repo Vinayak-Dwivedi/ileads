@@ -14,6 +14,8 @@ import {
   type SessionPayload,
 } from "@/lib/session";
 
+import { redirect } from "next/navigation";
+
 export interface AuthenticatedSession extends SessionPayload {
   clientName: string;
 }
@@ -34,7 +36,7 @@ export async function getSession(): Promise<AuthenticatedSession | null> {
 export async function requireSession(): Promise<AuthenticatedSession> {
   const session = await getSession();
   if (!session) {
-    throw new Error("Unauthenticated");
+    redirect("/login");
   }
   return session;
 }
