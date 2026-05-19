@@ -122,7 +122,7 @@ export function UploadCallsDialog({
           if (response.status === 413) {
             throw new Error(
               `Upload failed: file is too large. Maximum allowed size is ${maxFileMb} MB. ` +
-                "Reduce the file or ask the server admin to raise MAX_AUDIO_UPLOAD_MB / Nginx client_max_body_size.",
+              "Reduce the file or ask the server admin to raise MAX_AUDIO_UPLOAD_MB / Nginx client_max_body_size.",
             );
           }
           if (response.status === 401 || response.status === 403) {
@@ -246,7 +246,7 @@ export function UploadCallsDialog({
                   addFiles(event.dataTransfer.files);
                 }}
                 className={cn(
-                  "flex min-h-[138px] w-full flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 bg-slate-50/70 px-4 text-center transition-colors hover:border-blue-300 hover:bg-blue-50/40",
+                  "flex min-h-34.5 w-full flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 bg-slate-50/70 px-4 text-center transition-colors hover:border-blue-300 hover:bg-blue-50/40",
                   files.length > 0 && "border-blue-200 bg-blue-50/30",
                 )}
               >
