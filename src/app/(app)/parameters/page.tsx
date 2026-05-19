@@ -58,12 +58,6 @@ export default async function ParametersClientsPage() {
   return (
     <>
       <PageShell className="html-page-bg mx-auto w-full max-w-[1440px] px-4 py-4 md:px-6 md:py-6">
-        <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <h2 className="text-xl font-semibold tracking-tight text-slate-900">Parameters</h2>
-            <p className="text-sm text-slate-500">Manage client audit parameters, scoring, and prompt status.</p>
-          </div>
-        </div>
         <section className="html-card overflow-hidden">
           <div className="html-section-header flex items-center justify-between">
             <div>

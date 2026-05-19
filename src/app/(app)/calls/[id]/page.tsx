@@ -252,6 +252,12 @@ export default async function CallDetailPage({ params }: PageProps) {
           <div className="text-sm font-semibold text-slate-900">Call Information</div>
           <p className="text-xs text-slate-500">Audio and metadata for this recording.</p>
         </div>
+        <div>
+          <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+            Audio
+          </div>
+          <AudioPlayerCard recordingUrl={audioUrl} durationSeconds={call.durationSeconds} />
+        </div >
         <InfoRow label="Call ID">{callIdText}</InfoRow>
         <InfoRow label="Client">{call.client.name}</InfoRow>
         <InfoRow label="Campaign">{call.campaign?.name ?? "—"}</InfoRow>
@@ -261,16 +267,13 @@ export default async function CallDetailPage({ params }: PageProps) {
           {formatShortDate(call.callStartedAt)} · {formatTime(call.callStartedAt)}
         </InfoRow>
         {call.customerName ? <InfoRow label="Customer name">{call.customerName}</InfoRow> : null}
-        {call.durationSeconds != null ? (
-          <InfoRow label="Duration">{formatDuration(call.durationSeconds)}</InfoRow>
-        ) : null}
+        {
+          call.durationSeconds != null ? (
+            <InfoRow label="Duration">{formatDuration(call.durationSeconds)}</InfoRow>
+          ) : null
+        }
         <InfoRow label="Disposition">{call.disposition ?? "—"}</InfoRow>
-        <div className="mt-4 border-t border-slate-100 pt-4">
-          <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-            Audio
-          </div>
-          <AudioPlayerCard recordingUrl={audioUrl} durationSeconds={call.durationSeconds} />
-        </div>
+
         <div className="flex items-center justify-between border-t border-slate-100 pt-3 mt-3">
           <span className="text-xs text-slate-500">Audit</span>
           <AuditStatusPill status={audit?.status ?? (call.aiScore != null ? "COMPLETED" : "PENDING")} />
@@ -279,8 +282,8 @@ export default async function CallDetailPage({ params }: PageProps) {
           <span className="text-xs text-slate-500">Customer Sentiment</span>
           <SentimentBadge value={call.sentiment} />
         </div>
-      </article>
-    </div>
+      </article >
+    </div >
   );
 
   const transcriptTab = (
@@ -350,13 +353,12 @@ export default async function CallDetailPage({ params }: PageProps) {
             {call.transcript.segments.map((s) => (
               <div key={s.id} className="flex gap-3 rounded-lg border border-slate-100 bg-slate-50 p-3 text-[13px]">
                 <div
-                  className={`grid h-8 w-8 flex-none place-items-center rounded-full text-sm font-bold ${
-                    s.speaker === "AGENT"
-                      ? "bg-blue-100 text-blue-700"
-                      : s.speaker === "CUSTOMER"
-                        ? "bg-emerald-100 text-emerald-700"
-                        : "bg-slate-200 text-slate-700"
-                  }`}
+                  className={`grid h-8 w-8 flex-none place-items-center rounded-full text-sm font-bold ${s.speaker === "AGENT"
+                    ? "bg-blue-100 text-blue-700"
+                    : s.speaker === "CUSTOMER"
+                      ? "bg-emerald-100 text-emerald-700"
+                      : "bg-slate-200 text-slate-700"
+                    }`}
                 >
                   {s.speaker.charAt(0)}
                 </div>
@@ -507,19 +509,19 @@ export default async function CallDetailPage({ params }: PageProps) {
           initial={
             existingReview
               ? {
-                  reviewerName: existingReview.reviewerName,
-                  status: existingReview.status,
-                  score: existingReview.scorePercent,
-                  notes: existingReview.notes,
-                  disposition: call.manualDisposition,
-                }
+                reviewerName: existingReview.reviewerName,
+                status: existingReview.status,
+                score: existingReview.scorePercent,
+                notes: existingReview.notes,
+                disposition: call.manualDisposition,
+              }
               : {
-                  reviewerName: "",
-                  status: "PENDING",
-                  score: null,
-                  notes: null,
-                  disposition: call.manualDisposition,
-                }
+                reviewerName: "",
+                status: "PENDING",
+                score: null,
+                notes: null,
+                disposition: call.manualDisposition,
+              }
           }
         />
         <article className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
