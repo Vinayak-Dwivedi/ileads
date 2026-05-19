@@ -1,4 +1,4 @@
-import { EmptyState, PageShell } from "@/components/ui/page-shell";
+import { EmptyState } from "@/components/ui/page-shell";
 import { requireSession } from "@/lib/auth";
 import {
   getAgentScoreboard,
@@ -9,7 +9,6 @@ import {
   type DashboardFilters,
 } from "@/features/dashboard/api/dashboard";
 import { formatMmSs, formatPercent } from "@/lib/utils";
-import { AlertTriangle, Lightbulb, Mail, Plus, ShieldAlert, Sun } from "lucide-react";
 import { DashboardFilterBar } from "@/features/dashboard/components/filter-bar";
 import { SentimentGraph } from "@/features/dashboard/components/sentiment-graph";
 
@@ -31,16 +30,6 @@ function parseFilters(sp: Record<string, string | string[] | undefined>): Dashbo
   };
 }
 
-function insightIcon(type: string) {
-  const t = type.toUpperCase();
-  if (t === "COMPLIANCE") return { Icon: ShieldAlert, tint: "bg-red-100 text-red-600" };
-  if (t === "RISK") return { Icon: AlertTriangle, tint: "bg-orange-100 text-orange-600" };
-  if (t === "OPPORTUNITY") return { Icon: Plus, tint: "bg-emerald-100 text-emerald-600" };
-  if (t === "SENTIMENT") return { Icon: Mail, tint: "bg-violet-100 text-violet-600" };
-  if (t === "COACHING") return { Icon: Sun, tint: "bg-blue-100 text-blue-600" };
-  return { Icon: Lightbulb, tint: "bg-slate-100 text-slate-600" };
-}
-
 export default async function DashboardPage({
   searchParams,
 }: {
@@ -59,20 +48,22 @@ export default async function DashboardPage({
   ]);
 
 
-  const pct = (n: number, total: number) => (total === 0 ? 0 : Math.round((n / total) * 100));
-
   return (
     <div className="flex flex-1 flex-col">
       <div className="@container/main flex flex-1 flex-col gap-2">
-        <div className="flex flex-col gap-4 p-4 md:gap-6 md:p-6">
-          {/* <Topbar title="Dashboard" /> */}
-          {/* <PageShell className="bg-[#f5f6f8] p-5"> */}
+        <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-4 p-4 md:gap-5 md:p-6">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <h2 className="text-xl font-semibold tracking-tight text-slate-900">Dashboard</h2>
+              <p className="text-sm text-slate-500">Live QMS metrics from stored calls and audits.</p>
+            </div>
+          </div>
           <DashboardFilterBar options={filterOptions} initial={filters} />
 
-          <section className=" grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-6">
-            <DashboardStat label="Total Call" value={kpis.totalCalls.toLocaleString()} />
+          <section className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-6">
+            <DashboardStat label="Total Calls" value={kpis.totalCalls.toLocaleString()} />
             <DashboardStat label="AI Audited" value={kpis.aiAudited.toLocaleString()} />
-            <DashboardStat label="Manual Reviewed" value={kpis.manualReviewed.toLocaleString()} />
+            <DashboardStat label="Manual Reviews" value={kpis.manualReviewed.toLocaleString()} />
             <DashboardStat
               label="Avg Quality Score"
               value={kpis.averageQualityPercent != null ? formatPercent(kpis.averageQualityPercent, 1) : "NA"}
@@ -87,23 +78,12 @@ export default async function DashboardPage({
             />
           </section>
 
-          <section className="grid grid-cols-1 md:grid-cols-3 gap-2 md:gap-4">
+          <section className="grid grid-cols-1 gap-3 md:grid-cols-3 md:gap-4">
             <SentimentGraph sentiment={sentiment} />
-            {/* <article className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-              <h3 className="mb-3 text-lg font-semibold text-slate-800">Customer Sentiment Distribution</h3>
-              {sentiment.total === 0 ? (
-                <EmptyState title="No sentiment data" description="No calls have sentiment values in this filter." />
-              ) : (
-                <div className="[&>*:not(:last-child)]:mb-2!">
-                  <Bar label="Positive" pct={pct(sentiment.positive, sentiment.total)} color="bg-emerald-500" />
-                  <Bar label="Neutral" pct={pct(sentiment.neutral, sentiment.total)} color="bg-amber-500" />
-                  <Bar label="Negative" pct={pct(sentiment.negative, sentiment.total)} color="bg-red-500" />
-                </div>
-              )}
-            </article> */}
 
-            <article className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm md:col-span-2">
-              <h3 className=" text-lg font-semibold text-slate-800 mb-3">Average Quality Score</h3>
+            <article className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm md:col-span-2">
+              <h3 className="mb-1 text-base font-semibold text-slate-900">Average Quality Score</h3>
+              <p className="mb-4 text-sm text-slate-500">Mean final score from completed call audits.</p>
               {kpis.averageQualityPercent == null ? (
                 <EmptyState
                   title="Trend data will appear after more calls are processed."
@@ -111,15 +91,15 @@ export default async function DashboardPage({
                 />
               ) : (
                 <div className="flex flex-col justify-center rounded-xl">
-                  <div className="text-[40px] font-bold leading-none text-slate-900">
+                  <div className="text-4xl font-semibold leading-none text-slate-900">
                     {formatPercent(kpis.averageQualityPercent, 1)}
                   </div>
-                  <p className="mt-2 text-xs text-slate-500">
+                  <p className="mt-2 text-sm text-slate-500">
                     Mean final score from stored calls. Falls back to AI score only when final score is missing.
                   </p>
                   <div className="mt-4 h-2 overflow-hidden rounded-full bg-slate-100">
                     <div
-                      className="h-2 rounded-full bg-[#3f106b]"
+                      className="h-2 rounded-full bg-blue-600"
                       style={{ width: `${Math.min(100, Math.max(0, kpis.averageQualityPercent))}%` }}
                     />
                   </div>
@@ -162,14 +142,17 @@ export default async function DashboardPage({
             </article> */}
           </section>
 
-          <section className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm xl:col-span-2">
-            <h3 className="mb-3 text-lg font-semibold text-slate-800">Agent Scoreboard</h3>
+          <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm xl:col-span-2">
+            <div className="mb-3">
+              <h3 className="text-base font-semibold text-slate-900">Agent Scoreboard</h3>
+              <p className="text-sm text-slate-500">Ranked by stored QA performance for the selected filters.</p>
+            </div>
             {scoreboard.length === 0 ? (
-              <EmptyState title="No agents yet" description="No calls have been attributed to agents." />
+              <EmptyState title="No agents yet" description="Upload and audit calls to populate the scoreboard." />
             ) : (
-              <div className="overflow-x-auto rounded-xl border border-slate-100">
-                <table className="w-full text-[13px]">
-                  <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+              <div className="overflow-x-auto rounded-lg border border-slate-200">
+                <table className="w-full text-sm">
+                  <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                     <tr>
                       <th className="px-3 py-2 text-left">Rank</th>
                       <th className="px-3 py-2 text-left">Agent</th>
@@ -185,7 +168,7 @@ export default async function DashboardPage({
                     {scoreboard.map((row) => (
                       <tr key={row.agentId}>
                         <td className="px-3 py-2">
-                          <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-blue-50 font-bold text-blue-600">
+                          <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-blue-50 font-semibold text-blue-700">
                             {row.rank}
                           </span>
                         </td>
@@ -203,7 +186,6 @@ export default async function DashboardPage({
               </div>
             )}
           </section>
-          {/* </PageShell> */}
         </div>
       </div>
     </div>
@@ -212,12 +194,10 @@ export default async function DashboardPage({
 
 function DashboardStat({ label, value }: { label: string; value: string }) {
   return (
-    <article className="min-h-30 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-      <label className="block text-slate-500">{label}</label>
-      <div className="mt-2 text-[34px] leading-none text-slate-900 md:text-[38px]">{value}</div>
-      {/* <div className="mt-3 text-sm text-slate-400">Current filter</div> */}
+    <article className="min-h-28 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+      <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</label>
+      <div className="mt-2 text-3xl font-semibold leading-none text-slate-900 md:text-[34px]">{value}</div>
+      <div className="mt-3 text-xs text-slate-400">Current filters</div>
     </article>
   );
 }
-
-

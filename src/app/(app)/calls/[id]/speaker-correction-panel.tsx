@@ -68,7 +68,7 @@ export function SpeakerCorrectionPanel({
         <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-amber-800">
           <div className="mb-2 inline-flex items-start gap-1">
             <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-            Speaker labels changed. Re-run AI Audit for updated scoring.
+            After changing speaker labels, re-run AI Audit.
           </div>
           <button
             type="button"

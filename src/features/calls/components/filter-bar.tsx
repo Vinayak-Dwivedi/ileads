@@ -3,7 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useTransition } from "react";
 import { cn } from "@/lib/utils";
-import { CalendarDays } from "lucide-react";
+import { SlidersHorizontal } from "lucide-react";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { UploadCallsDialog } from "./upload-calls-dialog";
+import type { CallUploadOptions } from "./upload-calls-dialog";
 
 interface Options {
   campaigns: { id: string; name: string }[];
@@ -44,7 +45,7 @@ export function CallsFilterBar({
   options: Options;
   initial: Initial;
   className?: string;
-  uploadOptions?: any
+  uploadOptions: CallUploadOptions
 }) {
   const router = useRouter();
   const sp = useSearchParams();
@@ -72,19 +73,21 @@ export function CallsFilterBar({
   }
 
   return (
-    <section className={cn("html-card mb-5.5 p-4", className)}>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
-        {/* <Field>
-          <div className="relative">
-            <input
-              type="date"
-              defaultValue={toDateInput(initial.from)}
-              onChange={(e) => applyParam("from", e.target.value)}
-              className="h-9 w-full rounded-lg border border-[#d6dcea] px-2 pr-8 text-sm"
-            />
-            <CalendarDays className="pointer-events-none absolute right-2.5 top-2.5 h-4 w-4 text-slate-400" />
+    <section className={cn("html-card mb-5 p-4", className)}>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <div className="inline-flex items-center gap-2 text-sm font-semibold text-slate-900">
+            <SlidersHorizontal className="h-4 w-4 text-slate-500" />
+            Filters
           </div>
-        </Field> */}
+          <p className="text-sm text-slate-500">Narrow the call list by date, team, agent, sentiment, or audit status.</p>
+        </div>
+        <UploadCallsDialog
+          options={uploadOptions}
+          maxFileMb={Number(process.env.MAX_AUDIO_UPLOAD_MB ?? "100") || 100}
+        />
+      </div>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <Field>
           <FieldLabel htmlFor="from-date">From</FieldLabel>
           <Popover open={fromOpen} onOpenChange={setFromOpen}>
@@ -117,24 +120,7 @@ export function CallsFilterBar({
               />
             </PopoverContent>
           </Popover>
-          {/* <input
-            type="date"
-            defaultValue={toDateInput(initial.from)}
-            onChange={(e) => update("from", e.target.value)}
-            className="h-9 w-full rounded-lg border border-slate-200 px-2 text-sm"
-          /> */}
         </Field>
-        {/* <Field>
-          <div className="relative">
-            <input
-              type="date"
-              defaultValue={toDateInput(initial.to)}
-              onChange={(e) => applyParam("to", e.target.value)}
-              className="h-9 w-full rounded-lg border border-[#d6dcea] px-2 pr-8 text-sm"
-            />
-            <CalendarDays className="pointer-events-none absolute right-2.5 top-2.5 h-4 w-4 text-slate-400" />
-          </div>
-        </Field> */}
         <Field>
           <FieldLabel htmlFor="to-date">To</FieldLabel>
 
@@ -166,20 +152,6 @@ export function CallsFilterBar({
             </PopoverContent>
           </Popover>
         </Field>
-        {/* <Field>
-          <select
-            defaultValue={initial.campaignId ?? ""}
-            onChange={(e) => applyParam("campaignId", e.target.value)}
-            className="h-9 w-full rounded-lg border border-[#d6dcea] bg-white px-2 text-sm"
-          >
-            <option value="">All Campaigns</option>
-            {options.campaigns.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-        </Field> */}
         <Field>
           <FieldLabel htmlFor="campaign">Campaign</FieldLabel>
           <Select
@@ -198,22 +170,7 @@ export function CallsFilterBar({
               </SelectGroup>
             </SelectContent>
           </Select>
-
         </Field>
-        {/* <Field>
-          <select
-            defaultValue={initial.teamId ?? ""}
-            onChange={(e) => applyParam("teamId", e.target.value)}
-            className="h-9 w-full rounded-lg border border-[#d6dcea] bg-white px-2 text-sm"
-          >
-            <option value="">All Teams</option>
-            {options.teams.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.name}
-              </option>
-            ))}
-          </select>
-        </Field> */}
 
         <Field>
           <FieldLabel htmlFor="select-team">Team</FieldLabel>
@@ -234,33 +191,7 @@ export function CallsFilterBar({
               </SelectGroup>
             </SelectContent>
           </Select>
-          {/* <select
-                    defaultValue={initial.teamId ?? ""}
-                    onChange={(e) => update("teamId", e.target.value)}
-                    className="h-9 w-full rounded-lg border border-slate-200 px-2 text-sm bg-white"
-                  >
-                    <option value="">All teams</option>
-                    {options.teams.map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.name}
-                      </option>
-                    ))}
-                  </select> */}
         </Field>
-        {/* <Field>
-          <select
-            defaultValue={initial.agentId ?? ""}
-            onChange={(e) => applyParam("agentId", e.target.value)}
-            className="h-9 w-full rounded-lg border border-[#d6dcea] bg-white px-2 text-sm"
-          >
-            <option value="">All Agents</option>
-            {options.agents.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.name}
-              </option>
-            ))}
-          </select>
-        </Field> */}
         <Field>
           <FieldLabel htmlFor="select-agent">Agents</FieldLabel>
           <Select
@@ -280,18 +211,6 @@ export function CallsFilterBar({
               </SelectGroup>
             </SelectContent>
           </Select>
-          {/* <select
-            defaultValue={initial.agentId ?? ""}
-            onChange={(e) => update("agentId", e.target.value)}
-            className="h-9 w-full rounded-lg border border-slate-200 px-2 text-sm bg-white"
-          >
-            <option value="">All agents</option>
-            {options.agents.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.name}
-              </option>
-            ))}
-          </select> */}
         </Field>
       </div>
       <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
@@ -340,10 +259,6 @@ export function CallsFilterBar({
           >
             Clear
           </button>
-          <UploadCallsDialog
-            options={uploadOptions}
-            maxFileMb={Number(process.env.MAX_AUDIO_UPLOAD_MB ?? "100") || 100}
-          />
         </div>
       </div>
     </section>

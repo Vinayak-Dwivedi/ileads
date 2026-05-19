@@ -42,12 +42,12 @@ export const SentimentGraph = ({
         {
             sentiment: "Negative",
             value: sentiment.negative,
-            fill: "#f59e0b", // amber-500
+            fill: "#ef4444", // red-500
         },
         {
             sentiment: "Neutral",
             value: sentiment.neutral,
-            fill: "#ef4444", // red-500
+            fill: "#f59e0b", // amber-500
         },
     ]
 
@@ -61,21 +61,27 @@ export const SentimentGraph = ({
         },
         negative: {
             label: "Negative",
-            color: "#f59e0b",
+            color: "#ef4444",
         },
         neutral: {
             label: "Neutral",
-            color: "#ef4444",
+            color: "#f59e0b",
         },
     } satisfies ChartConfig
 
     return (
-        <Card className={cn(className)}>
+        <Card className={cn("shadow-sm", className)}>
             {sentiment.total === 0 ? (
-                <EmptyState
-                    title="No sentiment data"
-                    description="No calls have sentiment values in this filter."
-                />
+                <div className="p-4">
+                    <CardHeader className="px-0 pb-3 pt-0">
+                        <CardTitle className="text-base">Sentiment Breakdown</CardTitle>
+                        <CardDescription>No analyzed calls yet</CardDescription>
+                    </CardHeader>
+                    <EmptyState
+                        title="No sentiment data"
+                        description="Sentiment appears after calls are audited."
+                    />
+                </div>
             ) : (
                 <div className="flex flex-col">
                     <CardHeader className="items-center pb-0">

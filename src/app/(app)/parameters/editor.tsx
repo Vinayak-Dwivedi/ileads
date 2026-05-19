@@ -155,6 +155,10 @@ export function ParameterEditor({
   return (
     <>
       <section className="html-card mb-4 p-4">
+        <div className="mb-3">
+          <h3 className="text-sm font-semibold text-slate-900">Parameter Filters</h3>
+          <p className="text-sm text-slate-500">Search active and inactive parameter definitions for this client.</p>
+        </div>
         <div className="grid grid-cols-1 items-end gap-3 md:grid-cols-4">
           <div>
             <label className="mb-1.5 ml-1 block text-[13px] text-[#5f6777]">Process</label>
@@ -231,10 +235,13 @@ export function ParameterEditor({
       ) : null}
 
       <section className="html-card overflow-hidden">
-        <div className="flex items-center justify-between border-b border-[#e6ebf2] bg-[#fcfdff] px-4 py-3.5">
-          <h3 className="text-base font-bold text-[#1f2937]">Parameters</h3>
+        <div className="html-section-header flex items-center justify-between">
+          <div>
+            <h3 className="text-base font-semibold text-slate-900">Parameters</h3>
+            <p className="text-xs text-slate-500">Grouped by the 10 standard QMS KPI categories.</p>
+          </div>
           <div className="flex items-center gap-3">
-            <div className="rounded-full border border-[#e1e7f0] bg-[#f3f6fb] px-3 py-1 text-[13px] font-semibold text-[#1f2937]">
+            <div className="rounded-full border border-slate-200 bg-white px-3 py-1 text-[13px] font-semibold text-slate-700">
               Total: {parameters.reduce((sum, p) => sum + (p.isActive ? p.maxScore : 0), 0)}
             </div>
             {trigger ? (
@@ -265,12 +272,12 @@ export function ParameterEditor({
                 <col style={{ width: "8%" }} />
                 <col style={{ width: "12%" }} />
               </colgroup>
-              <thead className="bg-[#fcfdff] text-sm text-[#263244]">
+              <thead>
                 <tr>
-                  <th className="border-b border-[#e6ebf2] px-3 py-2.5 text-center font-semibold">Category</th>
-                  <th className="border-b border-[#e6ebf2] px-3 py-2.5 text-center font-semibold">Sub Parameters</th>
-                  <th className="border-b border-[#e6ebf2] px-3 py-2.5 text-center font-semibold">Score</th>
-                  <th className="border-b border-[#e6ebf2] px-3 py-2.5 text-center font-semibold">Actions</th>
+                  <th className="html-table-head text-center">Standard KPI</th>
+                  <th className="html-table-head text-center">Sub Parameters</th>
+                  <th className="html-table-head text-center">Score</th>
+                  <th className="html-table-head text-center">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -331,13 +338,13 @@ function CategoryGroup({
         const hasHistory = p.scoreCount > 0;
         const isBusy = busyId === p.id;
         return (
-          <tr key={p.id} className="border-t border-[#edf1f6] hover:bg-[#fafcff]">
+          <tr key={p.id} className="hover:bg-slate-50">
             {idx === 0 ? (
-              <td rowSpan={rows.length} className="bg-[#f8fafc] px-3 py-2 text-center align-middle font-bold text-[#1f2937]">
+              <td rowSpan={rows.length} className="border-b border-slate-100 bg-slate-50 px-3 py-3 text-center align-middle font-semibold text-slate-900">
                 {category}
               </td>
             ) : null}
-            <td className="px-3 py-2">
+            <td className="html-table-cell whitespace-normal">
               <div className="font-medium text-slate-800">{p.parameterName}</div>
               <div className="text-xs text-slate-500 mt-1 max-w-2xl">{p.parameterDescription}</div>
               {p.aiInstruction ? (
@@ -349,8 +356,8 @@ function CategoryGroup({
                 </div>
               ) : null}
             </td>
-            <td className="px-3 py-2 text-center font-mono text-slate-700">{p.maxScore}</td>
-            <td className="px-3 py-2 text-center">
+            <td className="html-table-cell text-center font-mono text-slate-700">{p.maxScore}</td>
+            <td className="html-table-cell text-center">
               <div className="flex items-center justify-center gap-2">
                 <button
                   onClick={() => onEdit(p)}
@@ -419,8 +426,8 @@ function ParameterFormModal({
     >
       <div className="w-full max-w-2xl overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl">
         <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
-          <h3 className="text-lg font-bold text-slate-800">
-            {editing ? "Edit Parameters" : "Add Parameters"}
+          <h3 className="text-lg font-semibold text-slate-900">
+            {editing ? "Edit Parameter" : "Add Parameter"}
           </h3>
           <button onClick={onCancel} className="text-slate-400 hover:text-slate-700" aria-label="Close">
             ✕
@@ -442,7 +449,7 @@ function ParameterFormModal({
               ))}
             </select>
           </Row>
-          <Row label="Parameter category">
+          <Row label="Standard KPI category">
             <Select name="parameterCategory" defaultValue={editing?.parameterCategory ?? "Opening / Greeting"} required>
               <SelectTrigger className="h-10 w-full rounded-lg border border-[#d6dcea] px-3 text-sm bg-white hover:bg-slate-50 focus:ring-1 focus:ring-blue-500 shadow-sm transition-all">
                 <SelectValue placeholder="Select a category" />
@@ -461,6 +468,9 @@ function ParameterFormModal({
               </SelectContent>
             </Select>
           </Row>
+          <p className="-mt-1 text-xs text-slate-500">
+            Choose one of the 10 standard KPI buckets used by the audit scorecards.
+          </p>
           <Row label="Sub Parameter (e.g. Greeting, Empathy)">
             <input
               name="parameterName"
@@ -536,7 +546,7 @@ function ParameterFormModal({
             <button
               type="submit"
               disabled={pending}
-              className="h-10 rounded-lg bg-[linear-gradient(180deg,#336eef_0%,#2d62df_100%)] px-4 text-sm font-medium text-white shadow-[0_10px_20px_rgba(45,98,223,0.22)] hover:brightness-95 disabled:opacity-60"
+              className="h-10 rounded-md bg-blue-600 px-4 text-sm font-medium text-white shadow-sm hover:bg-blue-700 disabled:opacity-60"
             >
               {pending ? "Saving…" : editing ? "Save changes" : "Add parameter"}
             </button>

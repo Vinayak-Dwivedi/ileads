@@ -1,23 +1,31 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import {
-  ArrowLeft,
   ClipboardCheck,
   Sparkles,
   MessageSquare,
   AlertTriangle,
   Lightbulb,
   ShieldCheck,
+  Activity,
+  ArrowLeft,
 } from "lucide-react";
-import { Topbar } from "@/components/layout/topbar";
-import { PageShell, EmptyState } from "@/components/ui/page-shell";
+import { EmptyState } from "@/components/ui/page-shell";
 import { Pill } from "@/components/ui/pill";
 import { AuditStatusPill } from "@/components/ui/score-pill";
 import { SentimentBadge } from "@/components/ui/sentiment-badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { requireSession } from "@/lib/auth";
 import { withBasePath } from "@/lib/base-path";
-import { prisma } from "@/lib/db";
-import { getCallDetail } from "@/lib/data/calls";
+import { getCallDetail, getActiveStandardParametersForClient } from "@/lib/data/calls";
 import { formatDuration, formatMmSs, formatShortDate, formatTime, formatPercent } from "@/lib/utils";
 import { ManualReviewForm } from "./manual-review-form";
 import { AudioPlayerCard } from "./audio-player";
@@ -25,8 +33,9 @@ import { AuditPanel } from "./audit-panel";
 import { TranscriptionActionButton } from "./transcription-action-button";
 import { SpeakerCorrectionPanel } from "./speaker-correction-panel";
 import { SegmentSpeakerSelect } from "./segment-speaker-select";
+import { ProcessDemoPanel } from "./process-demo-panel";
+import { NotesPanel } from "./notes-panel";
 import { isActivelyProcessing } from "@/lib/processing-lock";
-import { DetailTabs } from "./detail-tabs";
 import { hasOpenRouterKey } from "@/services/llm";
 import { hasSarvamKey, isMockMode, loadSttConfig, shouldShowMockActions } from "@/services/stt";
 
@@ -36,14 +45,7 @@ interface PageProps {
   params: Promise<{ id: string }>;
 }
 
-const HIGHLIGHT_CATEGORIES = [
-  { label: "Opening", accent: "border-l-emerald-500" },
-  { label: "Closure", accent: "border-l-violet-500" },
-  { label: "Compliance", accent: "border-l-red-500" },
-  { label: "Solution", accent: "border-l-blue-500" },
-  { label: "Soft skills", accent: "border-l-amber-500" },
-  { label: "Discovery", accent: "border-l-orange-500" },
-] as const;
+const KPI_SLOT_COUNT = 10;
 
 function stringFlags(value: unknown): string[] {
   return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
@@ -75,12 +77,39 @@ function speakerSourceLabel(source: string | null, channel: string | null): stri
   return source;
 }
 
+type Aggregate = {
+  passed: number;
+  failed: number;
+  notFound: number;
+  total: number;
+  max: number;
+  awarded: number;
+};
+
+function emptyAggregate(): Aggregate {
+  return { passed: 0, failed: 0, notFound: 0, total: 0, max: 0, awarded: 0 };
+}
+
+function tone(pct: number | null): "good" | "warning" | "poor" | "muted" {
+  if (pct == null) return "muted";
+  if (pct >= 80) return "good";
+  if (pct >= 50) return "warning";
+  return "poor";
+}
+
+const KPI_TONE_STYLE: Record<"good" | "warning" | "poor" | "muted", string> = {
+  good: "border-l-emerald-500 bg-emerald-50/40",
+  warning: "border-l-amber-500 bg-amber-50/40",
+  poor: "border-l-red-500 bg-red-50/40",
+  muted: "border-l-slate-300 bg-white",
+};
+
 export default async function CallDetailPage({ params }: PageProps) {
   const { id } = await params;
   const session = await requireSession();
-  const [call, activeParameterCount] = await Promise.all([
+  const [call, activeStandard] = await Promise.all([
     getCallDetail(session.clientId, id),
-    prisma.clientParameter.count({ where: { clientId: session.clientId, isActive: true } }),
+    getActiveStandardParametersForClient(session.clientId),
   ]);
   if (!call) notFound();
 
@@ -91,7 +120,15 @@ export default async function CallDetailPage({ params }: PageProps) {
   const processingActive = isActivelyProcessing(call.processingStatus, call.processingStartedAt);
   const processingStatusText = processingActive ? call.processingStatus : null;
   const processingFailed = call.processingStatus === "failed";
-  const processingStale = Boolean(call.processingStatus && !processingActive && call.processingStatus !== "idle" && call.processingStatus !== "failed");
+  const pipelineLabel = processingActive
+    ? "Processing"
+    : processingFailed
+      ? "Failed"
+      : audit
+        ? "Audited"
+        : call.transcript
+          ? "Transcribed"
+          : "Uploaded";
   const hasAudio = Boolean(audioUrl);
   const sttConfig = loadSttConfig();
   const transcriptFlags = stringFlags(call.transcript?.qualityFlags);
@@ -103,157 +140,151 @@ export default async function CallDetailPage({ params }: PageProps) {
       audit?.createdAt &&
       call.transcript.speakerCorrectedAt > audit.createdAt,
     );
+  // Reset is offered when a previous run got stuck or failed.
+  const canResetProcessing =
+    call.processingStatus === "failed" ||
+    (Boolean(call.processingStatus) &&
+      call.processingStatus !== "idle" &&
+      !processingActive);
 
-  // group parameter scores by category for highlight cards
-  const scoresByCategory = new Map<
-    string,
-    { passed: number; total: number; max: number; awarded: number }
-  >();
+  // KPI buckets — one row per active standard parameter for this client.
+  // Sub-parameter scores roll up under their standardParameter; if the
+  // ClientParameter isn't mapped (e.g. historical), fall back to its
+  // category string so it doesn't disappear from the page entirely.
+  const kpiBuckets = new Map<string, { label: string; description: string | null; sortOrder: number; agg: Aggregate }>();
+  for (const sp of activeStandard) {
+    kpiBuckets.set(sp.id, {
+      label: sp.name,
+      description: sp.description,
+      sortOrder: sp.sortOrder,
+      agg: emptyAggregate(),
+    });
+  }
   if (audit) {
     for (const ps of audit.parameterScores) {
-      const key = ps.parameter.parameterCategory;
-      const agg = scoresByCategory.get(key) ?? { passed: 0, total: 0, max: 0, awarded: 0 };
-      agg.total += 1;
-      agg.max += ps.maxScore;
-      agg.awarded += ps.score;
-      if (ps.isPassed) agg.passed += 1;
-      scoresByCategory.set(key, agg);
+      const std = ps.parameter.standardParameter;
+      const fallbackKey = `cat:${ps.parameter.parameterCategory}`;
+      const key = std ? std.id : fallbackKey;
+      let bucket = kpiBuckets.get(key);
+      if (!bucket) {
+        bucket = {
+          label: std?.name ?? ps.parameter.parameterCategory,
+          description: std?.description ?? null,
+          sortOrder: std?.sortOrder ?? 999,
+          agg: emptyAggregate(),
+        };
+        kpiBuckets.set(key, bucket);
+      }
+      bucket.agg.total += 1;
+      bucket.agg.max += ps.maxScore;
+      bucket.agg.awarded += ps.score;
+      if (ps.isPassed) bucket.agg.passed += 1;
+      else if (ps.result === "FAIL") bucket.agg.failed += 1;
+      else bucket.agg.notFound += 1;
     }
   }
+  const kpiList = [...kpiBuckets.values()].sort((a, b) => a.sortOrder - b.sortOrder);
 
-  const aiInsightsTab = (
-    <article className="html-card p-5">
-      <div className="flex items-center gap-2 text-sm font-bold text-slate-800 mb-3">
-        <Sparkles className="h-4 w-4" /> AI Insights
-      </div>
-      {audit?.summary ? (
-        <div className="rounded-lg border border-dashed border-slate-300 p-4 text-sm text-slate-600 mb-4">
-          <div className="text-xs font-bold text-slate-800 mb-1.5">AI Summary</div>
-          {audit.summary}
-        </div>
-      ) : null}
-      {call.insights.length === 0 ? (
-        <EmptyState title="No insights" description="No AI insights yet for this call." />
-      ) : (
-        <div className="space-y-2.5">
-          {call.insights.map((i: { id: string; severity: string; insightType: string; title: string; body: string }) => {
-            const tone =
-              i.severity === "CRITICAL" || i.severity === "HIGH"
-                ? "red"
-                : i.severity === "MEDIUM"
-                  ? "yellow"
-                  : "blue";
-            const Icon =
-              i.insightType === "COMPLIANCE"
-                ? ShieldCheck
-                : i.insightType === "RISK"
-                  ? AlertTriangle
-                  : i.insightType === "COACHING"
-                    ? Lightbulb
-                    : Sparkles;
-            return (
-              <div key={i.id} className="flex gap-3 p-3 bg-slate-50 rounded-lg">
-                <div className="w-8 h-8 rounded-full grid place-items-center bg-white border border-slate-200">
-                  <Icon className="h-4 w-4 text-slate-500" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="text-sm font-semibold text-slate-700">{i.title}</div>
-                    <Pill tone={tone}>{i.severity}</Pill>
-                  </div>
-                  <div className="text-xs text-slate-500 mt-1">{i.body}</div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </article>
+  // ===== Tab content =====================================================
+
+  const kpiGrid = (
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5">
+      {Array.from({ length: KPI_SLOT_COUNT }).map((_, i) => {
+        const kpi = kpiList[i];
+        if (!kpi) {
+          return <div key={`empty-${i}`} className="hidden xl:block" aria-hidden />;
+        }
+        const pct = kpi.agg.max > 0 ? (kpi.agg.awarded / kpi.agg.max) * 100 : null;
+        return (
+          <KpiCard
+            key={kpi.label}
+            label={kpi.label}
+            description={kpi.description}
+            pct={pct}
+            awarded={kpi.agg.awarded}
+            max={kpi.agg.max}
+            passed={kpi.agg.passed}
+            failed={kpi.agg.failed}
+            notFound={kpi.agg.notFound}
+            total={kpi.agg.total}
+          />
+        );
+      })}
+    </div>
   );
 
-  const scoringTab = (
-    <article className="html-card p-5">
-      <div className="flex items-center gap-2 text-sm font-bold text-slate-800 mb-3">
-        <ClipboardCheck className="h-4 w-4" /> Parameter Scores
-        <span className="ml-auto text-xs font-normal text-slate-500">Binary scoring</span>
-      </div>
-      {!audit || audit.parameterScores.length === 0 ? (
-        <EmptyState
-          title="No parameter scores"
-          description="Parameter-level scores appear once the AI audit runs."
+  const overviewTab = (
+    <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,7fr)_minmax(0,3fr)]">
+      <div className="space-y-5 min-w-0">
+        <ProcessDemoPanel
+          callId={call.id}
+          hasAudio={hasAudio}
+          hasTranscript={!!call.transcript}
+          hasParameters={activeStandard.length > 0 || !!audit}
+          hasAudit={!!audit}
+          durationSeconds={call.durationSeconds}
+          openrouterKeyConfigured={hasOpenRouterKey()}
+          mockMode={isMockMode()}
+          sttProvider={sttConfig.provider}
+          sarvamKeyConfigured={hasSarvamKey(sttConfig)}
+          processingStatus={processingStatusText}
+          processingStateLabel={call.processingStatus}
+          canResetProcessing={canResetProcessing}
+          processingError={call.processingError}
         />
-      ) : (
-        <div className="overflow-x-auto rounded-lg border border-slate-100">
-          <table className="w-full text-sm">
-            <thead className="bg-slate-50 text-slate-500 uppercase text-xs">
-              <tr>
-                <th className="px-3 py-2 text-left">Category</th>
-                <th className="px-3 py-2 text-left">Parameter</th>
-                <th className="px-3 py-2 text-left">Max</th>
-                <th className="px-3 py-2 text-left">Awarded</th>
-                <th className="px-3 py-2 text-left">Result</th>
-                <th className="px-3 py-2 text-left">Reason / Evidence</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {audit.parameterScores.map((ps: {
-                id: string;
-                maxScore: number;
-                score: number;
-                isPassed: boolean;
-                reasoning: string | null;
-                evidenceText: string | null;
-                parameter: {
-                  parameterCategory: string;
-                  parameterName: string;
-                  parameterDescription: string | null;
-                };
-              }) => (
-                <tr key={ps.id}>
-                  <td className="px-3 py-2 text-slate-500 align-top">{ps.parameter.parameterCategory}</td>
-                  <td className="px-3 py-2 align-top">
-                    <div className="font-medium text-slate-700">{ps.parameter.parameterName}</div>
-                    <div className="text-xs text-slate-500">{ps.parameter.parameterDescription}</div>
-                  </td>
-                  <td className="px-3 py-2 align-top">{ps.maxScore}</td>
-                  <td className="px-3 py-2 align-top font-medium">{ps.score}</td>
-                  <td className="px-3 py-2 align-top">
-                    <Pill tone={ps.isPassed ? "green" : "red"}>{ps.isPassed ? "Pass" : "Fail"}</Pill>
-                  </td>
-                  <td className="px-3 py-2 align-top text-slate-600">
-                    {ps.reasoning ?? "—"}
-                    {ps.evidenceText ? (
-                      <div className="text-xs italic text-slate-500 mt-1">“{ps.evidenceText}”</div>
-                    ) : null}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </article>
-  );
 
-  const manualReviewTab = (
-    <ManualReviewForm
-      callId={call.id}
-      initial={
-        existingReview
-          ? {
-            reviewerName: existingReview.reviewerName,
-            status: existingReview.status,
-            score: existingReview.scorePercent,
-            notes: existingReview.notes,
-            disposition: call.manualDisposition,
-          }
-          : { reviewerName: "", status: "PENDING", score: null, notes: null, disposition: call.manualDisposition }
-      }
-    />
+        <article className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="mb-3 flex items-center gap-2 text-sm font-bold text-slate-800">
+            <Sparkles className="h-4 w-4" /> Summary
+          </div>
+          {audit?.summary ? (
+            <p className="text-sm text-slate-700">{audit.summary}</p>
+          ) : (
+            <p className="text-sm text-slate-500">
+              Audit summary will appear here once the AI audit has run.
+            </p>
+          )}
+        </article>
+      </div>
+
+      <article className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="mb-3">
+          <div className="text-sm font-semibold text-slate-900">Call Information</div>
+          <p className="text-xs text-slate-500">Audio and metadata for this recording.</p>
+        </div>
+        <InfoRow label="Call ID">{callIdText}</InfoRow>
+        <InfoRow label="Client">{call.client.name}</InfoRow>
+        <InfoRow label="Campaign">{call.campaign?.name ?? "—"}</InfoRow>
+        <InfoRow label="Agent ID">{call.agent?.employeeCode ?? "—"}</InfoRow>
+        <InfoRow label="Agent Name">{call.agent?.name ?? "—"}</InfoRow>
+        <InfoRow label="Date & Time">
+          {formatShortDate(call.callStartedAt)} · {formatTime(call.callStartedAt)}
+        </InfoRow>
+        {call.customerName ? <InfoRow label="Customer name">{call.customerName}</InfoRow> : null}
+        {call.durationSeconds != null ? (
+          <InfoRow label="Duration">{formatDuration(call.durationSeconds)}</InfoRow>
+        ) : null}
+        <InfoRow label="Disposition">{call.disposition ?? "—"}</InfoRow>
+        <div className="mt-4 border-t border-slate-100 pt-4">
+          <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+            Audio
+          </div>
+          <AudioPlayerCard recordingUrl={audioUrl} durationSeconds={call.durationSeconds} />
+        </div>
+        <div className="flex items-center justify-between border-t border-slate-100 pt-3 mt-3">
+          <span className="text-xs text-slate-500">Audit</span>
+          <AuditStatusPill status={audit?.status ?? (call.aiScore != null ? "COMPLETED" : "PENDING")} />
+        </div>
+        <div className="flex items-center justify-between border-t border-slate-100 pt-3 mt-3">
+          <span className="text-xs text-slate-500">Customer Sentiment</span>
+          <SentimentBadge value={call.sentiment} />
+        </div>
+      </article>
+    </div>
   );
 
   const transcriptTab = (
-    <article className="html-card p-5 min-w-0">
+    <article className="min-w-0 rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
       <div className="mb-3">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-2 text-sm font-bold text-slate-800">
@@ -283,7 +314,7 @@ export default async function CallDetailPage({ params }: PageProps) {
           description="No transcript available. Run transcription first when STT is enabled."
         />
       ) : (
-        <div className="space-y-3 max-h-[760px] overflow-y-auto pr-2">
+        <div className="space-y-3">
           {call.transcript.fallbackUsed ? (
             <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
               Transcribed using fallback model: {call.transcript.modelUsed ?? "unknown"}.
@@ -315,167 +346,286 @@ export default async function CallDetailPage({ params }: PageProps) {
             needsAuditRerun={speakerCorrectionNeedsAudit}
             processingStatus={processingStatusText}
           />
-          {call.transcript.segments.map((s: {
-            id: string;
-            speaker: string;
-            speakerSource: string | null;
-            channel: string | null;
-            startMs: number;
-            confidenceScore: number | null;
-            text: string;
-          }) => (
-            <div key={s.id} className="flex gap-3 p-3 bg-slate-50 rounded-lg text-[13px]">
-              <div
-                className={`w-8 h-8 rounded-full grid place-items-center font-bold flex-none text-sm ${s.speaker === "AGENT"
-                  ? "bg-blue-100 text-blue-700"
-                  : s.speaker === "CUSTOMER"
-                    ? "bg-emerald-100 text-emerald-700"
-                    : "bg-slate-200 text-slate-700"
+          <div className="max-h-[760px] space-y-3 overflow-y-auto pr-2">
+            {call.transcript.segments.map((s) => (
+              <div key={s.id} className="flex gap-3 rounded-lg border border-slate-100 bg-slate-50 p-3 text-[13px]">
+                <div
+                  className={`grid h-8 w-8 flex-none place-items-center rounded-full text-sm font-bold ${
+                    s.speaker === "AGENT"
+                      ? "bg-blue-100 text-blue-700"
+                      : s.speaker === "CUSTOMER"
+                        ? "bg-emerald-100 text-emerald-700"
+                        : "bg-slate-200 text-slate-700"
                   }`}
-              >
-                {s.speaker.charAt(0)}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="inline-flex items-center gap-2 font-semibold text-slate-700">
-                    <SegmentSpeakerSelect
-                      segmentId={s.id}
-                      speaker={s.speaker === "SYSTEM" ? "UNKNOWN" : (s.speaker as "AGENT" | "CUSTOMER" | "UNKNOWN")}
-                      disabled={!!processingStatusText}
-                    />
-                    {speakerSourceLabel(s.speakerSource, s.channel) ? (
-                      <span className="ml-2 font-normal text-slate-400">
-                        {speakerSourceLabel(s.speakerSource, s.channel)}
-                      </span>
-                    ) : null}
-                  </span>
-                  <span className="text-slate-500">
-                    {formatMmSs(Math.floor(s.startMs / 1000))}
-                    {s.confidenceScore != null ? ` · ${Math.round(s.confidenceScore * 100)}%` : ""}
-                  </span>
+                >
+                  {s.speaker.charAt(0)}
                 </div>
-                <p className="text-slate-700 mt-1 leading-relaxed">{s.text}</p>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="inline-flex items-center gap-2 font-semibold text-slate-700">
+                      <SegmentSpeakerSelect
+                        segmentId={s.id}
+                        speaker={s.speaker === "SYSTEM" ? "UNKNOWN" : (s.speaker as "AGENT" | "CUSTOMER" | "UNKNOWN")}
+                        disabled={!!processingStatusText}
+                      />
+                      {speakerSourceLabel(s.speakerSource, s.channel) ? (
+                        <span className="ml-2 font-normal text-slate-400">
+                          {speakerSourceLabel(s.speakerSource, s.channel)}
+                        </span>
+                      ) : null}
+                    </span>
+                    <span className="shrink-0 text-slate-500">
+                      {formatMmSs(Math.floor(s.startMs / 1000))}
+                      {s.confidenceScore != null ? ` · ${Math.round(s.confidenceScore * 100)}%` : ""}
+                    </span>
+                  </div>
+                  <p className="mt-1 leading-relaxed text-slate-700">{s.text}</p>
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       )}
     </article>
   );
 
-  const auditPipelineTab = (
-    <AuditPanel
-      callId={call.id}
-      hasAudit={!!audit}
-      hasTranscript={!!call.transcript}
-      hasParameters={activeParameterCount > 0}
-      latestRunNo={audit?.auditRunNo ?? null}
-      isDevelopment={process.env.NODE_ENV !== "production"}
-      showMockAuditButton={shouldShowMockActions()}
-      openrouterKeyConfigured={hasOpenRouterKey()}
-      processingStatus={processingStatusText}
-    />
+  const auditResultsTab = (
+    <div className="space-y-5">
+      <AuditPanel
+        callId={call.id}
+        hasAudit={!!audit}
+        hasTranscript={!!call.transcript}
+        hasParameters={activeStandard.length > 0 || !!audit}
+        latestRunNo={audit?.auditRunNo ?? null}
+        isDevelopment={process.env.NODE_ENV !== "production"}
+        showMockAuditButton={shouldShowMockActions()}
+        openrouterKeyConfigured={hasOpenRouterKey()}
+        processingStatus={processingStatusText}
+      />
+
+      <article className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="mb-3 flex items-center gap-2 text-sm font-bold text-slate-800">
+          <ClipboardCheck className="h-4 w-4" /> Parameter Scores
+          <span className="ml-auto text-xs font-normal text-slate-500">Binary scoring</span>
+        </div>
+        {!audit || audit.parameterScores.length === 0 ? (
+          <EmptyState
+            title="No parameter scores"
+            description="Parameter-level scores appear once the AI audit runs."
+          />
+        ) : (
+          <Table className="min-w-[980px]">
+            <TableHeader>
+              <TableRow>
+                <TableHead>Standard KPI</TableHead>
+                <TableHead>Parameter</TableHead>
+                <TableHead>Max</TableHead>
+                <TableHead>Awarded</TableHead>
+                <TableHead>Result</TableHead>
+                <TableHead className="w-[36%]">Reason / Evidence</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {audit.parameterScores.map((ps) => (
+                <TableRow key={ps.id} className="align-top">
+                  <TableCell className="text-slate-500 align-top whitespace-normal">
+                    {ps.parameter.standardParameter?.name ?? ps.parameter.parameterCategory}
+                  </TableCell>
+                  <TableCell className="align-top whitespace-normal">
+                    <div className="font-medium text-slate-700">{ps.parameter.parameterName}</div>
+                    <div className="text-xs text-slate-500">{ps.parameter.parameterDescription}</div>
+                  </TableCell>
+                  <TableCell className="align-top">{ps.maxScore}</TableCell>
+                  <TableCell className="align-top font-medium">{ps.score}</TableCell>
+                  <TableCell className="align-top">
+                    <Pill tone={ps.isPassed ? "green" : ps.result === "FAIL" ? "red" : "yellow"}>
+                      {ps.isPassed ? "Pass" : ps.result === "FAIL" ? "Fail" : "Not found"}
+                    </Pill>
+                  </TableCell>
+                  <TableCell className="max-w-[420px] align-top whitespace-normal text-slate-600">
+                    {ps.reasoning ?? "—"}
+                    {ps.evidenceText ? (
+                      <div className="mt-1 text-xs italic text-slate-500">“{ps.evidenceText}”</div>
+                    ) : null}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </article>
+
+      <article className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="mb-3 flex items-center gap-2 text-sm font-bold text-slate-800">
+          <Lightbulb className="h-4 w-4" /> AI Insights
+        </div>
+        {call.insights.length === 0 ? (
+          <EmptyState title="No insights" description="No AI insights yet for this call." />
+        ) : (
+          <div className="space-y-2.5">
+            {call.insights.map((i) => {
+              const ptone =
+                i.severity === "CRITICAL" || i.severity === "HIGH"
+                  ? "red"
+                  : i.severity === "MEDIUM"
+                    ? "yellow"
+                    : "blue";
+              const Icon =
+                i.insightType === "COMPLIANCE"
+                  ? ShieldCheck
+                  : i.insightType === "RISK"
+                    ? AlertTriangle
+                    : i.insightType === "COACHING"
+                      ? Lightbulb
+                      : Sparkles;
+              return (
+                <div key={i.id} className="flex gap-3 rounded-lg bg-slate-50 p-3">
+                  <div className="grid h-8 w-8 place-items-center rounded-full border border-slate-200 bg-white">
+                    <Icon className="h-4 w-4 text-slate-500" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="text-sm font-semibold text-slate-700">{i.title}</div>
+                      <Pill tone={ptone}>{i.severity}</Pill>
+                    </div>
+                    <div className="mt-1 text-xs text-slate-500">{i.body}</div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </article>
+    </div>
+  );
+
+  const notesTab = (
+    <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+      <div className="space-y-5">
+        <ManualReviewForm
+          callId={call.id}
+          initial={
+            existingReview
+              ? {
+                  reviewerName: existingReview.reviewerName,
+                  status: existingReview.status,
+                  score: existingReview.scorePercent,
+                  notes: existingReview.notes,
+                  disposition: call.manualDisposition,
+                }
+              : {
+                  reviewerName: "",
+                  status: "PENDING",
+                  score: null,
+                  notes: null,
+                  disposition: call.manualDisposition,
+                }
+          }
+        />
+        <article className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="mb-3 flex items-center gap-2 text-sm font-bold text-slate-800">
+            <Activity className="h-4 w-4" /> Timeline
+          </div>
+          {call.events.length === 0 ? (
+            <EmptyState title="No events" description="No call events recorded yet." />
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>When</TableHead>
+                  <TableHead>Event</TableHead>
+                  <TableHead>Speaker</TableHead>
+                  <TableHead>Severity</TableHead>
+                  <TableHead>Description</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {call.events.map((e) => (
+                  <TableRow key={e.id} className="align-top">
+                    <TableCell className="whitespace-nowrap text-xs text-slate-500">
+                      {formatShortDate(e.occurredAt)} · {formatTime(e.occurredAt)}
+                    </TableCell>
+                    <TableCell className="whitespace-normal text-sm font-medium text-slate-700">
+                      {e.title ?? e.eventType}
+                    </TableCell>
+                    <TableCell className="text-xs text-slate-500">{e.speaker ?? "—"}</TableCell>
+                    <TableCell className="text-xs">
+                      {e.severity ? <Pill tone={e.severity === "HIGH" || e.severity === "CRITICAL" ? "red" : e.severity === "MEDIUM" ? "yellow" : "blue"}>{e.severity}</Pill> : "—"}
+                    </TableCell>
+                    <TableCell className="whitespace-normal text-xs text-slate-600">
+                      {e.description ?? "—"}
+                      {e.evidenceText ? <div className="mt-1 italic text-slate-500">“{e.evidenceText}”</div> : null}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </article>
+      </div>
+      <NotesPanel
+        callId={call.id}
+        notes={call.notes.map((n) => ({
+          id: n.id,
+          author: n.authorName,
+          body: n.body,
+          isPinned: n.isPinned,
+          createdAt: n.createdAt.toISOString(),
+        }))}
+      />
+    </div>
   );
 
   return (
-    <>
-      {/* <Topbar
-        title="Call Detail"
-        
-        right={
-          <Link
-            href="/calls"
-            className="h-9 inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 hover:bg-slate-50"
-          >
-            <ArrowLeft className="h-4 w-4" /> Back to calls
-          </Link>
-        }
-      /> */}
-      {/* <PageShell className="html-page-bg px-6 py-[18px]"> */}
-      <div className="flex flex-1 flex-col">
-        <div className="@container/main flex flex-1 flex-col gap-2">
-          <div className="flex flex-col gap-4 p-4 md:gap-6 md:p-6">
-            <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
-              {HIGHLIGHT_CATEGORIES.map(({ label, accent }) => {
-                const agg = scoresByCategory.get(label);
-                const pct = agg && agg.max > 0 ? (agg.awarded / agg.max) * 100 : null;
-                return (
-                  <KpiCard
-                    key={label}
-                    label={label}
-                    accent={accent}
-                    pct={pct}
-                    passed={agg?.passed ?? 0}
-                    total={agg?.total ?? 0}
-                  />
-                );
-              })}
+    <div className="flex flex-1 flex-col">
+      <div className="@container/main flex flex-1 flex-col gap-2">
+        <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-4 p-4 md:gap-5 md:p-6">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="min-w-0">
+              <Link href="/calls" className="mb-2 inline-flex items-center gap-1 text-sm font-medium text-slate-500 hover:text-slate-900">
+                <ArrowLeft className="h-4 w-4" /> Calls
+              </Link>
+              <h2 className="truncate text-xl font-semibold tracking-tight text-slate-900">{callIdText}</h2>
+              <p className="text-sm text-slate-500">
+                {call.client.name}
+                {call.agent?.name ? ` · ${call.agent.name}` : ""}
+                {call.callStartedAt ? ` · ${formatShortDate(call.callStartedAt)} ${formatTime(call.callStartedAt)}` : ""}
+              </p>
             </div>
-
-            <div className="mt-5 grid grid-cols-1 gap-5 lg:items-stretch lg:grid-cols-[minmax(0,7fr)_minmax(0,3fr)]">
-              <div className="space-y-5 min-w-0 h-full">
-                <DetailTabs
-                  tabs={[
-                    { id: "insights", label: "AI Insights", content: aiInsightsTab },
-                    { id: "scoring", label: "Scoring", content: scoringTab },
-                    { id: "manual", label: "Manual review", content: manualReviewTab },
-                    { id: "transcript", label: "Transcript", content: transcriptTab },
-                    { id: "audit", label: "AI Audit Pipeline", content: auditPipelineTab },
-                  ]}
-                />
-              </div>
-
-              <div className="space-y-5 h-full flex flex-col">
-                <AudioPlayerCard
-                  recordingUrl={audioUrl}
-                  durationSeconds={call.durationSeconds}
-                  events={call.events.map((e: { id: string; eventType: string; occurredAt: Date }) => ({
-                    id: e.id,
-                    type: e.eventType,
-                    occurredAt: e.occurredAt.toISOString(),
-                  }))}
-                  callStartedAt={call.callStartedAt?.toISOString() ?? null}
-                  variant="compact"
-                />
-
-                <article className="html-card p-5">
-                  <div className="text-sm font-bold text-slate-800 mb-3 flex items-center gap-2">
-                    Call Information
-                  </div>
-                  <InfoRow label="Call ID">{callIdText}</InfoRow>
-                  <InfoRow label="Process">{call.client.name}</InfoRow>
-                  <InfoRow label="Campaign">{call.campaign?.name ?? "—"}</InfoRow>
-                  <InfoRow label="Agent ID">{call.agent?.employeeCode ?? "—"}</InfoRow>
-                  <InfoRow label="Agent Name">{call.agent?.name ?? "—"}</InfoRow>
-                  <InfoRow label="Date & Time">
-                    {formatShortDate(call.callStartedAt)} · {formatTime(call.callStartedAt)}
-                  </InfoRow>
-                  <InfoRow label="Customer name">{call.customerName ?? "—"}</InfoRow>
-                  <InfoRow label="Duration">{formatDuration(call.durationSeconds)}</InfoRow>
-                  <InfoRow label="Disposition">{call.disposition ?? "—"}</InfoRow>
-                  <div className="flex items-center justify-between pt-3 mt-3 border-t border-slate-100">
-                    <span className="text-xs text-slate-500">Audit</span>
-                    <AuditStatusPill status={audit?.status ?? (call.aiScore != null ? "COMPLETED" : "PENDING")} />
-                  </div>
-                  <div className="flex items-center justify-between pt-3 mt-3 border-t border-slate-100">
-                    <span className="text-xs text-slate-500">Customer Sentiment</span>
-                    <SentimentBadge value={call.sentiment} />
-                  </div>
-                </article>
-                <div className="flex-1" />
-              </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Pill tone={processingFailed ? "red" : processingActive ? "blue" : audit ? "green" : call.transcript ? "yellow" : "slate"}>
+                {pipelineLabel}
+              </Pill>
+              <AuditStatusPill status={audit?.status ?? (call.aiScore != null ? "COMPLETED" : "PENDING")} />
+              <SentimentBadge value={call.sentiment} />
             </div>
-            {/* </PageShell> */}
           </div>
-        </div>
-      </div >
-    </>
-  );
-}
+          {kpiGrid}
 
-function ScoreText({ v }: { v: number | null }) {
-  if (v == null) return <>—</>;
-  return <>{Math.round(v)}%</>;
+          <Tabs defaultValue="overview" className="w-full">
+            <TabsList className="w-full justify-start overflow-x-auto rounded-lg border border-slate-200 bg-white px-2" variant="line">
+              <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="transcript">Transcript</TabsTrigger>
+              <TabsTrigger value="audit">Audit Results</TabsTrigger>
+              <TabsTrigger value="notes">Notes &amp; Timeline</TabsTrigger>
+            </TabsList>
+            <TabsContent value="overview" className="mt-4">
+              {overviewTab}
+            </TabsContent>
+            <TabsContent value="transcript" className="mt-4">
+              {transcriptTab}
+            </TabsContent>
+            <TabsContent value="audit" className="mt-4">
+              {auditResultsTab}
+            </TabsContent>
+            <TabsContent value="notes" className="mt-4">
+              {notesTab}
+            </TabsContent>
+          </Tabs>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function InfoRow({ label, children }: { label: string; children: React.ReactNode }) {
@@ -489,25 +639,50 @@ function InfoRow({ label, children }: { label: string; children: React.ReactNode
 
 function KpiCard({
   label,
-  accent,
+  description,
   pct,
+  awarded,
+  max,
   passed,
+  failed,
+  notFound,
   total,
 }: {
   label: string;
-  accent: string;
+  description: string | null;
   pct: number | null;
+  awarded: number;
+  max: number;
   passed: number;
+  failed: number;
+  notFound: number;
   total: number;
 }) {
+  const t = tone(pct);
   return (
-    <div className={`bg-white rounded-lg p-4 border border-slate-100 border-l-4 ${accent}`}>
+    <div
+      className={`rounded-lg border border-l-4 border-slate-100 p-4 shadow-sm ${KPI_TONE_STYLE[t]}`}
+      title={description ?? undefined}
+    >
       <div className="text-xs font-semibold text-slate-500">{label}</div>
-      <div className="text-lg font-bold text-slate-800">
-        {pct == null ? "—" : formatPercent(pct, 0)}
+      <div className="mt-1 flex items-baseline gap-2">
+        <span className="text-lg font-bold text-slate-800">
+          {pct == null ? "—" : formatPercent(pct, 0)}
+        </span>
+        {max > 0 ? (
+          <span className="text-[11px] text-slate-500">
+            {awarded}/{max}
+          </span>
+        ) : null}
       </div>
-      <div className="text-[11px] text-slate-500">
-        {passed}/{total} parameters passed
+      <div className="mt-1 text-[11px] text-slate-500">
+        {total === 0 ? (
+          <span>Pending audit</span>
+        ) : (
+          <span>
+            {passed} pass · {failed} fail{notFound ? ` · ${notFound} n/f` : ""}
+          </span>
+        )}
       </div>
     </div>
   );

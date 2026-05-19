@@ -17,7 +17,7 @@ import { Button } from "@/components/ui/button";
 
 const ACCEPT = ".mp3,.wav,.m4a,.ogg,.webm,.aac,.flac,audio/mpeg,audio/wav,audio/mp4,audio/ogg,audio/webm,audio/aac,audio/flac";
 
-interface CallUploadOptions {
+export interface CallUploadOptions {
   client: { id: string; name: string } | null;
   campaigns: { id: string; name: string }[];
   teams: { id: string; name: string }[];
@@ -170,6 +170,7 @@ export function UploadCallsDialog({
       <DialogTrigger asChild>
         <Button
           type="button"
+          className="bg-blue-600 text-white hover:bg-blue-700"
         >
           <UploadCloud className="h-4 w-4" />
           Upload Calls
@@ -180,7 +181,7 @@ export function UploadCallsDialog({
           <DialogTitle className="text-xl text-slate-900">Upload Calls</DialogTitle>
           <DialogDescription>
             Add one or more audio recordings. After upload, open the call detail page and click
-            Process Demo Call to run transcription and AI audit. Longer calls may take several minutes.
+            Process Demo Call to run transcription and AI audit. Longer calls may take several minutes to process after upload.
           </DialogDescription>
         </DialogHeader>
 
@@ -246,7 +247,7 @@ export function UploadCallsDialog({
                   addFiles(event.dataTransfer.files);
                 }}
                 className={cn(
-                  "flex min-h-34.5 w-full flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 bg-slate-50/70 px-4 text-center transition-colors hover:border-blue-300 hover:bg-blue-50/40",
+                  "flex min-h-36 w-full flex-col items-center justify-center rounded-lg border border-dashed border-slate-300 bg-slate-50/70 px-4 text-center transition-colors hover:border-blue-300 hover:bg-blue-50/40",
                   files.length > 0 && "border-blue-200 bg-blue-50/30",
                 )}
               >
@@ -265,7 +266,7 @@ export function UploadCallsDialog({
               />
             </div>
 
-            <div className="mt-4 rounded-xl border border-slate-200 bg-white">
+            <div className="mt-4 rounded-lg border border-slate-200 bg-white">
               <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
                 <div className="text-sm font-semibold text-slate-800">Selected files</div>
                 <div className="text-xs text-slate-500">
@@ -298,10 +299,14 @@ export function UploadCallsDialog({
             </div>
 
             {pending ? (
-              <div className="mt-4 flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-800">
-                <UploadCloud className="h-4 w-4 animate-pulse" />
-                Uploading {files.length} file{files.length === 1 ? "" : "s"} ({formatBytes(totalSize)})…
-                please keep this window open.
+              <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-800">
+                <div className="flex items-center gap-2">
+                  <UploadCloud className="h-4 w-4 animate-pulse" />
+                  Uploading {files.length} file{files.length === 1 ? "" : "s"} ({formatBytes(totalSize)}). Please keep this window open.
+                </div>
+                <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-blue-100">
+                  <div className="h-full w-2/3 animate-pulse rounded-full bg-blue-600" />
+                </div>
               </div>
             ) : null}
             {error ? (
@@ -323,17 +328,17 @@ export function UploadCallsDialog({
           </div>
 
           <div className="flex items-center justify-between gap-3 border-t border-slate-100 bg-slate-50/80 px-6 py-4">
-            <button type="button" onClick={() => reset()} className="h-10 rounded-lg border border-slate-200 bg-white px-4 text-sm text-slate-700 hover:bg-slate-50">
+            <button type="button" onClick={() => reset()} disabled={pending || files.length === 0} className="h-10 rounded-md border border-slate-200 bg-white px-4 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-50">
               Clear
             </button>
             <div className="flex items-center gap-3">
-              <button type="button" onClick={() => setOpen(false)} className="h-10 rounded-lg border border-slate-200 bg-white px-4 text-sm text-slate-700 hover:bg-slate-50">
-                Close
+              <button type="button" onClick={() => setOpen(false)} disabled={pending} className="h-10 rounded-md border border-slate-200 bg-white px-4 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-50">
+                Cancel
               </button>
               <button
                 type="submit"
                 disabled={pending || files.length === 0}
-                className="h-10 rounded-lg bg-blue-600 px-5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
+                className="h-10 rounded-md bg-blue-600 px-5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
               >
                 {pending ? "Uploading..." : "Upload selected"}
               </button>

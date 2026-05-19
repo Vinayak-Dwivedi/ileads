@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { Settings, FileText, Users } from "lucide-react";
-import { Topbar } from "@/components/layout/topbar";
 import { PageShell, EmptyState } from "@/components/ui/page-shell";
 import { Pill } from "@/components/ui/pill";
 import { requireSession } from "@/lib/auth";
@@ -58,19 +57,24 @@ export default async function ParametersClientsPage() {
 
   return (
     <>
-      {/* <Topbar title="Parameters" crumb="Clients" /> */}
-      <PageShell className="html-page-bg px-5.5 py-4.5">
+      <PageShell className="html-page-bg mx-auto w-full max-w-[1440px] px-4 py-4 md:px-6 md:py-6">
+        <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 className="text-xl font-semibold tracking-tight text-slate-900">Parameters</h2>
+            <p className="text-sm text-slate-500">Manage client audit parameters, scoring, and prompt status.</p>
+          </div>
+        </div>
         <section className="html-card overflow-hidden">
-          <div className="flex items-center justify-between border-b border-[#e6ebf2] bg-[#fcfdff] px-4 py-3.5">
+          <div className="html-section-header flex items-center justify-between">
             <div>
-              <h3 className="inline-flex items-center gap-2 text-base font-bold text-[#1f2937]">
+              <h3 className="inline-flex items-center gap-2 text-base font-semibold text-slate-900">
                 <Users className="h-4 w-4" /> Clients
               </h3>
               <p className="text-xs text-slate-500">
                 Pick a client to manage its audit parameters and prompt.
               </p>
             </div>
-            <div className="rounded-full border border-[#e1e7f0] bg-[#f3f6fb] px-3 py-1 text-[13px] font-semibold text-[#1f2937]">
+            <div className="rounded-full border border-slate-200 bg-white px-3 py-1 text-[13px] font-semibold text-slate-700">
               {rows.length} client{rows.length === 1 ? "" : "s"}
             </div>
           </div>
@@ -84,22 +88,22 @@ export default async function ParametersClientsPage() {
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="bg-[#fcfdff] text-[#263244]">
+                <thead>
                   <tr>
-                    <th className="border-b border-[#e6ebf2] px-3 py-2.5 text-left font-semibold">Client</th>
-                    <th className="border-b border-[#e6ebf2] px-3 py-2.5 text-left font-semibold">Code</th>
-                    <th className="border-b border-[#e6ebf2] px-3 py-2.5 text-center font-semibold">Active</th>
-                    <th className="border-b border-[#e6ebf2] px-3 py-2.5 text-center font-semibold">Active parameters</th>
-                    <th className="border-b border-[#e6ebf2] px-3 py-2.5 text-center font-semibold">Total score</th>
-                    <th className="border-b border-[#e6ebf2] px-3 py-2.5 text-center font-semibold">Audit prompt</th>
-                    <th className="border-b border-[#e6ebf2] px-3 py-2.5 text-left font-semibold">Last updated</th>
-                    <th className="border-b border-[#e6ebf2] px-3 py-2.5 text-right font-semibold">Actions</th>
+                    <th className="html-table-head">Client</th>
+                    <th className="html-table-head">Code</th>
+                    <th className="html-table-head text-center">Active</th>
+                    <th className="html-table-head text-center">Active parameters</th>
+                    <th className="html-table-head text-center">Total score</th>
+                    <th className="html-table-head text-center">Audit prompt</th>
+                    <th className="html-table-head">Last updated</th>
+                    <th className="html-table-head text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {rows.map((r) => (
-                    <tr key={r.id} className="border-t border-[#edf1f6] hover:bg-[#fafcff]">
-                      <td className="px-3 py-2.5">
+                    <tr key={r.id} className="hover:bg-slate-50">
+                      <td className="html-table-cell">
                         <Link
                           href={`/parameters/${r.id}`}
                           className="font-semibold text-[#2563eb] hover:underline"
@@ -107,30 +111,30 @@ export default async function ParametersClientsPage() {
                           {r.name}
                         </Link>
                       </td>
-                      <td className="px-3 py-2.5 text-slate-600 font-mono text-xs">{r.slug}</td>
-                      <td className="px-3 py-2.5 text-center">
+                      <td className="html-table-cell font-mono text-xs text-slate-600">{r.slug}</td>
+                      <td className="html-table-cell text-center">
                         <Pill tone={r.isActive ? "green" : "slate"}>
                           {r.isActive ? "Active" : "Inactive"}
                         </Pill>
                       </td>
-                      <td className="px-3 py-2.5 text-center">
+                      <td className="html-table-cell text-center">
                         <span className="font-semibold text-slate-800">{r.activeCount}</span>
                         {r.inactiveCount > 0 ? (
                           <span className="ml-1 text-xs text-slate-400">(+{r.inactiveCount} inactive)</span>
                         ) : null}
                       </td>
-                      <td className="px-3 py-2.5 text-center font-mono text-slate-700">{r.totalScore}</td>
-                      <td className="px-3 py-2.5 text-center">
+                      <td className="html-table-cell text-center font-mono text-slate-700">{r.totalScore}</td>
+                      <td className="html-table-cell text-center">
                         {r.hasCustomPrompt ? (
                           <Pill tone="blue">Custom · v{r.promptVersion}</Pill>
                         ) : (
                           <Pill tone="slate">Generated</Pill>
                         )}
                       </td>
-                      <td className="px-3 py-2.5 text-slate-500 text-xs">
+                      <td className="html-table-cell text-xs text-slate-500">
                         {formatShortDate(r.lastUpdated)}
                       </td>
-                      <td className="px-3 py-2.5">
+                      <td className="html-table-cell">
                         <div className="flex items-center justify-end gap-2">
                           <Link
                             href={`/parameters/${r.id}`}

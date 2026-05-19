@@ -1,17 +1,14 @@
 import Link from "next/link";
-import { Topbar } from "@/components/layout/topbar";
-import { PageShell, EmptyState } from "@/components/ui/page-shell";
+import { EmptyState } from "@/components/ui/page-shell";
 import { Pill } from "@/components/ui/pill";
 import { ScorePill, AuditStatusPill } from "@/components/ui/score-pill";
 import { SentimentBadge } from "@/components/ui/sentiment-badge";
 import { requireSession } from "@/lib/auth";
 import { getCallUploadOptions, listCalls, type CallListFilters } from "@/lib/data/calls";
 import { getFilterOptions } from "@/features/dashboard/api/dashboard";
-import { withBasePath } from "@/lib/base-path";
 import { formatDuration, formatShortDate, formatTime } from "@/lib/utils";
-import { FileText, Play, Search } from "lucide-react";
+import { FileText, Play } from "lucide-react";
 import { CallsFilterBar } from "@/features/calls/components/filter-bar";
-import { UploadCallsDialog } from "@/features/calls/components/upload-calls-dialog";
 
 export const dynamic = "force-dynamic";
 
@@ -73,73 +70,61 @@ export default async function CallsPage({
   ]);
 
   return (
-    <>
-      {/* <Topbar
-        title="Calls"
-        crumb="Library"
-        right={
-          <div className="flex flex-wrap items-center gap-3.5">
-            <form action={withBasePath("/calls")} className="hidden h-10 w-90 items-center gap-2 rounded-lg border border-[#d6dcea] bg-white px-3 text-sm text-slate-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] xl:flex">
-              <Search className="h-4 w-4 text-slate-500" />
-              <input
-                name="q"
-                defaultValue={filters.search ?? ""}
-                className="w-full border-0 bg-transparent outline-none placeholder:text-slate-500"
-                placeholder="Search by Call ID, Agent Name, Customer Number..."
-              />
-            </form>
-            <UploadCallsDialog
-              options={uploadOptions}
-              maxFileMb={Number(process.env.MAX_AUDIO_UPLOAD_MB ?? "100") || 100}
-            />
+    <div className="flex flex-1 flex-col">
+      <div className="@container/main flex flex-1 flex-col gap-2">
+        <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-4 p-4 md:gap-5 md:p-6">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <h2 className="text-xl font-semibold tracking-tight text-slate-900">Calls</h2>
+              <p className="text-sm text-slate-500">Upload, search, process, and audit call recordings.</p>
+            </div>
           </div>
-        }
-      /> */}
-      {/* <PageShell className="html-page-bg p-2.5 md:px-5.5 md:py-4.5"> */}
-      <div className="flex flex-1 flex-col">
-        <div className="@container/main flex flex-1 flex-col gap-2">
-          <div className="flex flex-col gap-4 p-4 md:gap-6 md:p-6">
-            <CallsFilterBar options={filterOptions} initial={filters} uploadOptions={uploadOptions} className="mb-5" />
+          <CallsFilterBar options={filterOptions} initial={filters} uploadOptions={uploadOptions} />
 
-            <section className="html-card overflow-hidden">
-              <div className="flex items-center justify-between border-b border-[#e6ebf2] bg-[#fcfdff] px-4 py-3">
-                <h3 className="text-sm font-semibold text-[#263244]">
+          <section className="html-card overflow-hidden">
+            <div className="html-section-header flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-semibold text-slate-900">
                   {calls.length.toLocaleString()} call{calls.length === 1 ? "" : "s"}
                 </h3>
-                <span className="text-xs text-slate-500">Database-backed results</span>
+                <p className="text-xs text-slate-500">Database-backed results</p>
               </div>
+              <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-500">
+                Showing up to 200
+              </span>
+            </div>
 
-              {calls.length === 0 ? (
-                <EmptyState
-                  className="m-4"
-                  title="No calls yet"
-                  description="Upload a call to begin. Try clearing filters if calls already exist."
-                />
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full min-w-370 border-collapse text-sm">
-                    <thead>
-                      <tr>
-                        <Th>Call ID</Th>
-                        <Th>Date &amp; Time <span className="ml-1 text-xs text-slate-500">↓</span></Th>
-                        <Th>Client</Th>
-                        <Th>Campaign</Th>
-                        <Th>Team</Th>
-                        <Th>Agent Name</Th>
-                        <Th>Customer Number</Th>
-                        <Th>Duration</Th>
-                        <Th>AI Score</Th>
-                        <Th>Manual Score</Th>
-                        <Th>Final Score</Th>
-                        <Th>Sentiment</Th>
-                        <Th>Status</Th>
-                        <Th>Audit Status</Th>
-                        <Th>Manual Disposition</Th>
-                        <Th>Actions</Th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {calls.map((c) => {
+            {calls.length === 0 ? (
+              <EmptyState
+                className="m-4"
+                title="No calls yet"
+                description="Upload a call to begin."
+              />
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[1320px] border-collapse text-sm">
+                  <thead>
+                    <tr>
+                      <Th>Call ID</Th>
+                      <Th>Date &amp; Time</Th>
+                      <Th>Client</Th>
+                      <Th>Campaign</Th>
+                      <Th>Team</Th>
+                      <Th>Agent</Th>
+                      <Th>Customer</Th>
+                      <Th>Duration</Th>
+                      <Th>AI Score</Th>
+                      <Th>Manual</Th>
+                      <Th>Final</Th>
+                      <Th>Sentiment</Th>
+                      <Th>Pipeline</Th>
+                      <Th>Audit</Th>
+                      <Th>Disposition</Th>
+                      <Th>Actions</Th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {calls.map((c) => {
                         const callIdText = c.externalCallId ?? `CALL-${c.id.slice(-6).toUpperCase()}`;
                         const auditStatus =
                           c.aiScore != null ? "COMPLETED" : c.manualReviews[0]?.status ?? "PENDING";
@@ -225,38 +210,21 @@ export default async function CallsPage({
                             </Td>
                           </tr>
                         );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-
-              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 px-4 py-3 text-xs text-slate-500">
-                <div>Showing {calls.length === 0 ? 0 : 1} to {calls.length} of {calls.length} calls</div>
-                <div className="flex items-center gap-2" aria-label="Pagination">
-                  <span className="grid h-9 min-w-9 place-items-center rounded-lg border border-[#d8dfeb] bg-white px-3">⟪</span>
-                  <span className="grid h-9 min-w-9 place-items-center rounded-lg border border-[#d8dfeb] bg-white px-3">‹</span>
-                  <span className="grid h-9 min-w-9 place-items-center rounded-lg border border-transparent bg-[linear-gradient(180deg,#366cf0_0%,#2d5fdd_100%)] px-3 text-white shadow-[0_10px_20px_rgba(45,98,223,0.2)]">1</span>
-                  <span className="grid h-9 min-w-9 place-items-center rounded-lg border border-[#d8dfeb] bg-white px-3">›</span>
-                  <span className="grid h-9 min-w-9 place-items-center rounded-lg border border-[#d8dfeb] bg-white px-3">⟫</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span>Rows per page</span>
-                  <span className="rounded-md border border-slate-200 bg-white px-2 py-1">200</span>
-                </div>
+                    })}
+                  </tbody>
+                </table>
               </div>
-            </section>
-            {/* </PageShell> */}
-          </div>
+            )}
+          </section>
         </div>
       </div>
-    </>
+    </div>
   );
 }
 
 function Th({ children }: { children: React.ReactNode }) {
   return (
-    <th className="whitespace-nowrap border-b border-[#e6ebf2] bg-[#fcfdff] px-2.5 py-3 text-left text-sm font-semibold text-[#263244]">
+    <th className="html-table-head whitespace-nowrap">
       {children}
     </th>
   );
@@ -270,7 +238,7 @@ function Td({
   className?: string;
 }) {
   return (
-    <td className={`whitespace-nowrap border-b border-[#edf1f6] px-2.5 py-3 align-middle text-[#283142] ${className ?? ""}`}>
+    <td className={`html-table-cell whitespace-nowrap ${className ?? ""}`}>
       {children}
     </td>
   );
