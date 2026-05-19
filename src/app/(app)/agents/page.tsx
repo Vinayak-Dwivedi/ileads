@@ -1,5 +1,6 @@
 import { requireSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { formatShortDate } from "@/lib/utils";
 import { AgentsClient } from "./agents-client";
 
 export const dynamic = "force-dynamic";
@@ -28,5 +29,10 @@ export default async function AgentsPage() {
     }),
   ]);
 
-  return <AgentsClient agents={agents} campaigns={campaigns} />;
+  const serializedAgents = agents.map((agent) => ({
+    ...agent,
+    createdAt: formatShortDate(agent.createdAt),
+  }));
+
+  return <AgentsClient agents={serializedAgents} campaigns={campaigns} />;
 }

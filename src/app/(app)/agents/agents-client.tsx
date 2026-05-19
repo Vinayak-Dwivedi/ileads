@@ -6,14 +6,13 @@ import { UserPlus, Search, User, ShieldAlert, BadgeInfo } from "lucide-react";
 import { AddAgentDialog } from "@/components/layout/add-agent-dialog";
 import { PageShell } from "@/components/ui/page-shell";
 import { Pill } from "@/components/ui/pill";
-import { formatShortDate } from "@/lib/utils";
 
 interface AgentWithRelations {
   id: string;
   name: string;
   employeeCode: string | null;
   isActive: boolean;
-  createdAt: Date;
+  createdAt: string;
   campaign: { name: string } | null;
   team: { name: string } | null;
 }
@@ -138,7 +137,7 @@ export function AgentsClient({ agents, campaigns }: AgentsClientProps) {
                         )}
                       </td>
                       <td className="py-4 px-6 text-xs text-slate-500">
-                        {formatShortDate(agent.createdAt)}
+                        {agent.createdAt}
                       </td>
                     </tr>
                   ))}
