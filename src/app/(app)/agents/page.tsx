@@ -30,8 +30,13 @@ export default async function AgentsPage() {
   ]);
 
   const serializedAgents = agents.map((agent) => ({
-    ...agent,
+    id: agent.id,
+    name: agent.name,
+    employeeCode: agent.employeeCode,
+    isActive: agent.isActive,
     createdAt: formatShortDate(agent.createdAt),
+    campaign: agent.campaign,
+    team: agent.team,
   }));
 
   return <AgentsClient agents={serializedAgents} campaigns={campaigns} />;
