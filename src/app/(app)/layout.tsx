@@ -3,8 +3,8 @@ import { MobileNav } from "@/components/layout/mobile-nav";
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/features/dashboard-01/components/app-sidebar";
-import { SiteHeader } from "@/features/dashboard-01/components/site-header";
+import { AppSidebar } from "@/features/dashboard/components/app-sidebar";
+import { SiteHeader } from "@/features/dashboard/components/site-header";
 import { SectionCards } from "@/features/dashboard-01/components/section-cards";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
