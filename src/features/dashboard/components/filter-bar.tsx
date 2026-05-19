@@ -63,7 +63,7 @@ export function DashboardFilterBar({
   }
 
   return (
-    <section className={cn("rounded-xl border border-slate-200 bg-white p-4 shadow-sm", className)}>
+    <section className={cn("rounded-xl border border-slate-200 bg-white p-4", className)}>
       <div className="grid grid-cols-1 gap-3 md:grid-cols-3 xl:grid-cols-6">
         <Field>
           <FieldLabel htmlFor="from-date">From</FieldLabel>
@@ -85,6 +85,7 @@ export function DashboardFilterBar({
                 onSelect={(date) => {
                   if (!date) return
                   setStartDate(date)
+                  update("from", toDateInput(date))
                   setFromOpen(false)
 
                   // optional: auto-fix end date if it becomes invalid
@@ -103,15 +104,15 @@ export function DashboardFilterBar({
             className="h-9 w-full rounded-lg border border-slate-200 px-2 text-sm"
           /> */}
         </Field>
-        <Field>
-          <FieldLabel htmlFor="to-date">To</FieldLabel>
-
-          {/* <input
+        {/* <input
             type="date"
             defaultValue={toDateInput(initial.to)}
             onChange={(e) => update("to", e.target.value)}
             className="h-9 w-full rounded-lg border border-slate-200 px-2 text-sm"
           /> */}
+        <Field>
+          <FieldLabel htmlFor="to-date">To</FieldLabel>
+
           <Popover open={toOpen} onOpenChange={setToOpen}>
             <PopoverTrigger asChild>
               <Button
@@ -130,6 +131,7 @@ export function DashboardFilterBar({
                 onSelect={(date) => {
                   if (!date) return
                   setEndDate(date)
+                  update("to", toDateInput(date))
                   setToOpen(false)
                 }}
                 disabled={(date) =>
@@ -236,14 +238,22 @@ export function DashboardFilterBar({
           </select> */}
         </Field>
         <div className="flex items-end">
-          <button
+          <Button
+            type="button"
+            onClick={reset}
+            disabled={pending}
+            variant={"outline"}
+          >
+            Clear filters
+          </Button>
+          {/* <button
             type="button"
             onClick={reset}
             disabled={pending}
             className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 hover:bg-slate-50"
           >
             Clear filters
-          </button>
+          </button> */}
         </div>
       </div>
     </section>

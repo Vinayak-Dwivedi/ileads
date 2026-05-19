@@ -6,12 +6,12 @@ import { ScorePill, AuditStatusPill } from "@/components/ui/score-pill";
 import { SentimentBadge } from "@/components/ui/sentiment-badge";
 import { requireSession } from "@/lib/auth";
 import { getCallUploadOptions, listCalls, type CallListFilters } from "@/lib/data/calls";
-import { getFilterOptions } from "@/lib/data/dashboard";
+import { getFilterOptions } from "@/features/dashboard/api/dashboard";
 import { withBasePath } from "@/lib/base-path";
 import { formatDuration, formatShortDate, formatTime } from "@/lib/utils";
 import { FileText, Play, Search } from "lucide-react";
-import { CallsFilterBar } from "./filter-bar";
-import { UploadCallsDialog } from "./upload-calls-dialog";
+import { CallsFilterBar } from "@/features/calls/components/filter-bar";
+import { UploadCallsDialog } from "@/features/calls/components/upload-calls-dialog";
 
 export const dynamic = "force-dynamic";
 
@@ -74,12 +74,12 @@ export default async function CallsPage({
 
   return (
     <>
-      <Topbar
+      {/* <Topbar
         title="Calls"
         crumb="Library"
         right={
-          <div className="flex flex-wrap items-center gap-[14px]">
-            <form action={withBasePath("/calls")} className="hidden h-10 w-[360px] items-center gap-2 rounded-lg border border-[#d6dcea] bg-white px-3 text-sm text-slate-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] xl:flex">
+          <div className="flex flex-wrap items-center gap-3.5">
+            <form action={withBasePath("/calls")} className="hidden h-10 w-90 items-center gap-2 rounded-lg border border-[#d6dcea] bg-white px-3 text-sm text-slate-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] xl:flex">
               <Search className="h-4 w-4 text-slate-500" />
               <input
                 name="q"
@@ -94,8 +94,8 @@ export default async function CallsPage({
             />
           </div>
         }
-      />
-      <PageShell className="html-page-bg p-[10px] md:px-[22px] md:py-[18px]">
+      /> */}
+      <PageShell className="html-page-bg p-2.5 md:px-5.5 md:py-4.5">
         <CallsFilterBar options={filterOptions} initial={filters} className="mb-5" />
 
         <section className="html-card overflow-hidden">
@@ -114,7 +114,7 @@ export default async function CallsPage({
             />
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[1480px] border-collapse text-sm">
+              <table className="w-full min-w-370 border-collapse text-sm">
                 <thead>
                   <tr>
                     <Th>Call ID</Th>
@@ -202,11 +202,10 @@ export default async function CallsPage({
                         <Td>
                           <div className="flex items-center gap-2">
                             <span
-                              className={`inline-grid h-7 w-7 place-items-center rounded-full border ${
-                                c.audioPath || c.recordingUrl
-                                  ? "border-blue-100 bg-blue-50 text-blue-600"
-                                  : "border-slate-200 bg-slate-50 text-slate-300"
-                              }`}
+                              className={`inline-grid h-7 w-7 place-items-center rounded-full border ${c.audioPath || c.recordingUrl
+                                ? "border-blue-100 bg-blue-50 text-blue-600"
+                                : "border-slate-200 bg-slate-50 text-slate-300"
+                                }`}
                               title={c.audioPath || c.recordingUrl ? "Audio available" : "No audio"}
                             >
                               <Play className="h-3.5 w-3.5 fill-current" />

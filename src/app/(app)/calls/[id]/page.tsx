@@ -100,8 +100,8 @@ export default async function CallDetailPage({ params }: PageProps) {
     Boolean(call.transcript?.speakerLabelsCorrected && audit) &&
     Boolean(
       call.transcript?.speakerCorrectedAt &&
-        audit?.createdAt &&
-        call.transcript.speakerCorrectedAt > audit.createdAt,
+      audit?.createdAt &&
+      call.transcript.speakerCorrectedAt > audit.createdAt,
     );
 
   // group parameter scores by category for highlight cards
@@ -141,16 +141,16 @@ export default async function CallDetailPage({ params }: PageProps) {
               i.severity === "CRITICAL" || i.severity === "HIGH"
                 ? "red"
                 : i.severity === "MEDIUM"
-                ? "yellow"
-                : "blue";
+                  ? "yellow"
+                  : "blue";
             const Icon =
               i.insightType === "COMPLIANCE"
                 ? ShieldCheck
                 : i.insightType === "RISK"
-                ? AlertTriangle
-                : i.insightType === "COACHING"
-                ? Lightbulb
-                : Sparkles;
+                  ? AlertTriangle
+                  : i.insightType === "COACHING"
+                    ? Lightbulb
+                    : Sparkles;
             return (
               <div key={i.id} className="flex gap-3 p-3 bg-slate-50 rounded-lg">
                 <div className="w-8 h-8 rounded-full grid place-items-center bg-white border border-slate-200">
@@ -159,7 +159,7 @@ export default async function CallDetailPage({ params }: PageProps) {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2">
                     <div className="text-sm font-semibold text-slate-700">{i.title}</div>
-                      <Pill tone={tone}>{i.severity}</Pill>
+                    <Pill tone={tone}>{i.severity}</Pill>
                   </div>
                   <div className="text-xs text-slate-500 mt-1">{i.body}</div>
                 </div>
@@ -214,7 +214,7 @@ export default async function CallDetailPage({ params }: PageProps) {
                   <td className="px-3 py-2 align-top">
                     <div className="font-medium text-slate-700">{ps.parameter.parameterName}</div>
                     <div className="text-xs text-slate-500">{ps.parameter.parameterDescription}</div>
-                    </td>
+                  </td>
                   <td className="px-3 py-2 align-top">{ps.maxScore}</td>
                   <td className="px-3 py-2 align-top font-medium">{ps.score}</td>
                   <td className="px-3 py-2 align-top">
@@ -241,12 +241,12 @@ export default async function CallDetailPage({ params }: PageProps) {
       initial={
         existingReview
           ? {
-              reviewerName: existingReview.reviewerName,
-              status: existingReview.status,
-              score: existingReview.scorePercent,
-              notes: existingReview.notes,
-              disposition: call.manualDisposition,
-            }
+            reviewerName: existingReview.reviewerName,
+            status: existingReview.status,
+            score: existingReview.scorePercent,
+            notes: existingReview.notes,
+            disposition: call.manualDisposition,
+          }
           : { reviewerName: "", status: "PENDING", score: null, notes: null, disposition: call.manualDisposition }
       }
     />
@@ -324,15 +324,14 @@ export default async function CallDetailPage({ params }: PageProps) {
             confidenceScore: number | null;
             text: string;
           }) => (
-              <div key={s.id} className="flex gap-3 p-3 bg-slate-50 rounded-lg text-[13px]">
+            <div key={s.id} className="flex gap-3 p-3 bg-slate-50 rounded-lg text-[13px]">
               <div
-                className={`w-8 h-8 rounded-full grid place-items-center font-bold flex-none text-sm ${
-                  s.speaker === "AGENT"
+                className={`w-8 h-8 rounded-full grid place-items-center font-bold flex-none text-sm ${s.speaker === "AGENT"
                     ? "bg-blue-100 text-blue-700"
                     : s.speaker === "CUSTOMER"
-                    ? "bg-emerald-100 text-emerald-700"
-                    : "bg-slate-200 text-slate-700"
-                }`}
+                      ? "bg-emerald-100 text-emerald-700"
+                      : "bg-slate-200 text-slate-700"
+                  }`}
               >
                 {s.speaker.charAt(0)}
               </div>
@@ -380,7 +379,7 @@ export default async function CallDetailPage({ params }: PageProps) {
 
   return (
     <>
-      <Topbar
+      {/* <Topbar
         title="Call Detail"
         
         right={
@@ -391,7 +390,7 @@ export default async function CallDetailPage({ params }: PageProps) {
             <ArrowLeft className="h-4 w-4" /> Back to calls
           </Link>
         }
-      />
+      /> */}
       <PageShell className="html-page-bg px-6 py-[18px]">
         <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
           {HIGHLIGHT_CATEGORIES.map(({ label, accent }) => {

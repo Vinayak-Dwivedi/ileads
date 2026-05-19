@@ -58,8 +58,8 @@ export default async function ParametersClientsPage() {
 
   return (
     <>
-      <Topbar title="Parameters" crumb="Clients" />
-      <PageShell className="html-page-bg px-[22px] py-[18px]">
+      {/* <Topbar title="Parameters" crumb="Clients" /> */}
+      <PageShell className="html-page-bg px-5.5 py-4.5">
         <section className="html-card overflow-hidden">
           <div className="flex items-center justify-between border-b border-[#e6ebf2] bg-[#fcfdff] px-4 py-3.5">
             <div>

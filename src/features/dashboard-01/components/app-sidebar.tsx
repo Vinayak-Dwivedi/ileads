@@ -2,10 +2,10 @@
 
 import * as React from "react"
 
-import { NavDocuments } from "@/features/dashboard/components/nav-documents"
-import { NavMain } from "@/features/dashboard/components/nav-main"
-import { NavSecondary } from "@/features/dashboard/components/nav-secondary"
-import { NavUser } from "@/features/dashboard/components/nav-user"
+import { NavDocuments } from "@/features/dashboard-01/components/nav-documents"
+import { NavMain } from "@/features/dashboard-01/components/nav-main"
+import { NavSecondary } from "@/features/dashboard-01/components/nav-secondary"
+import { NavUser } from "@/features/dashboard-01/components/nav-user"
 import {
   Sidebar,
   SidebarContent,
@@ -16,6 +16,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
 import { LayoutDashboardIcon, ListIcon, ChartBarIcon, FolderIcon, UsersIcon, CameraIcon, FileTextIcon, Settings2Icon, CircleHelpIcon, SearchIcon, DatabaseIcon, FileChartColumnIcon, FileIcon, CommandIcon, Settings2, BookOpen, Bot, SquareTerminal, FileChartColumn } from "lucide-react"
+import { useRouter } from "next/navigation"
 
 const data = {
   user: {
@@ -32,15 +33,15 @@ const data = {
       items: [
         {
           title: "Dashboard",
-          url: "#",
+          url: "/ileads-qms/dashboard-01",
         },
         {
           title: "Calls",
-          url: "calls",
+          url: "/ileads-qms/calls",
         },
         {
           title: "QA",
-          url: "parameters",
+          url: "/ileads-qms/parameters",
         },
       ],
     }
@@ -123,6 +124,7 @@ const data = {
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const router = useRouter()
   return (
     <Sidebar collapsible="offcanvas" {...props}>
       <SidebarHeader>
@@ -131,12 +133,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             <SidebarMenuButton
               asChild
               className="data-[slot=sidebar-menu-button]:p-1.5!"
+              onClick={() => router.push("/")}
             >
               {/* <a href="#">
                 <CommandIcon className="size-5!" />
                 <span className="text-base font-semibold">Acme Inc.</span>
               </a> */}
-              <img src="/ileads-qms/ileads-logo.png" alt="iLeads" className="h-auto max-w-[130px]" />
+              <img src="/ileads-qms/ileads-logo.png" alt="iLeads" className="h-auto max-w-32.5" />
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
