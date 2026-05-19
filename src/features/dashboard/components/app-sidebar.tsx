@@ -5,7 +5,7 @@ import * as React from "react"
 import { NavDocuments } from "@/features/dashboard-01/components/nav-documents"
 import { NavMain } from "@/features/dashboard-01/components/nav-main"
 import { NavSecondary } from "@/features/dashboard-01/components/nav-secondary"
-import { NavUser } from "@/features/dashboard-01/components/nav-user"
+import { NavUser } from "@/features/dashboard/components/nav-user"
 import {
   Sidebar,
   SidebarContent,
@@ -33,14 +33,14 @@ const data = {
       items: [
         {
           title: "Dashboard",
-          url: "/ileads-qms/dashboard-01",
+          url: "/ileads-qms/dashboard",
         },
         {
           title: "Calls",
           url: "/ileads-qms/calls",
         },
         {
-          title: "QA",
+          title: "Parameters",
           url: "/ileads-qms/parameters",
         },
       ],
@@ -104,22 +104,22 @@ const data = {
     },
   ],
   navSecondary: [
-    {
-      title: "Settings",
-      url: "#",
-      icon: (
-        <Settings2Icon
-        />
-      ),
-    },
-    {
-      title: "Get Help",
-      url: "#",
-      icon: (
-        <CircleHelpIcon
-        />
-      ),
-    },
+    // {
+    //   title: "Settings",
+    //   url: "#",
+    //   icon: (
+    //     <Settings2Icon
+    //     />
+    //   ),
+    // },
+    // {
+    //   title: "Get Help",
+    //   url: "#",
+    //   icon: (
+    //     <CircleHelpIcon
+    //     />
+    //   ),
+    // },
   ],
 }
 

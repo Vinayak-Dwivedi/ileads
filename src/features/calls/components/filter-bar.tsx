@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { UploadCallsDialog } from "./upload-calls-dialog";
 
 interface Options {
   campaigns: { id: string; name: string }[];
@@ -38,10 +39,12 @@ export function CallsFilterBar({
   options,
   initial,
   className,
+  uploadOptions
 }: {
   options: Options;
   initial: Initial;
   className?: string;
+  uploadOptions?: any
 }) {
   const router = useRouter();
   const sp = useSearchParams();
@@ -337,6 +340,10 @@ export function CallsFilterBar({
           >
             Clear
           </button>
+          <UploadCallsDialog
+            options={uploadOptions}
+            maxFileMb={Number(process.env.MAX_AUDIO_UPLOAD_MB ?? "100") || 100}
+          />
         </div>
       </div>
     </section>

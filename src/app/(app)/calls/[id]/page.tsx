@@ -327,10 +327,10 @@ export default async function CallDetailPage({ params }: PageProps) {
             <div key={s.id} className="flex gap-3 p-3 bg-slate-50 rounded-lg text-[13px]">
               <div
                 className={`w-8 h-8 rounded-full grid place-items-center font-bold flex-none text-sm ${s.speaker === "AGENT"
-                    ? "bg-blue-100 text-blue-700"
-                    : s.speaker === "CUSTOMER"
-                      ? "bg-emerald-100 text-emerald-700"
-                      : "bg-slate-200 text-slate-700"
+                  ? "bg-blue-100 text-blue-700"
+                  : s.speaker === "CUSTOMER"
+                    ? "bg-emerald-100 text-emerald-700"
+                    : "bg-slate-200 text-slate-700"
                   }`}
               >
                 {s.speaker.charAt(0)}
@@ -391,78 +391,84 @@ export default async function CallDetailPage({ params }: PageProps) {
           </Link>
         }
       /> */}
-      <PageShell className="html-page-bg px-6 py-[18px]">
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
-          {HIGHLIGHT_CATEGORIES.map(({ label, accent }) => {
-            const agg = scoresByCategory.get(label);
-            const pct = agg && agg.max > 0 ? (agg.awarded / agg.max) * 100 : null;
-            return (
-              <KpiCard
-                key={label}
-                label={label}
-                accent={accent}
-                pct={pct}
-                passed={agg?.passed ?? 0}
-                total={agg?.total ?? 0}
-              />
-            );
-          })}
-        </div>
+      {/* <PageShell className="html-page-bg px-6 py-[18px]"> */}
+      <div className="flex flex-1 flex-col">
+        <div className="@container/main flex flex-1 flex-col gap-2">
+          <div className="flex flex-col gap-4 p-4 md:gap-6 md:p-6">
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+              {HIGHLIGHT_CATEGORIES.map(({ label, accent }) => {
+                const agg = scoresByCategory.get(label);
+                const pct = agg && agg.max > 0 ? (agg.awarded / agg.max) * 100 : null;
+                return (
+                  <KpiCard
+                    key={label}
+                    label={label}
+                    accent={accent}
+                    pct={pct}
+                    passed={agg?.passed ?? 0}
+                    total={agg?.total ?? 0}
+                  />
+                );
+              })}
+            </div>
 
-        <div className="mt-5 grid grid-cols-1 gap-5 lg:items-stretch lg:grid-cols-[minmax(0,7fr)_minmax(0,3fr)]">
-          <div className="space-y-5 min-w-0 h-full">
-            <DetailTabs
-              tabs={[
-                { id: "insights", label: "AI Insights", content: aiInsightsTab },
-                { id: "scoring", label: "Scoring", content: scoringTab },
-                { id: "manual", label: "Manual review", content: manualReviewTab },
-                { id: "transcript", label: "Transcript", content: transcriptTab },
-                { id: "audit", label: "AI Audit Pipeline", content: auditPipelineTab },
-              ]}
-            />
+            <div className="mt-5 grid grid-cols-1 gap-5 lg:items-stretch lg:grid-cols-[minmax(0,7fr)_minmax(0,3fr)]">
+              <div className="space-y-5 min-w-0 h-full">
+                <DetailTabs
+                  tabs={[
+                    { id: "insights", label: "AI Insights", content: aiInsightsTab },
+                    { id: "scoring", label: "Scoring", content: scoringTab },
+                    { id: "manual", label: "Manual review", content: manualReviewTab },
+                    { id: "transcript", label: "Transcript", content: transcriptTab },
+                    { id: "audit", label: "AI Audit Pipeline", content: auditPipelineTab },
+                  ]}
+                />
+              </div>
+
+              <div className="space-y-5 h-full flex flex-col">
+                <AudioPlayerCard
+                  recordingUrl={audioUrl}
+                  durationSeconds={call.durationSeconds}
+                  events={call.events.map((e: { id: string; eventType: string; occurredAt: Date }) => ({
+                    id: e.id,
+                    type: e.eventType,
+                    occurredAt: e.occurredAt.toISOString(),
+                  }))}
+                  callStartedAt={call.callStartedAt?.toISOString() ?? null}
+                  variant="compact"
+                />
+
+                <article className="html-card p-5">
+                  <div className="text-sm font-bold text-slate-800 mb-3 flex items-center gap-2">
+                    Call Information
+                  </div>
+                  <InfoRow label="Call ID">{callIdText}</InfoRow>
+                  <InfoRow label="Process">{call.client.name}</InfoRow>
+                  <InfoRow label="Campaign">{call.campaign?.name ?? "—"}</InfoRow>
+                  <InfoRow label="Agent ID">{call.agent?.employeeCode ?? "—"}</InfoRow>
+                  <InfoRow label="Agent Name">{call.agent?.name ?? "—"}</InfoRow>
+                  <InfoRow label="Date & Time">
+                    {formatShortDate(call.callStartedAt)} · {formatTime(call.callStartedAt)}
+                  </InfoRow>
+                  <InfoRow label="Customer name">{call.customerName ?? "—"}</InfoRow>
+                  <InfoRow label="Duration">{formatDuration(call.durationSeconds)}</InfoRow>
+                  <InfoRow label="Disposition">{call.disposition ?? "—"}</InfoRow>
+                  <div className="flex items-center justify-between pt-3 mt-3 border-t border-slate-100">
+                    <span className="text-xs text-slate-500">Audit</span>
+                    <AuditStatusPill status={audit?.status ?? (call.aiScore != null ? "COMPLETED" : "PENDING")} />
+                  </div>
+                  <div className="flex items-center justify-between pt-3 mt-3 border-t border-slate-100">
+                    <span className="text-xs text-slate-500">Customer Sentiment</span>
+                    <SentimentBadge value={call.sentiment} />
+                  </div>
+                </article>
+                <div className="flex-1" />
+              </div>
+            </div>
+            {/* </PageShell> */}
           </div>
-
-          <div className="space-y-5 h-full flex flex-col">
-            <AudioPlayerCard
-              recordingUrl={audioUrl}
-              durationSeconds={call.durationSeconds}
-              events={call.events.map((e: { id: string; eventType: string; occurredAt: Date }) => ({
-                id: e.id,
-                type: e.eventType,
-                occurredAt: e.occurredAt.toISOString(),
-              }))}
-              callStartedAt={call.callStartedAt?.toISOString() ?? null}
-              variant="compact"
-            />
-
-            <article className="html-card p-5">
-              <div className="text-sm font-bold text-slate-800 mb-3 flex items-center gap-2">
-                Call Information
-              </div>
-              <InfoRow label="Call ID">{callIdText}</InfoRow>
-              <InfoRow label="Process">{call.client.name}</InfoRow>
-              <InfoRow label="Campaign">{call.campaign?.name ?? "—"}</InfoRow>
-              <InfoRow label="Agent ID">{call.agent?.employeeCode ?? "—"}</InfoRow>
-              <InfoRow label="Agent Name">{call.agent?.name ?? "—"}</InfoRow>
-              <InfoRow label="Date & Time">
-                {formatShortDate(call.callStartedAt)} · {formatTime(call.callStartedAt)}
-              </InfoRow>
-              <InfoRow label="Customer name">{call.customerName ?? "—"}</InfoRow>
-              <InfoRow label="Duration">{formatDuration(call.durationSeconds)}</InfoRow>
-              <InfoRow label="Disposition">{call.disposition ?? "—"}</InfoRow>
-              <div className="flex items-center justify-between pt-3 mt-3 border-t border-slate-100">
-                <span className="text-xs text-slate-500">Audit</span>
-                <AuditStatusPill status={audit?.status ?? (call.aiScore != null ? "COMPLETED" : "PENDING")} />
-              </div>
-              <div className="flex items-center justify-between pt-3 mt-3 border-t border-slate-100">
-                <span className="text-xs text-slate-500">Customer Sentiment</span>
-                <SentimentBadge value={call.sentiment} />
-              </div>
-            </article>
-            <div className="flex-1" />
-          </div>
         </div>
-      </PageShell>
+      </div >
     </>
   );
 }

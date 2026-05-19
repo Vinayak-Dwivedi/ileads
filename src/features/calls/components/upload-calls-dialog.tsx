@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { withBasePath } from "@/lib/base-path";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 const ACCEPT = ".mp3,.wav,.m4a,.ogg,.webm,.aac,.flac,audio/mpeg,audio/wav,audio/mp4,audio/ogg,audio/webm,audio/aac,audio/flac";
 
@@ -167,13 +168,12 @@ export function UploadCallsDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <button
+        <Button
           type="button"
-          className="html-btn html-btn-primary"
         >
           <UploadCloud className="h-4 w-4" />
           Upload Calls
-        </button>
+        </Button>
       </DialogTrigger>
       <DialogContent className="max-w-3xl gap-0 overflow-hidden border-slate-200 bg-white p-0 shadow-[0_24px_70px_rgba(15,23,42,0.22)]">
         <DialogHeader className="border-b border-slate-100 px-6 py-5">
