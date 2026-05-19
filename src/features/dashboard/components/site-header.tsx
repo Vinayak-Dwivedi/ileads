@@ -24,12 +24,12 @@ export function SiteHeader() {
           className="mx-2 data-[orientation=vertical]:h-8"
         />
         <div className="min-w-0">
-          <div className="text-[11px] font-medium uppercase tracking-wide text-slate-500">{current.eyebrow}</div>
+          {/* <div className="text-[11px] font-medium uppercase tracking-wide text-slate-500">{current.eyebrow}</div> */}
           <h1 className="truncate text-base font-semibold text-slate-900">{current.title}</h1>
         </div>
-        <Badge variant="outline" className="ml-auto hidden border-blue-100 bg-blue-50 text-blue-700 sm:inline-flex">
+        {/* <Badge variant="outline" className="ml-auto hidden border-blue-100 bg-blue-50 text-blue-700 sm:inline-flex">
           Demo ready
-        </Badge>
+        </Badge> */}
       </div>
     </header>
   )

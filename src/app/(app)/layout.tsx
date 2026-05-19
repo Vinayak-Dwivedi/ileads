@@ -18,7 +18,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       }
     >
       <AppSidebar variant="inset" />
-      <SidebarInset className="bg-background">
+      <SidebarInset className="">
         <SiteHeader />
         <main className="min-w-0">{children}</main>
       </SidebarInset>
