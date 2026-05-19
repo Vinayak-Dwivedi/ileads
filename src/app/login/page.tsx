@@ -1,4 +1,3 @@
-import { ShieldCheck } from "lucide-react";
 import { sanitizeNextPath, withBasePath } from "@/lib/base-path";
 
 interface PageProps {
@@ -15,12 +14,8 @@ export default async function LoginPage({ searchParams }: PageProps) {
   return (
     <div className="min-h-screen flex items-center justify-center bg-[linear-gradient(135deg,#eef3fb_0%,#f7f9fc_35%,#f3f6fb_100%)] p-4">
       <div className="w-full max-w-md bg-white rounded-2xl border border-slate-200 shadow-[0_8px_24px_rgba(16,24,40,0.08)] p-8">
-        <div className="flex items-center gap-3 mb-6">
+        <div className="flex justify-center mb-6">
           <img src={withBasePath("/ileads-logo.png")} alt="iLeads" className="h-auto w-32" />
-          <div>
-            <h1 className="text-xl font-bold text-slate-800 leading-tight">Quality360</h1>
-            <p className="text-xs text-slate-500">Quality management system</p>
-          </div>
         </div>
         <h2 className="text-2xl font-semibold text-slate-800 mb-1.5">Sign in</h2>
         <p className="text-sm text-slate-500 mb-6">
@@ -52,10 +47,6 @@ export default async function LoginPage({ searchParams }: PageProps) {
             Continue
           </button>
         </form>
-        <div className="mt-6 flex items-center gap-2 text-xs text-slate-500">
-          <ShieldCheck className="h-3.5 w-3.5" />
-          Password-protected access for the demo tenant.
-        </div>
       </div>
     </div>
   );

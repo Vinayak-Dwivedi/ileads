@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState, useTransition } from "react";
 import { Pencil, Trash2, Plus, Search, Power } from "lucide-react";
 import { Pill } from "@/components/ui/pill";
 import { EmptyState } from "@/components/ui/page-shell";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { deleteParameter, toggleParameterActive, upsertParameter } from "./actions";
 
 interface ParameterRow {
@@ -266,7 +267,7 @@ export function ParameterEditor({
               </colgroup>
               <thead className="bg-[#fcfdff] text-sm text-[#263244]">
                 <tr>
-                  <th className="border-b border-[#e6ebf2] px-3 py-2.5 text-center font-semibold">Parameters</th>
+                  <th className="border-b border-[#e6ebf2] px-3 py-2.5 text-center font-semibold">Category</th>
                   <th className="border-b border-[#e6ebf2] px-3 py-2.5 text-center font-semibold">Sub Parameters</th>
                   <th className="border-b border-[#e6ebf2] px-3 py-2.5 text-center font-semibold">Score</th>
                   <th className="border-b border-[#e6ebf2] px-3 py-2.5 text-center font-semibold">Actions</th>
@@ -442,26 +443,31 @@ function ParameterFormModal({
             </select>
           </Row>
           <Row label="Parameter category">
-            <input
-              name="parameterCategory"
-              defaultValue={editing?.parameterCategory ?? ""}
-              required
-              list="parameter-categories"
-              placeholder="e.g. Opening, Compliance, Closure"
-              className="h-10 w-full rounded-lg border border-[#d6dcea] px-3 text-sm"
-            />
-            <datalist id="parameter-categories">
-              {categories.map((c) => (
-                <option key={c} value={c} />
-              ))}
-            </datalist>
+            <Select name="parameterCategory" defaultValue={editing?.parameterCategory ?? "Opening / Greeting"} required>
+              <SelectTrigger className="h-10 w-full rounded-lg border border-[#d6dcea] px-3 text-sm bg-white hover:bg-slate-50 focus:ring-1 focus:ring-blue-500 shadow-sm transition-all">
+                <SelectValue placeholder="Select a category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Opening / Greeting">Opening / Greeting</SelectItem>
+                <SelectItem value="Customer Verification">Customer Verification</SelectItem>
+                <SelectItem value="Call Purpose Identification">Call Purpose Identification</SelectItem>
+                <SelectItem value="Communication Skills">Communication Skills</SelectItem>
+                <SelectItem value="Listening & Probing">Listening & Probing</SelectItem>
+                <SelectItem value="Empathy & Courtesy">Empathy & Courtesy</SelectItem>
+                <SelectItem value="Product / Process Knowledge">Product / Process Knowledge</SelectItem>
+                <SelectItem value="Resolution / Assistance Quality">Resolution / Assistance Quality</SelectItem>
+                <SelectItem value="Compliance">Compliance</SelectItem>
+                <SelectItem value="Closing & Documentation">Closing & Documentation</SelectItem>
+              </SelectContent>
+            </Select>
           </Row>
-          <Row label="Parameter name">
+          <Row label="Sub Parameter (e.g. Greeting, Empathy)">
             <input
               name="parameterName"
               defaultValue={editing?.parameterName ?? ""}
               required
               className="h-10 w-full rounded-lg border border-[#d6dcea] px-3 text-sm"
+              placeholder="Write your sub parameter here"
             />
           </Row>
           <Row label="Description">
