@@ -73,8 +73,8 @@ export function CallsFilterBar({
   }
 
   return (
-    <section className={cn("html-card mb-5 p-4", className)}>
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+    <section className={cn("", className)}>
+      {/* <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
           <div className="inline-flex items-center gap-2 text-sm font-semibold text-slate-900">
             <SlidersHorizontal className="h-4 w-4 text-slate-500" />
@@ -86,7 +86,7 @@ export function CallsFilterBar({
           options={uploadOptions}
           maxFileMb={Number(process.env.MAX_AUDIO_UPLOAD_MB ?? "100") || 100}
         />
-      </div>
+      </div> */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <Field>
           <FieldLabel htmlFor="from-date">From</FieldLabel>
@@ -250,16 +250,18 @@ export function CallsFilterBar({
             <option value="Bad">Bad</option>
           </select>
         </Field>
-        <div className="flex items-end">
-          <button
-            type="button"
-            onClick={reset}
-            disabled={pending}
-            className="html-btn h-9 w-full justify-center"
-          >
-            Clear
-          </button>
-        </div>
+        <Button
+          type="button"
+          onClick={reset}
+          disabled={pending}
+          variant={"outline"}
+        >
+          Clear
+        </Button>
+        <UploadCallsDialog
+          options={uploadOptions}
+          maxFileMb={Number(process.env.MAX_AUDIO_UPLOAD_MB ?? "100") || 100}
+        />
       </div>
     </section>
   );

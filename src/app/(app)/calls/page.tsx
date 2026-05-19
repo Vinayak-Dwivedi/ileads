@@ -73,12 +73,7 @@ export default async function CallsPage({
     <div className="flex flex-1 flex-col">
       <div className="@container/main flex flex-1 flex-col gap-2">
         <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-4 p-4 md:gap-5 md:p-6">
-          <div className="flex flex-wrap items-end justify-between gap-3">
-            <div>
-              <h2 className="text-xl font-semibold tracking-tight text-slate-900">Calls</h2>
-              <p className="text-sm text-slate-500">Upload, search, process, and audit call recordings.</p>
-            </div>
-          </div>
+
           <CallsFilterBar options={filterOptions} initial={filters} uploadOptions={uploadOptions} />
 
           <section className="html-card overflow-hidden">
@@ -125,91 +120,91 @@ export default async function CallsPage({
                   </thead>
                   <tbody>
                     {calls.map((c) => {
-                        const callIdText = c.externalCallId ?? `CALL-${c.id.slice(-6).toUpperCase()}`;
-                        const auditStatus =
-                          c.aiScore != null ? "COMPLETED" : c.manualReviews[0]?.status ?? "PENDING";
-                        const flow = pipelineStatus(c);
-                        return (
-                          <tr key={c.id} className="border-b border-[#edf1f6] hover:bg-[#fafcff]">
-                            <Td>
+                      const callIdText = c.externalCallId ?? `CALL-${c.id.slice(-6).toUpperCase()}`;
+                      const auditStatus =
+                        c.aiScore != null ? "COMPLETED" : c.manualReviews[0]?.status ?? "PENDING";
+                      const flow = pipelineStatus(c);
+                      return (
+                        <tr key={c.id} className="border-b border-[#edf1f6] hover:bg-[#fafcff]">
+                          <Td>
+                            <Link
+                              href={`/calls/${c.id}`}
+                              className="font-semibold text-[#2563eb] hover:underline"
+                            >
+                              {callIdText}
+                            </Link>
+                          </Td>
+                          <Td>
+                            <div className="leading-tight">
+                              <div className="text-slate-700">{formatShortDate(c.callStartedAt)}</div>
+                              <div className="text-xs text-slate-500">{formatTime(c.callStartedAt)}</div>
+                            </div>
+                          </Td>
+                          <Td>{c.client.name}</Td>
+                          <Td>{c.campaign?.name ?? "—"}</Td>
+                          <Td>{c.team?.name ?? "—"}</Td>
+                          <Td>{c.agent?.name ?? "—"}</Td>
+                          <Td className="text-slate-600">
+                            {c.customerName ? (
+                              <div className="leading-tight">
+                                <div>{c.customerName}</div>
+                                <div className="text-xs text-slate-500">{c.callerNumber ?? c.calleeNumber ?? ""}</div>
+                              </div>
+                            ) : (
+                              c.callerNumber ?? c.calleeNumber ?? "—"
+                            )}
+                          </Td>
+                          <Td>{formatDuration(c.durationSeconds)}</Td>
+                          <Td>
+                            <ScorePill value={c.aiScore} />
+                          </Td>
+                          <Td>
+                            <ScorePill value={c.manualScore} />
+                          </Td>
+                          <Td>
+                            <ScorePill value={c.finalScore} />
+                          </Td>
+                          <Td>
+                            <SentimentBadge value={c.sentiment} />
+                          </Td>
+                          <Td>
+                            <Pill tone={flow.tone}>{flow.label}</Pill>
+                          </Td>
+                          <Td>
+                            <AuditStatusPill status={auditStatus} />
+                          </Td>
+                          <Td>
+                            {c.manualDisposition ? (
+                              <Pill tone={manualDispositionTone(c.manualDisposition)}>
+                                {c.manualDisposition}
+                              </Pill>
+                            ) : (
+                              <span className="text-xs text-slate-400">—</span>
+                            )}
+                          </Td>
+                          <Td>
+                            <div className="flex items-center gap-2">
+                              <span
+                                className={`inline-grid h-7 w-7 place-items-center rounded-full border ${c.audioPath || c.recordingUrl
+                                  ? "border-blue-100 bg-blue-50 text-blue-600"
+                                  : "border-slate-200 bg-slate-50 text-slate-300"
+                                  }`}
+                                title={c.audioPath || c.recordingUrl ? "Audio available" : "No audio"}
+                              >
+                                <Play className="h-3.5 w-3.5 fill-current" />
+                              </span>
                               <Link
                                 href={`/calls/${c.id}`}
-                                className="font-semibold text-[#2563eb] hover:underline"
+                                className="inline-grid h-7 w-7 place-items-center rounded-full border border-[#cfd7e5] bg-white text-slate-700 shadow-[0_1px_2px_rgba(16,24,40,0.04)] hover:bg-slate-50"
+                                title="View details"
                               >
-                                {callIdText}
+                                <FileText className="h-4 w-4" />
+                                <span className="sr-only">View details</span>
                               </Link>
-                            </Td>
-                            <Td>
-                              <div className="leading-tight">
-                                <div className="text-slate-700">{formatShortDate(c.callStartedAt)}</div>
-                                <div className="text-xs text-slate-500">{formatTime(c.callStartedAt)}</div>
-                              </div>
-                            </Td>
-                            <Td>{c.client.name}</Td>
-                            <Td>{c.campaign?.name ?? "—"}</Td>
-                            <Td>{c.team?.name ?? "—"}</Td>
-                            <Td>{c.agent?.name ?? "—"}</Td>
-                            <Td className="text-slate-600">
-                              {c.customerName ? (
-                                <div className="leading-tight">
-                                  <div>{c.customerName}</div>
-                                  <div className="text-xs text-slate-500">{c.callerNumber ?? c.calleeNumber ?? ""}</div>
-                                </div>
-                              ) : (
-                                c.callerNumber ?? c.calleeNumber ?? "—"
-                              )}
-                            </Td>
-                            <Td>{formatDuration(c.durationSeconds)}</Td>
-                            <Td>
-                              <ScorePill value={c.aiScore} />
-                            </Td>
-                            <Td>
-                              <ScorePill value={c.manualScore} />
-                            </Td>
-                            <Td>
-                              <ScorePill value={c.finalScore} />
-                            </Td>
-                            <Td>
-                              <SentimentBadge value={c.sentiment} />
-                            </Td>
-                            <Td>
-                              <Pill tone={flow.tone}>{flow.label}</Pill>
-                            </Td>
-                            <Td>
-                              <AuditStatusPill status={auditStatus} />
-                            </Td>
-                            <Td>
-                              {c.manualDisposition ? (
-                                <Pill tone={manualDispositionTone(c.manualDisposition)}>
-                                  {c.manualDisposition}
-                                </Pill>
-                              ) : (
-                                <span className="text-xs text-slate-400">—</span>
-                              )}
-                            </Td>
-                            <Td>
-                              <div className="flex items-center gap-2">
-                                <span
-                                  className={`inline-grid h-7 w-7 place-items-center rounded-full border ${c.audioPath || c.recordingUrl
-                                    ? "border-blue-100 bg-blue-50 text-blue-600"
-                                    : "border-slate-200 bg-slate-50 text-slate-300"
-                                    }`}
-                                  title={c.audioPath || c.recordingUrl ? "Audio available" : "No audio"}
-                                >
-                                  <Play className="h-3.5 w-3.5 fill-current" />
-                                </span>
-                                <Link
-                                  href={`/calls/${c.id}`}
-                                  className="inline-grid h-7 w-7 place-items-center rounded-full border border-[#cfd7e5] bg-white text-slate-700 shadow-[0_1px_2px_rgba(16,24,40,0.04)] hover:bg-slate-50"
-                                  title="View details"
-                                >
-                                  <FileText className="h-4 w-4" />
-                                  <span className="sr-only">View details</span>
-                                </Link>
-                              </div>
-                            </Td>
-                          </tr>
-                        );
+                            </div>
+                          </Td>
+                        </tr>
+                      );
                     })}
                   </tbody>
                 </table>

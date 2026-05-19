@@ -26,8 +26,8 @@ export function AudioPlayerCard({ recordingUrl }: Props) {
   }
 
   return (
-    <div className="space-y-2">
-      <AudioPlayer className="w-full">
+    <div className="space-y-2 flex items-center mb-3">
+      <AudioPlayer className="w-full mb-0">
         <AudioPlayerElement src={recordingUrl} preload="none" />
         <AudioPlayerControlBar>
           <AudioPlayerSeekBackwardButton />
@@ -44,7 +44,7 @@ export function AudioPlayerCard({ recordingUrl }: Props) {
           className="inline-flex h-7 items-center gap-1.5 rounded-md border border-slate-200 bg-white px-2.5 text-[11px] font-medium text-slate-600 hover:bg-slate-50"
           aria-label="Download audio"
         >
-          <Download className="h-3 w-3" /> Download
+          <Download className="h-3 w-3" />
         </a>
       </div>
     </div>

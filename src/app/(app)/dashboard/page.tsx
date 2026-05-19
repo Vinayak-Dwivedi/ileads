@@ -52,12 +52,6 @@ export default async function DashboardPage({
     <div className="flex flex-1 flex-col">
       <div className="@container/main flex flex-1 flex-col gap-2">
         <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-4 p-4 md:gap-5 md:p-6">
-          <div className="flex flex-wrap items-end justify-between gap-3">
-            <div>
-              <h2 className="text-xl font-semibold tracking-tight text-slate-900">Dashboard</h2>
-              <p className="text-sm text-slate-500">Live QMS metrics from stored calls and audits.</p>
-            </div>
-          </div>
           <DashboardFilterBar options={filterOptions} initial={filters} />
 
           <section className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-6">
