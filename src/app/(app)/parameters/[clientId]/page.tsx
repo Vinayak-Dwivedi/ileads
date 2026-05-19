@@ -66,9 +66,8 @@ export default async function ClientParametersPage({ params, searchParams }: Pag
             <h2 className="text-xl font-semibold tracking-tight text-slate-900">{client.name}</h2>
             <p className="text-sm text-slate-500">Audit parameter setup and prompt configuration.</p>
           </div>
-          <Pill tone={client.isActive ? "green" : "slate"}>{client.isActive ? "Active client" : "Inactive client"}</Pill>
-        </div>
-        <section className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-4">
+           </div>
+        <section className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-3">
           <div className="html-card p-4">
             <div className="text-xs font-semibold text-slate-500">Client</div>
             <div className="mt-1 text-lg font-semibold text-slate-900">{client.name}</div>
@@ -77,23 +76,12 @@ export default async function ClientParametersPage({ params, searchParams }: Pag
           <div className="html-card p-4">
             <div className="text-xs font-semibold text-slate-500">Active parameters</div>
             <div className="mt-1 text-2xl font-semibold text-slate-900">{activeParams.length}</div>
-            <div className="text-xs text-slate-500">{parameters.length} total (including inactive)</div>
+        
           </div>
           <div className="html-card p-4">
             <div className="text-xs font-semibold text-slate-500">Total score (active)</div>
             <div className="mt-1 text-2xl font-semibold text-slate-900">{totalScore}</div>
-            <div className="text-xs text-slate-500">Binary scoring per parameter</div>
-          </div>
-          <div className="html-card p-4">
-            <div className="text-xs font-semibold text-slate-500">Audit prompt</div>
-            <div className="mt-1 text-lg font-semibold text-slate-900">
-              {activePrompt ? `Custom · v${activePrompt.versionNo}` : "Generated"}
-            </div>
-            <div className="text-xs text-slate-500">
-              {activePrompt
-                ? "Loaded from DB at audit time"
-                : "Built from active parameters at audit time"}
-            </div>
+           
           </div>
         </section>
 

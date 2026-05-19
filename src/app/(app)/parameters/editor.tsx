@@ -157,7 +157,7 @@ export function ParameterEditor({
       <section className="html-card mb-4 p-4">
         <div className="mb-3">
           <h3 className="text-sm font-semibold text-slate-900">Parameter Filters</h3>
-          <p className="text-sm text-slate-500">Search active and inactive parameter definitions for this client.</p>
+        
         </div>
         <div className="grid grid-cols-1 items-end gap-3 md:grid-cols-4">
           <div>

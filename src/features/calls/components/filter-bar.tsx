@@ -95,7 +95,7 @@ export function CallsFilterBar({
               <Button
                 variant="outline"
                 id="from-date"
-                className="justify-start font-normal"
+                className="justify-start font-normal bg-white"
               >
                 {startDate ? format(startDate, "PPP") : <span>Pick a date</span>}
               </Button>
@@ -129,7 +129,7 @@ export function CallsFilterBar({
               <Button
                 variant="outline"
                 id="to-date"
-                className="justify-start font-normal"
+                className="justify-start font-normal bg-white"
               >
                 {endDate ? format(endDate, "PPP") : <span>Pick a date</span>}
               </Button>
@@ -157,7 +157,7 @@ export function CallsFilterBar({
           <Select
             defaultValue={initial.campaignId ?? ""}
             onValueChange={(value) => applyParam("campaignId", value)}>
-            <SelectTrigger id="campaign">
+            <SelectTrigger id="campaign" className="bg-white">
               <SelectValue placeholder="All campaigns" />
             </SelectTrigger>
             <SelectContent>
@@ -178,7 +178,7 @@ export function CallsFilterBar({
             defaultValue={initial.teamId ?? ""}
             onValueChange={(value) => applyParam("teamId", value)}
           >
-            <SelectTrigger id="select-team">
+            <SelectTrigger id="select-team" className="bg-white">
               <SelectValue placeholder="All Teams" />
             </SelectTrigger>
             <SelectContent>
@@ -198,7 +198,7 @@ export function CallsFilterBar({
             defaultValue={initial.agentId ?? ""}
             onValueChange={(value) => applyParam("agentId", value)}
           >
-            <SelectTrigger id="select-agent">
+            <SelectTrigger id="select-agent" className="bg-white">
               <SelectValue placeholder="All Agents" />
             </SelectTrigger>
             <SelectContent>

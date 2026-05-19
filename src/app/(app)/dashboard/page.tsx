@@ -77,7 +77,7 @@ export default async function DashboardPage({
 
             <article className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm md:col-span-2">
               <h3 className="mb-1 text-base font-semibold text-slate-900">Average Quality Score</h3>
-              <p className="mb-4 text-sm text-slate-500">Mean final score from completed call audits.</p>
+             
               {kpis.averageQualityPercent == null ? (
                 <EmptyState
                   title="Trend data will appear after more calls are processed."
@@ -88,18 +88,14 @@ export default async function DashboardPage({
                   <div className="text-4xl font-semibold leading-none text-slate-900">
                     {formatPercent(kpis.averageQualityPercent, 1)}
                   </div>
-                  <p className="mt-2 text-sm text-slate-500">
-                    Mean final score from stored calls. Falls back to AI score only when final score is missing.
-                  </p>
+                 
                   <div className="mt-4 h-2 overflow-hidden rounded-full bg-slate-100">
                     <div
                       className="h-2 rounded-full bg-blue-600"
                       style={{ width: `${Math.min(100, Math.max(0, kpis.averageQualityPercent))}%` }}
                     />
                   </div>
-                  <p className="mt-3 text-xs text-slate-400">
-                    Trend chart hidden: no real weekly comparison data is stored yet.
-                  </p>
+                 
                 </div>
               )}
             </article>
@@ -139,8 +135,7 @@ export default async function DashboardPage({
           <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm xl:col-span-2">
             <div className="mb-3">
               <h3 className="text-base font-semibold text-slate-900">Agent Scoreboard</h3>
-              <p className="text-sm text-slate-500">Ranked by stored QA performance for the selected filters.</p>
-            </div>
+               </div>
             {scoreboard.length === 0 ? (
               <EmptyState title="No agents yet" description="Upload and audit calls to populate the scoreboard." />
             ) : (
@@ -191,7 +186,7 @@ function DashboardStat({ label, value }: { label: string; value: string }) {
     <article className="min-h-28 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
       <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</label>
       <div className="mt-2 text-3xl font-semibold leading-none text-slate-900 md:text-[34px]">{value}</div>
-      <div className="mt-3 text-xs text-slate-400">Current filters</div>
+      
     </article>
   );
 }

@@ -64,9 +64,7 @@ export default async function ParametersClientsPage() {
               <h3 className="inline-flex items-center gap-2 text-base font-semibold text-slate-900">
                 <Users className="h-4 w-4" /> Clients
               </h3>
-              <p className="text-xs text-slate-500">
-                Pick a client to manage its audit parameters and prompt.
-              </p>
+             
             </div>
             <div className="rounded-full border border-slate-200 bg-white px-3 py-1 text-[13px] font-semibold text-slate-700">
               {rows.length} client{rows.length === 1 ? "" : "s"}

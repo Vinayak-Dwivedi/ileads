@@ -72,7 +72,7 @@ export function DashboardFilterBar({
               <Button
                 variant="outline"
                 id="from-date"
-                className="justify-start font-normal"
+                className="justify-start font-normal bg-white"
               >
                 {startDate ? format(startDate, "PPP") : <span>Pick a date</span>}
               </Button>
@@ -118,7 +118,7 @@ export function DashboardFilterBar({
               <Button
                 variant="outline"
                 id="to-date"
-                className="justify-start font-normal"
+                className="justify-start font-normal bg-white"
               >
                 {endDate ? format(endDate, "PPP") : <span>Pick a date</span>}
               </Button>
@@ -146,7 +146,7 @@ export function DashboardFilterBar({
           <Select
             defaultValue={initial.campaignId ?? ""}
             onValueChange={(value) => update("campaignId", value)}>
-            <SelectTrigger id="campaign">
+            <SelectTrigger id="campaign" className="bg-white">
               <SelectValue placeholder="All campaigns" />
             </SelectTrigger>
             <SelectContent>
@@ -179,7 +179,7 @@ export function DashboardFilterBar({
             defaultValue={initial.teamId ?? ""}
             onValueChange={(value) => update("teamId", value)}
           >
-            <SelectTrigger id="select-team">
+            <SelectTrigger id="select-team" className="bg-white">
               <SelectValue placeholder="All Teams" />
             </SelectTrigger>
             <SelectContent>
@@ -211,7 +211,7 @@ export function DashboardFilterBar({
             defaultValue={initial.agentId ?? ""}
             onValueChange={(value) => update("agentId", value)}
           >
-            <SelectTrigger id="select-agent">
+            <SelectTrigger id="select-agent" className="bg-white">
               <SelectValue placeholder="All Agents" />
             </SelectTrigger>
             <SelectContent>
