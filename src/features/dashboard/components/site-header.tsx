@@ -8,6 +8,7 @@ const titles: Record<string, { title: string; eyebrow: string }> = {
   dashboard: { title: "Dashboard", eyebrow: "Quality overview" },
   calls: { title: "Calls", eyebrow: "Call library" },
   parameters: { title: "Parameters", eyebrow: "Audit setup" },
+  agents: { title: "Agents", eyebrow: "Agent roster" },
 }
 
 export function SiteHeader() {

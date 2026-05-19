@@ -19,6 +19,9 @@ export default async function AgentsPage() {
         team: {
           select: { name: true },
         },
+        _count: {
+          select: { calls: true },
+        },
       },
       orderBy: { name: "asc" },
     }),
@@ -32,6 +35,7 @@ export default async function AgentsPage() {
   const serializedAgents = agents.map((agent) => ({
     ...agent,
     createdAt: formatShortDate(agent.createdAt),
+    updatedAt: formatShortDate(agent.updatedAt),
   }));
 
   return <AgentsClient agents={serializedAgents} campaigns={campaigns} />;
