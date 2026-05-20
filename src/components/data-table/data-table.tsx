@@ -51,6 +51,7 @@ interface DataTableProps<TData, TValue> {
   pageSizeOptions?: number[];
   searchColumnId?: string;
   searchPlaceholder?: string;
+  showFilteredCount?: boolean;
   showSelectionCount?: boolean;
   tableClassName?: string;
   toolbarActions?: React.ReactNode;
@@ -78,6 +79,7 @@ export function DataTable<TData, TValue>({
   pageSizeOptions,
   searchColumnId,
   searchPlaceholder,
+  showFilteredCount = true,
   showSelectionCount = false,
   tableClassName,
   toolbarActions,
@@ -233,6 +235,7 @@ export function DataTable<TData, TValue>({
         table={table}
         itemLabel={itemLabel}
         pageSizeOptions={pageSizeOptions}
+        showFilteredCount={showFilteredCount}
         showSelectionCount={showSelectionCount}
       />
     </div>

@@ -22,6 +22,7 @@ interface DataTablePaginationProps<TData> {
   table: Table<TData>;
   itemLabel?: string;
   pageSizeOptions?: number[];
+  showFilteredCount?: boolean;
   showSelectionCount?: boolean;
 }
 
@@ -29,6 +30,7 @@ export function DataTablePagination<TData>({
   table,
   itemLabel = "rows",
   pageSizeOptions = [10, 20, 30, 50],
+  showFilteredCount = true,
   showSelectionCount = false,
 }: DataTablePaginationProps<TData>) {
   const pageCount = table.getPageCount();
@@ -43,10 +45,12 @@ export function DataTablePagination<TData>({
             {table.getFilteredSelectedRowModel().rows.length} of {filteredCount}{" "}
             selected.
           </>
-        ) : (
+        ) : showFilteredCount ? (
           <>
             {filteredCount.toLocaleString()} {itemLabel}
           </>
+        ) : (
+          <span className="sr-only">Pagination controls</span>
         )}
       </div>
 

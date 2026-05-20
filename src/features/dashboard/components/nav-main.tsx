@@ -1,14 +1,14 @@
-"use client"
+"use client";
 
-import { ChevronRight, type LucideIcon } from "lucide-react"
-import Link from "next/link"
-import { usePathname } from "next/navigation"
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { ChevronRight, type LucideIcon } from "lucide-react";
 
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from "@/components/ui/collapsible"
+} from "@/components/ui/collapsible";
 import {
   SidebarGroup,
   SidebarGroupLabel,
@@ -18,29 +18,29 @@ import {
   SidebarMenuSub,
   SidebarMenuSubButton,
   SidebarMenuSubItem,
-} from "@/components/ui/sidebar"
-import { cn } from "@/lib/utils"
+} from "@/components/ui/sidebar";
+import { cn } from "@/lib/utils";
 
 export function NavMain({
   items,
 }: {
   items: {
-    title: string
-    url: string
-    icon?: LucideIcon
-    isActive?: boolean
+    title: string;
+    url: string;
+    icon?: LucideIcon;
+    isActive?: boolean;
     items?: {
-      title: string
-      url?: string
-      onClick?: () => void
-    }[]
-  }[]
+      title: string;
+      url?: string;
+      onClick?: () => void;
+    }[];
+  }[];
 }) {
-  const pathname = usePathname()
+  const pathname = usePathname();
 
   function isActive(url: string) {
-    const normalized = pathname.replace(/^\/ileads-qms/, "") || "/"
-    return normalized === url || normalized.startsWith(`${url}/`)
+    const normalized = pathname.replace(/^\/ileads-qms/, "") || "/";
+    return normalized === url || normalized.startsWith(`${url}/`);
   }
 
   return (
@@ -57,7 +57,7 @@ export function NavMain({
             <SidebarMenuItem>
               <CollapsibleTrigger asChild>
                 <SidebarMenuButton tooltip={item.title}>
-                  {item.icon && <item.icon />}
+                  {item.icon ? <item.icon /> : null}
                   <span>{item.title}</span>
                   <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
                 </SidebarMenuButton>
@@ -78,8 +78,9 @@ export function NavMain({
                           asChild
                           isActive={subItem.url ? isActive(subItem.url) : false}
                           className={cn(
-                            subItem.url && isActive(subItem.url) &&
-                              "bg-blue-50 font-semibold text-blue-700 ring-1 ring-blue-100"
+                            subItem.url &&
+                              isActive(subItem.url) &&
+                              "bg-blue-50 font-semibold text-blue-700 ring-1 ring-blue-100",
                           )}
                         >
                           <Link href={subItem.url || "#"}>
@@ -96,5 +97,5 @@ export function NavMain({
         ))}
       </SidebarMenu>
     </SidebarGroup>
-  )
+  );
 }
