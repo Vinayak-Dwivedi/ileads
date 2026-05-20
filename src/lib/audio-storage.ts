@@ -1,6 +1,6 @@
 import "server-only";
 import path from "node:path";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, writeFile, access } from "node:fs/promises";
 
 export const ACCEPTED_AUDIO_EXTENSIONS = new Set([
   ".mp3",
@@ -56,7 +56,32 @@ export function buildStoredAudioFileName(originalFileName: string): string {
   return `call-${timestamp}-${random}${extension}`;
 }
 
-export async function saveAudioFile(file: File): Promise<{
+export function formatDateFolder(date: Date): string {
+  const yyyy = date.getFullYear().toString().padStart(4, "0");
+  const mm = (date.getMonth() + 1).toString().padStart(2, "0");
+  const dd = date.getDate().toString().padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+export async function getUniqueAudioPath(dir: string, fileName: string): Promise<string> {
+  const ext = path.extname(fileName);
+  const base = path.basename(fileName, ext);
+  let candidate = path.join(dir, fileName);
+  let suffix = 1;
+  // Stop after a reasonable number of attempts.
+  while (suffix < 1000) {
+    try {
+      await access(candidate);
+      candidate = path.join(dir, `${base}-${suffix}${ext}`);
+      suffix += 1;
+    } catch {
+      return candidate;
+    }
+  }
+  return candidate;
+}
+
+export async function saveAudioFile(file: File, opts: { date?: Date } = {}): Promise<{
   originalFileName: string;
   storedFileName: string;
   audioPath: string;
@@ -74,16 +99,18 @@ export async function saveAudioFile(file: File): Promise<{
     throw new Error(`${originalFileName} exceeds the ${Math.round(maxBytes / 1024 / 1024)} MB limit.`);
   }
 
+  const dateFolder = formatDateFolder(opts.date ?? new Date());
   const storageRoot = getAudioStorageRoot();
-  await mkdir(storageRoot, { recursive: true });
+  const dayDir = path.join(storageRoot, dateFolder);
+  await mkdir(dayDir, { recursive: true });
 
   const storedFileName = buildStoredAudioFileName(originalFileName);
-  const audioPath = path.join(storageRoot, storedFileName);
+  const audioPath = await getUniqueAudioPath(dayDir, storedFileName);
   await writeFile(audioPath, Buffer.from(await file.arrayBuffer()));
 
   return {
     originalFileName,
-    storedFileName,
+    storedFileName: path.basename(audioPath),
     audioPath,
     mimeType: file.type || AUDIO_CONTENT_TYPES[extension] || "application/octet-stream",
     fileSizeBytes: file.size,

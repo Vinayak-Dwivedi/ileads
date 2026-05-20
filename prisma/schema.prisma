@@ -189,6 +189,7 @@ model Campaign {
 
   client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
   calls  Call[]
+  agents Agent[]
 
   @@index([clientId])
   @@map("campaigns")
@@ -214,6 +215,7 @@ model Agent {
   id           String    @id @default(cuid())
   clientId     String    @map("client_id")
   teamId       String?   @map("team_id")
+  campaignId   String?   @map("campaign_id")
   name         String
   employeeCode String?   @map("employee_code")
   email        String?
@@ -222,18 +224,36 @@ model Agent {
   createdAt    DateTime  @default(now()) @map("created_at")
   updatedAt    DateTime  @updatedAt @map("updated_at")
 
-  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  team   Team?  @relation(fields: [teamId], references: [id], onDelete: SetNull)
-  calls  Call[]
+  client   Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  team     Team?     @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  campaign Campaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  calls    Call[]
 
   @@index([clientId])
   @@index([teamId])
+  @@index([campaignId])
   @@map("agents")
 }
 
 // ---------- Parameters ----------
 // Each client owns its parameters. No groups/templates by design.
 // Scoring is binary: full max_score if AI determines parameter is fulfilled, else 0.
+// A client/sub-parameter optionally maps to one StandardAuditParameter
+// so 10 standard KPI cards can roll up the 24 sub-parameter scores.
+
+model StandardAuditParameter {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  sortOrder   Int      @default(0) @map("sort_order")
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  clientParameters ClientParameter[]
+
+  @@map("standard_audit_parameters")
+}
 
 model ClientParameter {
   id                   String      @id @default(cuid())
@@ -246,14 +266,17 @@ model ClientParameter {
   scoringType          ScoringType @default(BINARY) @map("scoring_type")
   displayOrder         Int         @default(0) @map("display_order")
   isActive             Boolean     @default(true) @map("is_active")
+  standardParameterId  String?     @map("standard_parameter_id")
   createdAt            DateTime    @default(now()) @map("created_at")
   updatedAt            DateTime    @updatedAt @map("updated_at")
 
-  client            Client              @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  aiParameterScores AiParameterScore[]
+  client             Client                  @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  standardParameter  StandardAuditParameter? @relation(fields: [standardParameterId], references: [id], onDelete: SetNull)
+  aiParameterScores  AiParameterScore[]
 
   @@index([clientId])
   @@index([clientId, displayOrder])
+  @@index([standardParameterId])
   @@map("client_parameters")
 }
 

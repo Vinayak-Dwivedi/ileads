@@ -385,7 +385,7 @@ export interface ProcessDemoCallResult {
 }
 
 /**
- * Stitched convenience action used by the "Process Demo Call" button.
+ * Stitched convenience action that runs STT then AI audit on a call.
  *
  *   - If no transcript: run live STT first.
  *   - If STT fails, stop before running the audit.

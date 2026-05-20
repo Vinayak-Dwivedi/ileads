@@ -84,7 +84,10 @@ export async function getCallDetail(clientId: string, callId: string) {
       aiAudits: {
         orderBy: [{ isLatest: "desc" }, { auditRunNo: "desc" }, { createdAt: "desc" }],
         include: {
-          parameterScores: { include: { parameter: true }, orderBy: { id: "asc" } },
+          parameterScores: {
+            include: { parameter: { include: { standardParameter: true } } },
+            orderBy: { id: "asc" },
+          },
         },
       },
       insights: { orderBy: { createdAt: "desc" } },
@@ -93,6 +96,47 @@ export async function getCallDetail(clientId: string, callId: string) {
       events: { orderBy: { occurredAt: "asc" } },
     },
   });
+}
+
+export type StandardParameterSummary = {
+  id: string;
+  name: string;
+  description: string | null;
+  sortOrder: number;
+};
+
+/**
+ * Active standard parameters for a client's audit. Built from the standard
+ * parameters that at least one ACTIVE sub-parameter for this client maps to.
+ * If a client has no mappings yet the list is empty — callers can fall back
+ * to the global list of standard parameters if they want a 10-slot scaffold.
+ */
+export async function getActiveStandardParametersForClient(
+  clientId: string,
+): Promise<StandardParameterSummary[]> {
+  const activeSubs = await prisma.clientParameter.findMany({
+    where: { clientId, isActive: true, standardParameterId: { not: null } },
+    select: { standardParameter: { select: { id: true, name: true, description: true, sortOrder: true } } },
+  });
+  const seen = new Set<string>();
+  const out: StandardParameterSummary[] = [];
+  for (const s of activeSubs) {
+    const sp = s.standardParameter;
+    if (!sp || seen.has(sp.id)) continue;
+    seen.add(sp.id);
+    out.push({ id: sp.id, name: sp.name, description: sp.description, sortOrder: sp.sortOrder });
+  }
+  out.sort((a, b) => a.sortOrder - b.sortOrder);
+  return out;
+}
+
+export async function listStandardAuditParameters(): Promise<StandardParameterSummary[]> {
+  const rows = await prisma.standardAuditParameter.findMany({
+    where: { isActive: true },
+    orderBy: { sortOrder: "asc" },
+    select: { id: true, name: true, description: true, sortOrder: true },
+  });
+  return rows.map((r) => ({ id: r.id, name: r.name, description: r.description, sortOrder: r.sortOrder }));
 }
 
 export async function getCallUploadOptions(clientId: string) {

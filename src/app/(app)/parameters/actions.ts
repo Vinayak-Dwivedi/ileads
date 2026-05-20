@@ -12,6 +12,7 @@ export interface ParameterActionResult {
 interface ParameterInput {
   id?: string;
   clientId: string;
+  standardParameterId?: string;
   parameterCategory: string;
   parameterName: string;
   parameterDescription: string;
@@ -25,6 +26,7 @@ function parseInput(formData: FormData): ParameterInput {
   const get = (k: string) => String(formData.get(k) ?? "").trim();
   const id = get("id") || undefined;
   const clientId = get("clientId");
+  const standardParameterId = get("standardParameterId") || undefined;
   const parameterCategory = get("parameterCategory");
   const parameterName = get("parameterName");
   const parameterDescription = get("parameterDescription");
@@ -43,6 +45,7 @@ function parseInput(formData: FormData): ParameterInput {
   return {
     id,
     clientId,
+    standardParameterId,
     parameterCategory: parameterCategory || "General",
     parameterName,
     parameterDescription,
@@ -77,6 +80,22 @@ export async function upsertParameter(
   try {
     const input = parseInput(formData);
     await assertClientAccess(input.clientId);
+
+    const standardParam = input.standardParameterId
+      ? await prisma.standardAuditParameter.findUnique({
+          where: { id: input.standardParameterId },
+          select: { id: true, name: true },
+        })
+      : await prisma.standardAuditParameter.findUnique({
+          where: { name: input.parameterCategory },
+          select: { id: true, name: true },
+        });
+    if (!standardParam) {
+      return { ok: false, error: "Standard KPI category is required." };
+    }
+    const parameterCategory = standardParam.name;
+    const standardParameterId = standardParam.id;
+
     if (input.id) {
       const existing = await prisma.clientParameter.findFirst({
         where: { id: input.id, clientId: input.clientId },
@@ -86,26 +105,28 @@ export async function upsertParameter(
       await prisma.clientParameter.update({
         where: { id: existing.id },
         data: {
-          parameterCategory: input.parameterCategory,
+          parameterCategory,
           parameterName: input.parameterName,
           parameterDescription: input.parameterDescription,
           maxScore: input.maxScore,
           aiInstruction: input.aiInstruction,
           displayOrder: input.displayOrder,
           isActive: input.isActive,
+          standardParameterId,
         },
       });
     } else {
       await prisma.clientParameter.create({
         data: {
           clientId: input.clientId,
-          parameterCategory: input.parameterCategory,
+          parameterCategory,
           parameterName: input.parameterName,
           parameterDescription: input.parameterDescription,
           maxScore: input.maxScore,
           aiInstruction: input.aiInstruction,
           displayOrder: input.displayOrder,
           isActive: input.isActive,
+          standardParameterId,
         },
       });
     }
@@ -172,6 +193,62 @@ export async function deleteParameter(
     return {
       ok: false,
       error: e instanceof Error ? e.message : "Failed to delete parameter.",
+    };
+  }
+}
+
+export interface AddAgentActionResult {
+  ok: boolean;
+  error?: string;
+}
+
+export async function addAgent(
+  formData: FormData,
+): Promise<AddAgentActionResult> {
+  try {
+    const session = await requireSession();
+    const clientId = session.clientId;
+
+    const name = String(formData.get("name") ?? "").trim();
+    const employeeCode = String(formData.get("employeeCode") ?? "").trim();
+    const campaignId = String(formData.get("campaignId") ?? "").trim() || null;
+
+    if (!name) {
+      return { ok: false, error: "Agent name is required." };
+    }
+    if (!employeeCode) {
+      return { ok: false, error: "Agent ID is required." };
+    }
+
+    // Check if agent with this employee code already exists for this client
+    const existing = await prisma.agent.findFirst({
+      where: { clientId, employeeCode },
+    });
+    if (existing) {
+      return { ok: false, error: `Agent ID "${employeeCode}" already exists.` };
+    }
+
+    // Create the agent in the database
+    await prisma.agent.create({
+      data: {
+        clientId,
+        name,
+        employeeCode,
+        campaignId,
+        isActive: true,
+      },
+    });
+
+    // Revalidate routes to update filter options across the app
+    revalidatePath("/dashboard");
+    revalidatePath("/calls");
+    revalidatePath("/agents");
+
+    return { ok: true };
+  } catch (e) {
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : "Failed to add agent.",
     };
   }
 }

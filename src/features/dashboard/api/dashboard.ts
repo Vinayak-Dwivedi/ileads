@@ -15,8 +15,9 @@ export interface DashboardKpis {
   aiAudited: number;
   manualReviewed: number;
   averageQualityPercent: number | null;
-  firstResponseSeconds: number | null;
-  averageHandleSeconds: number | null;
+  aiAuditScorePercent: number | null;
+  manualAuditScorePercent: number | null;
+  averageAuditScorePercent: number | null;
 }
 
 function buildCallWhere(clientId: string, f: DashboardFilters): Prisma.CallWhereInput {
@@ -30,6 +31,24 @@ function buildCallWhere(clientId: string, f: DashboardFilters): Prisma.CallWhere
     if (f.to) where.callStartedAt.lte = f.to;
   }
   return where;
+}
+
+function buildComplianceWhere(clientId: string, f: DashboardFilters): Prisma.Sql {
+  const conditions: Prisma.Sql[] = [
+    Prisma.sql`c."client_id" = ${clientId}`,
+    Prisma.sql`c."agent_id" IS NOT NULL`,
+    Prisma.sql`aa."is_latest" = true`,
+    Prisma.sql`aa."status" = 'COMPLETED'`,
+    Prisma.sql`cp."parameter_category" ILIKE 'Compliance%'`,
+  ];
+
+  if (f.campaignId) conditions.push(Prisma.sql`c."campaign_id" = ${f.campaignId}`);
+  if (f.teamId) conditions.push(Prisma.sql`c."team_id" = ${f.teamId}`);
+  if (f.agentId) conditions.push(Prisma.sql`c."agent_id" = ${f.agentId}`);
+  if (f.from) conditions.push(Prisma.sql`c."call_started_at" >= ${f.from}`);
+  if (f.to) conditions.push(Prisma.sql`c."call_started_at" <= ${f.to}`);
+
+  return Prisma.join(conditions, " AND ");
 }
 
 export async function getDashboardKpis(
@@ -47,22 +66,26 @@ export async function getDashboardKpis(
       _avg: {
         finalScore: true,
         aiScore: true,
-        firstResponseSeconds: true,
-        averageHandleSeconds: true,
-        durationSeconds: true,
+        manualScore: true,
       },
     }),
   ]);
 
+  const aiAuditScore = aggregate._avg.aiScore ?? null;
+  const manualAuditScore = aggregate._avg.manualScore ?? null;
+  const averageAuditScore =
+    aiAuditScore != null && manualAuditScore != null
+      ? (aiAuditScore + manualAuditScore) / 2
+      : null;
   const avgQuality = aggregate._avg.finalScore ?? aggregate._avg.aiScore ?? null;
-  const aht = aggregate._avg.averageHandleSeconds ?? aggregate._avg.durationSeconds ?? null;
   return {
     totalCalls,
     aiAudited,
     manualReviewed,
     averageQualityPercent: avgQuality,
-    firstResponseSeconds: aggregate._avg.firstResponseSeconds,
-    averageHandleSeconds: aht,
+    aiAuditScorePercent: aiAuditScore,
+    manualAuditScorePercent: manualAuditScore,
+    averageAuditScorePercent: averageAuditScore,
   };
 }
 
@@ -158,9 +181,7 @@ export async function getAgentScoreboard(
     JOIN "ai_audits" aa ON aa."call_id" = c."id"
     JOIN "ai_parameter_scores" aps ON aps."ai_audit_id" = aa."id"
     JOIN "client_parameters" cp ON cp."id" = aps."parameter_id"
-    WHERE c."client_id" = ${clientId}
-      AND c."agent_id" IS NOT NULL
-      AND cp."parameter_category" ILIKE 'Compliance%'
+    WHERE ${buildComplianceWhere(clientId, filters)}
     GROUP BY c."agent_id"
   `);
   const complianceByAgent = new Map(compliance.map((c) => [c.agentId, c.pass_rate]));
@@ -199,6 +220,71 @@ export async function getDashboardInsights(clientId: string, filters: DashboardF
     take,
     select: { id: true, insightType: true, severity: true, title: true, body: true },
   });
+}
+
+export interface DailyQualityPoint {
+  date: string; // YYYY-MM-DD
+  averagePercent: number; // 0-100
+  auditedCalls: number;
+}
+
+/**
+ * Group completed (latest) AI audits by day and return average score%
+ * with the number of audited calls per day. Uses the latest audit per call.
+ * Returns the last `days` consecutive dates (so the chart has a continuous axis),
+ * filling days with no audits as null/0.
+ */
+export async function getDailyQualityScore(
+  clientId: string,
+  filters: DashboardFilters,
+  days = 14,
+): Promise<DailyQualityPoint[]> {
+  const where = buildCallWhere(clientId, filters);
+  // Only audits flagged isLatest and with a score.
+  const audits = await prisma.aiAudit.findMany({
+    where: {
+      isLatest: true,
+      status: "COMPLETED",
+      scorePercent: { not: null },
+      call: where,
+    },
+    select: { scorePercent: true, createdAt: true, callId: true, call: { select: { callStartedAt: true } } },
+  });
+
+  const buckets = new Map<string, { sum: number; count: number }>();
+  for (const a of audits) {
+    if (a.scorePercent == null) continue;
+    // Prefer the call's start date if present; fall back to audit createdAt.
+    const ref = a.call.callStartedAt ?? a.createdAt;
+    const y = ref.getFullYear().toString().padStart(4, "0");
+    const m = (ref.getMonth() + 1).toString().padStart(2, "0");
+    const d = ref.getDate().toString().padStart(2, "0");
+    const key = `${y}-${m}-${d}`;
+    const b = buckets.get(key) ?? { sum: 0, count: 0 };
+    b.sum += a.scorePercent;
+    b.count += 1;
+    buckets.set(key, b);
+  }
+
+  // Build a continuous list of the last `days` days ending today.
+  const out: DailyQualityPoint[] = [];
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  for (let i = days - 1; i >= 0; i -= 1) {
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
+    const y = d.getFullYear().toString().padStart(4, "0");
+    const m = (d.getMonth() + 1).toString().padStart(2, "0");
+    const dd = d.getDate().toString().padStart(2, "0");
+    const key = `${y}-${m}-${dd}`;
+    const b = buckets.get(key);
+    out.push({
+      date: key,
+      averagePercent: b && b.count > 0 ? b.sum / b.count : 0,
+      auditedCalls: b?.count ?? 0,
+    });
+  }
+  return out;
 }
 
 export async function getFilterOptions(clientId: string) {

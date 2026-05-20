@@ -1,21 +1,27 @@
-import { Sidebar } from "@/components/layout/sidebar";
-import { MobileNav } from "@/components/layout/mobile-nav";
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/features/dashboard/components/app-sidebar";
+import { SiteHeader } from "@/features/dashboard/components/site-header";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const session = await getSession();
   if (!session) redirect("/login");
 
   return (
-    <div className="min-h-screen bg-[#f5f6f8] text-[14px] text-slate-700">
-      <Sidebar />
-      <div className="min-h-screen transition-all duration-200 lg:ml-64">
-        <main className="min-w-0 bg-[#f5f6f8]">
-          {children}
-        </main>
-        <MobileNav />
-      </div>
-    </div>
+    <SidebarProvider
+      style={
+        {
+          "--sidebar-width": "calc(var(--spacing) * 48)",
+          "--header-height": "calc(var(--spacing) * 12)",
+        } as React.CSSProperties
+      }
+    >
+      <AppSidebar variant="inset" />
+      <SidebarInset className="">
+        <SiteHeader />
+        <main className="min-w-0">{children}</main>
+      </SidebarInset>
+    </SidebarProvider>
   );
 }

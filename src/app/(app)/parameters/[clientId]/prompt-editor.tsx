@@ -64,17 +64,11 @@ export function PromptEditor({ clientId, clientName, defaultPromptText, customPr
 
   return (
     <section className="html-card overflow-hidden">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#e6ebf2] bg-[#fcfdff] px-4 py-3.5">
+      <div className="html-section-header flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h3 className="inline-flex items-center gap-2 text-base font-bold text-[#1f2937]">
-            <FileText className="h-4 w-4" /> Generated Audit Prompt
+          <h3 className="inline-flex items-center gap-2 text-base font-semibold text-slate-900">
+            <FileText className="h-4 w-4" /> Audit Prompt
           </h3>
-          <p className="text-xs text-slate-500">
-            This is the base prompt used at audit time for {clientName}. The actual call transcript is
-            injected at <code className="font-mono">{"{{TRANSCRIPT_SEGMENTS}}"}</code>; call metadata
-            at <code className="font-mono">{"{{CALL_METADATA}}"}</code>. Binary scoring is enforced
-            server-side regardless of what you write here.
-          </p>
         </div>
         <div className="flex items-center gap-2">
           <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700">
@@ -158,7 +152,7 @@ export function PromptEditor({ clientId, clientName, defaultPromptText, customPr
             </div>
           </>
         ) : (
-          <pre className="max-h-[520px] overflow-y-auto whitespace-pre-wrap break-words rounded-lg border border-slate-200 bg-slate-50 p-3 text-[12px] leading-relaxed font-mono text-slate-700">
+          <pre className="max-h-[520px] overflow-y-auto whitespace-pre-wrap wrap-break-word rounded-lg border border-slate-200 bg-slate-50 p-3 text-[12px] leading-relaxed font-mono text-slate-700">
             {displayedText}
           </pre>
         )}
@@ -190,7 +184,7 @@ export function PromptEditor({ clientId, clientName, defaultPromptText, customPr
               type="button"
               onClick={save}
               disabled={pending}
-              className="inline-flex h-10 items-center gap-1 rounded-lg bg-[linear-gradient(180deg,#336eef_0%,#2d62df_100%)] px-4 text-sm font-semibold text-white shadow disabled:opacity-60"
+              className="inline-flex h-10 items-center gap-1 rounded-md bg-blue-600 px-4 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:opacity-60"
             >
               <Save className="h-3.5 w-3.5" /> {pending ? "Saving…" : "Save prompt"}
             </button>

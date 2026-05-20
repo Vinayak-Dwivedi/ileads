@@ -10,6 +10,8 @@ import { deleteParameter, toggleParameterActive, upsertParameter } from "./actio
 interface ParameterRow {
   id: string;
   parameterCategory: string;
+  standardParameterId?: string | null;
+  standardParameterName?: string | null;
   parameterName: string;
   parameterDescription: string;
   maxScore: number;
@@ -23,6 +25,7 @@ interface Props {
   clientId: string;
   clients: { id: string; name: string }[];
   categories: string[];
+  standardKpis: { id: string; name: string }[];
   parameters?: ParameterRow[];
   initialSearch?: string;
   initialCategory?: string;
@@ -33,6 +36,7 @@ export function ParameterEditor({
   clientId,
   clients,
   categories,
+  standardKpis,
   parameters = [],
   initialSearch = "",
   initialCategory = "",
@@ -153,7 +157,11 @@ export function ParameterEditor({
 
   return (
     <>
-      <section className="html-card mb-4 p-4">
+      {/* <section className="html-card mb-4 p-4">
+        <div className="mb-3">
+          <h3 className="text-sm font-semibold text-slate-900">Parameter Filters</h3>
+        
+        </div>
         <div className="grid grid-cols-1 items-end gap-3 md:grid-cols-4">
           <div>
             <label className="mb-1.5 ml-1 block text-[13px] text-[#5f6777]">Process</label>
@@ -205,7 +213,7 @@ export function ParameterEditor({
             </select>
           </div>
         </div>
-      </section>
+      </section> */}
 
       {banner ? (
         <div
@@ -230,10 +238,13 @@ export function ParameterEditor({
       ) : null}
 
       <section className="html-card overflow-hidden">
-        <div className="flex items-center justify-between border-b border-[#e6ebf2] bg-[#fcfdff] px-4 py-3.5">
-          <h3 className="text-base font-bold text-[#1f2937]">Parameters</h3>
+        <div className="html-section-header flex items-center justify-between">
+          <div>
+            <h3 className="text-base font-semibold text-slate-900">Parameters</h3>
+            <p className="text-xs text-slate-500">Grouped by the 10 standard QMS KPI categories.</p>
+          </div>
           <div className="flex items-center gap-3">
-            <div className="rounded-full border border-[#e1e7f0] bg-[#f3f6fb] px-3 py-1 text-[13px] font-semibold text-[#1f2937]">
+            <div className="rounded-full border border-slate-200 bg-white px-3 py-1 text-[13px] font-semibold text-slate-700">
               Total: {parameters.reduce((sum, p) => sum + (p.isActive ? p.maxScore : 0), 0)}
             </div>
             {trigger ? (
@@ -264,12 +275,12 @@ export function ParameterEditor({
                 <col style={{ width: "8%" }} />
                 <col style={{ width: "12%" }} />
               </colgroup>
-              <thead className="bg-[#fcfdff] text-sm text-[#263244]">
+              <thead>
                 <tr>
-                  <th className="border-b border-[#e6ebf2] px-3 py-2.5 text-center font-semibold">Parameters</th>
-                  <th className="border-b border-[#e6ebf2] px-3 py-2.5 text-center font-semibold">Sub Parameters</th>
-                  <th className="border-b border-[#e6ebf2] px-3 py-2.5 text-center font-semibold">Score</th>
-                  <th className="border-b border-[#e6ebf2] px-3 py-2.5 text-center font-semibold">Actions</th>
+                  <th className="html-table-head text-center">Standard KPI</th>
+                  <th className="html-table-head text-center">Sub Parameters</th>
+                  <th className="html-table-head text-center">Score</th>
+                  <th className="html-table-head text-center">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -296,6 +307,7 @@ export function ParameterEditor({
           clientId={clientId}
           clients={clients}
           categories={categories}
+          standardKpis={standardKpis}
           editing={editing}
           error={error}
           pending={pending}
@@ -330,26 +342,23 @@ function CategoryGroup({
         const hasHistory = p.scoreCount > 0;
         const isBusy = busyId === p.id;
         return (
-          <tr key={p.id} className="border-t border-[#edf1f6] hover:bg-[#fafcff]">
+          <tr key={p.id} className="hover:bg-slate-50">
             {idx === 0 ? (
-              <td rowSpan={rows.length} className="bg-[#f8fafc] px-3 py-2 text-center align-middle font-bold text-[#1f2937]">
+              <td rowSpan={rows.length} className="border-b border-slate-100 bg-slate-50 px-3 py-3 text-center align-middle font-semibold text-slate-900">
                 {category}
               </td>
             ) : null}
-            <td className="px-3 py-2">
+            <td className="html-table-cell whitespace-normal">
               <div className="font-medium text-slate-800">{p.parameterName}</div>
               <div className="text-xs text-slate-500 mt-1 max-w-2xl">{p.parameterDescription}</div>
-              {p.aiInstruction ? (
-                <div className="text-[11px] text-slate-400 mt-1">AI: {p.aiInstruction}</div>
-              ) : null}
               {hasHistory ? (
                 <div className="text-[11px] text-amber-700 mt-1">
                   Used in {p.scoreCount} audit{p.scoreCount === 1 ? "" : "s"} — deactivate instead of delete.
                 </div>
               ) : null}
             </td>
-            <td className="px-3 py-2 text-center font-mono text-slate-700">{p.maxScore}</td>
-            <td className="px-3 py-2 text-center">
+            <td className="html-table-cell text-center font-mono text-slate-700">{p.maxScore}</td>
+            <td className="html-table-cell text-center">
               <div className="flex items-center justify-center gap-2">
                 <button
                   onClick={() => onEdit(p)}
@@ -396,6 +405,7 @@ function ParameterFormModal({
   clientId,
   clients,
   categories,
+  standardKpis,
   editing,
   error,
   pending,
@@ -405,28 +415,38 @@ function ParameterFormModal({
   clientId: string;
   clients: { id: string; name: string }[];
   categories: string[];
+  standardKpis: { id: string; name: string }[];
   editing: ParameterRow | null;
   error: string | null;
   pending: boolean;
   onCancel: () => void;
   onSubmit: (fd: FormData) => void;
 }) {
+  const selectedStandardId =
+    editing?.standardParameterId ??
+    standardKpis.find((kpi) => kpi.name === editing?.standardParameterName)?.id ??
+    standardKpis.find((kpi) => kpi.name === editing?.parameterCategory)?.id ??
+    standardKpis[0]?.id ??
+    "";
+
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-10 backdrop-blur-sm sm:p-14"
       onClick={(e) => e.target === e.currentTarget && onCancel()}
     >
-      <div className="w-full max-w-2xl overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl">
-        <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
-          <h3 className="text-lg font-bold text-slate-800">
-            {editing ? "Edit Parameters" : "Add Parameters"}
+      <div className="max-h-[calc(100vh-7rem)] w-full max-w-xl overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl">
+        <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+          <h3 className="text-lg font-semibold text-slate-900">
+            {editing ? "Edit Parameter" : "Add Parameter"}
           </h3>
           <button onClick={onCancel} className="text-slate-400 hover:text-slate-700" aria-label="Close">
             ✕
           </button>
         </div>
-        <form action={onSubmit} className="space-y-3 p-5">
+        <form action={onSubmit} className="max-h-[calc(100vh-11rem)] space-y-2.5 overflow-y-auto p-4">
           <input type="hidden" name="id" value={editing?.id ?? ""} />
+          <input type="hidden" name="displayOrder" value={editing?.displayOrder ?? 0} />
+          <input type="hidden" name="aiInstruction" value={editing?.aiInstruction ?? ""} />
           <Row label="Client">
             <select
               name="clientId"
@@ -441,27 +461,33 @@ function ParameterFormModal({
               ))}
             </select>
           </Row>
-          <Row label="Parameter category">
-            <input
-              name="parameterCategory"
-              defaultValue={editing?.parameterCategory ?? ""}
+          <Row label="Standard KPI category">
+            <select
+              name="standardParameterId"
+              defaultValue={selectedStandardId}
               required
-              list="parameter-categories"
-              placeholder="e.g. Opening, Compliance, Closure"
-              className="h-10 w-full rounded-lg border border-[#d6dcea] px-3 text-sm"
-            />
-            <datalist id="parameter-categories">
-              {categories.map((c) => (
-                <option key={c} value={c} />
+              className="h-10 w-full rounded-lg border border-[#d6dcea] bg-white px-3 text-sm text-slate-700 shadow-sm outline-none transition-all hover:bg-slate-50 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            >
+              {standardKpis.length === 0 ? (
+                <option value="">No standard KPI categories found</option>
+              ) : null}
+              {standardKpis.map((kpi) => (
+                <option key={kpi.id} value={kpi.id}>
+                  {kpi.name}
+                </option>
               ))}
-            </datalist>
+            </select>
           </Row>
-          <Row label="Parameter name">
+          <p className="-mt-1 text-xs leading-5 text-slate-500">
+            Choose one of the 10 standard KPI buckets used by the audit scorecards.
+          </p>
+          <Row label="Sub Parameter (e.g. Greeting, Empathy)">
             <input
               name="parameterName"
               defaultValue={editing?.parameterName ?? ""}
               required
               className="h-10 w-full rounded-lg border border-[#d6dcea] px-3 text-sm"
+              placeholder="Write your sub parameter here"
             />
           </Row>
           <Row label="Description">
@@ -469,20 +495,11 @@ function ParameterFormModal({
               name="parameterDescription"
               defaultValue={editing?.parameterDescription ?? ""}
               required
-              rows={2}
-              className="w-full rounded-lg border border-[#d6dcea] p-2 text-sm"
+              rows={4}
+              className="min-h-28 w-full rounded-lg border border-[#d6dcea] p-2 text-sm"
             />
           </Row>
-          <Row label="AI instruction (optional)">
-            <textarea
-              name="aiInstruction"
-              defaultValue={editing?.aiInstruction ?? ""}
-              rows={2}
-              placeholder="Tell the AI exactly when to mark this as fulfilled."
-              className="w-full rounded-lg border border-[#d6dcea] p-2 text-sm"
-            />
-          </Row>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="max-w-[13rem]">
             <Row label="Max score">
               <input
                 name="maxScore"
@@ -490,16 +507,6 @@ function ParameterFormModal({
                 min={1}
                 step={1}
                 defaultValue={editing?.maxScore ?? 10}
-                required
-                className="h-10 w-full rounded-lg border border-[#d6dcea] px-3 text-sm"
-              />
-            </Row>
-            <Row label="Display order">
-              <input
-                name="displayOrder"
-                type="number"
-                step={1}
-                defaultValue={editing?.displayOrder ?? 0}
                 required
                 className="h-10 w-full rounded-lg border border-[#d6dcea] px-3 text-sm"
               />
@@ -530,7 +537,7 @@ function ParameterFormModal({
             <button
               type="submit"
               disabled={pending}
-              className="h-10 rounded-lg bg-[linear-gradient(180deg,#336eef_0%,#2d62df_100%)] px-4 text-sm font-medium text-white shadow-[0_10px_20px_rgba(45,98,223,0.22)] hover:brightness-95 disabled:opacity-60"
+              className="h-10 rounded-md bg-blue-600 px-4 text-sm font-medium text-white shadow-sm hover:bg-blue-700 disabled:opacity-60"
             >
               {pending ? "Saving…" : editing ? "Save changes" : "Add parameter"}
             </button>
