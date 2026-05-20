@@ -45,15 +45,17 @@ export function AgentsFilterBar({
           </SelectContent>
         </Select>
 
-        <Button
-          type="button"
-          variant="outline"
-          className="w-full"
-          onClick={onAddAgent}
-        >
-          <UserPlusIcon data-icon="inline-start" />
-          Add Agent
-        </Button>
+        <div className="w-full sm:col-start-2 lg:col-start-5">
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full"
+            onClick={onAddAgent}
+          >
+            <UserPlusIcon data-icon="inline-start" />
+            Add Agent
+          </Button>
+        </div>
       </div>
     </section>
   );
