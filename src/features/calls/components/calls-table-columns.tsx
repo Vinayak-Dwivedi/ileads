@@ -24,10 +24,10 @@ export interface CallsTableRow {
   startedAtTime: string;
   startedAtTimestamp: number;
   campaignName: string | null;
-  teamName: string | null;
+  // teamName: string | null;
   agentName: string | null;
-  customerName: string | null;
-  customerNumber: string | null;
+  // customerName: string | null;
+  // customerNumber: string | null;
   durationSeconds: number | null;
   aiScore: number | null;
   manualScore: number | null;
@@ -42,9 +42,9 @@ export const callsColumnLabels: Record<string, string> = {
   callId: "Call ID",
   startedAtTimestamp: "Date & Time",
   campaignName: "Campaign",
-  teamName: "Team",
+  // teamName: "Team",
   agentName: "Agent",
-  customerName: "Customer",
+  // customerName: "Customer",
   durationSeconds: "Duration",
   aiScore: "AI Score",
   manualScore: "Manual",
@@ -90,11 +90,11 @@ export const callsTableColumns: ColumnDef<CallsTableRow>[] = [
     ),
     cell: ({ row }) => <MutedText value={row.original.campaignName} />,
   },
-  {
-    accessorKey: "teamName",
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Team" />,
-    cell: ({ row }) => <MutedText value={row.original.teamName} />,
-  },
+  // {
+  //   accessorKey: "teamName",
+  //   header: ({ column }) => <DataTableColumnHeader column={column} title="Team" />,
+  //   cell: ({ row }) => <MutedText value={row.original.teamName} />,
+  // },
   {
     accessorKey: "agentName",
     header: ({ column }) => (
@@ -106,24 +106,24 @@ export const callsTableColumns: ColumnDef<CallsTableRow>[] = [
       </span>
     ),
   },
-  {
-    accessorKey: "customerName",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Customer" />
-    ),
-    cell: ({ row }) => (
-      <div className="leading-tight text-slate-600">
-        <div className="max-w-44 truncate">
-          {row.original.customerName ?? row.original.customerNumber ?? "-"}
-        </div>
-        {row.original.customerName && row.original.customerNumber ? (
-          <div className="max-w-44 truncate text-xs text-muted-foreground">
-            {row.original.customerNumber}
-          </div>
-        ) : null}
-      </div>
-    ),
-  },
+  // {
+  //   accessorKey: "customerName",
+  //   header: ({ column }) => (
+  //     <DataTableColumnHeader column={column} title="Customer" />
+  //   ),
+  //   cell: ({ row }) => (
+  //     <div className="leading-tight text-slate-600">
+  //       <div className="max-w-44 truncate">
+  //         {row.original.customerName ?? row.original.customerNumber ?? "-"}
+  //       </div>
+  //       {row.original.customerName && row.original.customerNumber ? (
+  //         <div className="max-w-44 truncate text-xs text-muted-foreground">
+  //           {row.original.customerNumber}
+  //         </div>
+  //       ) : null}
+  //     </div>
+  //   ),
+  // },
   {
     accessorKey: "durationSeconds",
     header: ({ column }) => (
@@ -226,7 +226,7 @@ function CallActions({ call }: { call: CallsTableRow }) {
           </TooltipContent>
         </Tooltip>
 
-        {call.audioHref ? (
+        {/* {call.audioHref ? (
           <Tooltip>
             <TooltipTrigger asChild>
               <Button asChild type="button" variant="outline" size="icon-sm">
@@ -267,7 +267,7 @@ function CallActions({ call }: { call: CallsTableRow }) {
               No audio available
             </TooltipContent>
           </Tooltip>
-        )}
+        )} */}
       </ButtonGroup>
     </div>
   );

@@ -32,7 +32,7 @@ interface Initial {
   agentId?: string;
   sentiment?: string;
   auditStatus?: string;
-  manualDisposition?: string;
+  // manualDisposition?: string;
   from?: Date;
   to?: Date;
 }
@@ -75,7 +75,7 @@ export function CallsFilterBar({
   const agentId = sp.get("agentId") ?? initial.agentId ?? "";
   const sentiment = sp.get("sentiment") ?? initial.sentiment ?? "";
   const auditStatus = sp.get("auditStatus") ?? initial.auditStatus ?? "";
-  const disposition = sp.get("disposition") ?? initial.manualDisposition ?? "";
+  //const disposition = sp.get("disposition") ?? initial.manualDisposition ?? "";
   const fromDate = parseDateParam(sp.get("from")) ?? initial.from;
   const toDate = parseDateParam(sp.get("to")) ?? initial.to;
   const visibleAgents = teamId
@@ -275,7 +275,7 @@ export function CallsFilterBar({
           </Select>
         </Field>
 
-        <Field>
+        {/* <Field>
           <Select
             value={disposition}
             onValueChange={(value) => update({ disposition: value })}
@@ -291,7 +291,7 @@ export function CallsFilterBar({
               </SelectGroup>
             </SelectContent>
           </Select>
-        </Field>
+        </Field> */}
 
         <Button
           type="button"
@@ -303,7 +303,9 @@ export function CallsFilterBar({
           Clear
         </Button>
 
-        <UploadCallsDialog options={uploadOptions} maxFileMb={maxFileMb} />
+        <div className="w-full lg:col-start-5 [&>button]:w-full">
+          <UploadCallsDialog options={uploadOptions} maxFileMb={maxFileMb} />
+        </div>
       </div>
     </section>
   );

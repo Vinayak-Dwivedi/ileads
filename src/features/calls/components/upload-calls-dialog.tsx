@@ -13,7 +13,7 @@ import {
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
+  // DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -261,11 +261,11 @@ export function UploadCallsDialog({
       <DialogContent className="max-w-3xl gap-0 overflow-hidden border-slate-200 bg-white p-0 shadow-[0_24px_70px_rgba(15,23,42,0.22)]">
         <DialogHeader className="border-b border-slate-100 px-6 py-5">
           <DialogTitle className="text-xl text-slate-900">Upload Calls</DialogTitle>
-          <DialogDescription>
+          {/* <DialogDescription>
             Add one or more audio recordings, or upload an Excel sheet of audio URLs.
             After upload, open a call to run transcription and the AI audit. Longer calls
             may take several minutes to process.
-          </DialogDescription>
+          </DialogDescription> */}
         </DialogHeader>
 
         <Tabs value={mode} onValueChange={(v) => setMode(v as "audio" | "excel")} className="w-full">
