@@ -1,8 +1,8 @@
 "use client";
 
 import * as React from "react"
-import { NavMain } from "@/features/dashboard-01/components/nav-main"
-import { NavSecondary } from "@/features/dashboard-01/components/nav-secondary"
+import { NavMain } from "@/features/dashboard/components/nav-main"
+import { NavSecondary } from "@/features/dashboard/components/nav-secondary"
 import { NavUser } from "@/features/dashboard/components/nav-user"
 import {
   Sidebar,

@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+
 import { requireSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 
@@ -26,6 +27,49 @@ async function getSessionAgent(agentId: string) {
   return { session, agent };
 }
 
+export async function addAgent(formData: FormData): Promise<AgentActionResult> {
+  try {
+    const session = await requireSession();
+    const clientId = session.clientId;
+
+    const name = String(formData.get("name") ?? "").trim();
+    const employeeCode = String(formData.get("employeeCode") ?? "").trim();
+    const email = String(formData.get("email") ?? "").trim() || null;
+    const campaignId = String(formData.get("campaignId") ?? "").trim() || null;
+
+    if (!name) return { ok: false, error: "Agent name is required." };
+    if (!employeeCode) return { ok: false, error: "Agent ID is required." };
+
+    // TODO: remove this duplicate creation logic after parameter/agent actions
+    // are fully split into feature-owned modules.
+    const existing = await prisma.agent.findFirst({
+      where: { clientId, employeeCode },
+    });
+    if (existing) {
+      return { ok: false, error: `Agent ID "${employeeCode}" already exists.` };
+    }
+
+    await prisma.agent.create({
+      data: {
+        clientId,
+        name,
+        employeeCode,
+        email,
+        campaignId,
+        isActive: true,
+      },
+    });
+
+    revalidateAgentRoutes();
+    return { ok: true, message: "Agent added successfully." };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "Failed to add agent.",
+    };
+  }
+}
+
 export async function deleteAgent(agentId: string): Promise<AgentActionResult> {
   try {
     if (!agentId) return { ok: false, error: "Missing agent id." };
@@ -48,10 +92,10 @@ export async function deleteAgent(agentId: string): Promise<AgentActionResult> {
     await prisma.agent.delete({ where: { id: agent.id } });
     revalidateAgentRoutes();
     return { ok: true, message: "Agent deleted successfully." };
-  } catch (e) {
+  } catch (error) {
     return {
       ok: false,
-      error: e instanceof Error ? e.message : "Failed to delete agent.",
+      error: error instanceof Error ? error.message : "Failed to delete agent.",
     };
   }
 }
@@ -74,12 +118,14 @@ export async function toggleAgentActive(
     revalidateAgentRoutes();
     return {
       ok: true,
-      message: isActive ? "Agent activated successfully." : "Agent deactivated successfully.",
+      message: isActive
+        ? "Agent activated successfully."
+        : "Agent deactivated successfully.",
     };
-  } catch (e) {
+  } catch (error) {
     return {
       ok: false,
-      error: e instanceof Error ? e.message : "Failed to update agent.",
+      error: error instanceof Error ? error.message : "Failed to update agent.",
     };
   }
 }

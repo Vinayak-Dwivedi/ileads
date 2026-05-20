@@ -1,42 +1,20 @@
 import { requireSession } from "@/lib/auth";
-import { prisma } from "@/lib/db";
-import { formatShortDate } from "@/lib/utils";
-import { AgentsClient } from "./agents-client";
+import { getAgentsPageData } from "@/features/agents/api/agents";
+import { AgentsTable } from "@/features/agents/components/agents-table";
 
 export const dynamic = "force-dynamic";
 
 export default async function AgentsPage() {
   const session = await requireSession();
-  const clientId = session.clientId;
+  const { agents, campaigns } = await getAgentsPageData(session.clientId);
 
-  const [agents, campaigns] = await Promise.all([
-    prisma.agent.findMany({
-      where: { clientId },
-      include: {
-        campaign: {
-          select: { name: true },
-        },
-        team: {
-          select: { name: true },
-        },
-        _count: {
-          select: { calls: true },
-        },
-      },
-      orderBy: { name: "asc" },
-    }),
-    prisma.campaign.findMany({
-      where: { clientId, isActive: true },
-      select: { id: true, name: true },
-      orderBy: { name: "asc" },
-    }),
-  ]);
-
-  const serializedAgents = agents.map((agent) => ({
-    ...agent,
-    createdAt: formatShortDate(agent.createdAt),
-    updatedAt: formatShortDate(agent.updatedAt),
-  }));
-
-  return <AgentsClient agents={serializedAgents} campaigns={campaigns} />;
+  return (
+    <div className="flex flex-1 flex-col">
+      <div className="@container/main flex flex-1 flex-col gap-2">
+        <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-4 p-4 md:gap-5 md:p-6">
+          <AgentsTable agents={agents} campaigns={campaigns} />
+        </div>
+      </div>
+    </div>
+  );
 }

@@ -32,6 +32,24 @@ function buildCallWhere(clientId: string, f: DashboardFilters): Prisma.CallWhere
   return where;
 }
 
+function buildComplianceWhere(clientId: string, f: DashboardFilters): Prisma.Sql {
+  const conditions: Prisma.Sql[] = [
+    Prisma.sql`c."client_id" = ${clientId}`,
+    Prisma.sql`c."agent_id" IS NOT NULL`,
+    Prisma.sql`aa."is_latest" = true`,
+    Prisma.sql`aa."status" = 'COMPLETED'`,
+    Prisma.sql`cp."parameter_category" ILIKE 'Compliance%'`,
+  ];
+
+  if (f.campaignId) conditions.push(Prisma.sql`c."campaign_id" = ${f.campaignId}`);
+  if (f.teamId) conditions.push(Prisma.sql`c."team_id" = ${f.teamId}`);
+  if (f.agentId) conditions.push(Prisma.sql`c."agent_id" = ${f.agentId}`);
+  if (f.from) conditions.push(Prisma.sql`c."call_started_at" >= ${f.from}`);
+  if (f.to) conditions.push(Prisma.sql`c."call_started_at" <= ${f.to}`);
+
+  return Prisma.join(conditions, " AND ");
+}
+
 export async function getDashboardKpis(
   clientId: string,
   filters: DashboardFilters,
@@ -158,9 +176,7 @@ export async function getAgentScoreboard(
     JOIN "ai_audits" aa ON aa."call_id" = c."id"
     JOIN "ai_parameter_scores" aps ON aps."ai_audit_id" = aa."id"
     JOIN "client_parameters" cp ON cp."id" = aps."parameter_id"
-    WHERE c."client_id" = ${clientId}
-      AND c."agent_id" IS NOT NULL
-      AND cp."parameter_category" ILIKE 'Compliance%'
+    WHERE ${buildComplianceWhere(clientId, filters)}
     GROUP BY c."agent_id"
   `);
   const complianceByAgent = new Map(compliance.map((c) => [c.agentId, c.pass_rate]));
