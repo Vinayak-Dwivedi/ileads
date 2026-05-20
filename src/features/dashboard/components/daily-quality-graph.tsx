@@ -49,7 +49,7 @@ export function DailyQualityGraph({ data, className }: DailyQualityGraphProps) {
         <CardTitle className="text-base">Daily Quality Score</CardTitle>
         <CardDescription>
           {hasData
-            ? `Average AI audit score over the last ${data.length} days`
+            ? `Last ${data.length} days`
             : "Daily quality score will appear after audits are completed."}
         </CardDescription>
       </CardHeader>
