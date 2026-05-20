@@ -154,7 +154,7 @@ export function ParameterEditor({
 
   return (
     <>
-      <section className="html-card mb-4 p-4">
+      {/* <section className="html-card mb-4 p-4">
         <div className="mb-3">
           <h3 className="text-sm font-semibold text-slate-900">Parameter Filters</h3>
         
@@ -210,7 +210,7 @@ export function ParameterEditor({
             </select>
           </div>
         </div>
-      </section>
+      </section> */}
 
       {banner ? (
         <div

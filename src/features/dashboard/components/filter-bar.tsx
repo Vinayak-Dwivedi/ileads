@@ -66,7 +66,7 @@ export function DashboardFilterBar({
     <section className={cn("rounded-xl border border-slate-200 bg-white p-4", className)}>
       <div className="grid grid-cols-1 gap-3 md:grid-cols-3 xl:grid-cols-6">
         <Field>
-          <FieldLabel htmlFor="from-date">From</FieldLabel>
+          {/* <FieldLabel htmlFor="from-date">From</FieldLabel> */}
           <Popover open={fromOpen} onOpenChange={setFromOpen}>
             <PopoverTrigger asChild>
               <Button
@@ -111,7 +111,7 @@ export function DashboardFilterBar({
             className="h-9 w-full rounded-lg border border-slate-200 px-2 text-sm"
           /> */}
         <Field>
-          <FieldLabel htmlFor="to-date">To</FieldLabel>
+          {/* <FieldLabel htmlFor="to-date">To</FieldLabel> */}
 
           <Popover open={toOpen} onOpenChange={setToOpen}>
             <PopoverTrigger asChild>
@@ -142,7 +142,7 @@ export function DashboardFilterBar({
           </Popover>
         </Field>
         <Field>
-          <FieldLabel htmlFor="campaign">Campaign</FieldLabel>
+          {/* <FieldLabel htmlFor="campaign">Campaign</FieldLabel> */}
           <Select
             defaultValue={initial.campaignId ?? ""}
             onValueChange={(value) => update("campaignId", value)}>
@@ -173,8 +173,7 @@ export function DashboardFilterBar({
           </select> */}
         </Field>
         <Field>
-
-          <FieldLabel htmlFor="select-team">Team</FieldLabel>
+          {/* <FieldLabel htmlFor="select-team">Team</FieldLabel> */}
           <Select
             defaultValue={initial.teamId ?? ""}
             onValueChange={(value) => update("teamId", value)}
@@ -206,7 +205,7 @@ export function DashboardFilterBar({
           </select> */}
         </Field>
         <Field>
-          <FieldLabel htmlFor="select-agent">Agents</FieldLabel>
+          {/* <FieldLabel htmlFor="select-agent">Agents</FieldLabel> */}
           <Select
             defaultValue={initial.agentId ?? ""}
             onValueChange={(value) => update("agentId", value)}

@@ -102,7 +102,7 @@ export default async function CallsPage({
                     <tr>
                       <Th>Call ID</Th>
                       <Th>Date &amp; Time</Th>
-                      <Th>Client</Th>
+                      {/* <Th>Client</Th> */}
                       <Th>Campaign</Th>
                       <Th>Team</Th>
                       <Th>Agent</Th>
@@ -112,9 +112,9 @@ export default async function CallsPage({
                       <Th>Manual</Th>
                       <Th>Final</Th>
                       <Th>Sentiment</Th>
-                      <Th>Pipeline</Th>
+                      {/* <Th>Pipeline</Th> */}
                       <Th>Audit</Th>
-                      <Th>Disposition</Th>
+                      {/* <Th>Disposition</Th> */}
                       <Th>Actions</Th>
                     </tr>
                   </thead>
@@ -140,7 +140,7 @@ export default async function CallsPage({
                               <div className="text-xs text-slate-500">{formatTime(c.callStartedAt)}</div>
                             </div>
                           </Td>
-                          <Td>{c.client.name}</Td>
+                          {/* <Td>{c.client.name}</Td> */}
                           <Td>{c.campaign?.name ?? "—"}</Td>
                           <Td>{c.team?.name ?? "—"}</Td>
                           <Td>{c.agent?.name ?? "—"}</Td>
@@ -167,13 +167,13 @@ export default async function CallsPage({
                           <Td>
                             <SentimentBadge value={c.sentiment} />
                           </Td>
-                          <Td>
+                          {/* <Td>
                             <Pill tone={flow.tone}>{flow.label}</Pill>
-                          </Td>
+                          </Td> */}
                           <Td>
                             <AuditStatusPill status={auditStatus} />
                           </Td>
-                          <Td>
+                          {/* <Td>
                             {c.manualDisposition ? (
                               <Pill tone={manualDispositionTone(c.manualDisposition)}>
                                 {c.manualDisposition}
@@ -181,10 +181,10 @@ export default async function CallsPage({
                             ) : (
                               <span className="text-xs text-slate-400">—</span>
                             )}
-                          </Td>
+                          </Td> */}
                           <Td>
                             <div className="flex items-center gap-2">
-                              <span
+                              {/* <span
                                 className={`inline-grid h-7 w-7 place-items-center rounded-full border ${c.audioPath || c.recordingUrl
                                   ? "border-blue-100 bg-blue-50 text-blue-600"
                                   : "border-slate-200 bg-slate-50 text-slate-300"
@@ -192,7 +192,7 @@ export default async function CallsPage({
                                 title={c.audioPath || c.recordingUrl ? "Audio available" : "No audio"}
                               >
                                 <Play className="h-3.5 w-3.5 fill-current" />
-                              </span>
+                              </span> */}
                               <Link
                                 href={`/calls/${c.id}`}
                                 className="inline-grid h-7 w-7 place-items-center rounded-full border border-[#cfd7e5] bg-white text-slate-700 shadow-[0_1px_2px_rgba(16,24,40,0.04)] hover:bg-slate-50"

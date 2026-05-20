@@ -83,8 +83,8 @@ export default async function ParametersClientsPage() {
                 <thead>
                   <tr>
                     <th className="html-table-head">Client</th>
-                    <th className="html-table-head">Code</th>
-                    <th className="html-table-head text-center">Active</th>
+                    {/* <th className="html-table-head">Code</th>
+                    <th className="html-table-head text-center">Active</th> */}
                     <th className="html-table-head text-center">Active parameters</th>
                     <th className="html-table-head text-center">Total score</th>
                     <th className="html-table-head text-center">Audit prompt</th>
@@ -103,12 +103,12 @@ export default async function ParametersClientsPage() {
                           {r.name}
                         </Link>
                       </td>
-                      <td className="html-table-cell font-mono text-xs text-slate-600">{r.slug}</td>
+                      {/* <td className="html-table-cell font-mono text-xs text-slate-600">{r.slug}</td>
                       <td className="html-table-cell text-center">
                         <Pill tone={r.isActive ? "green" : "slate"}>
                           {r.isActive ? "Active" : "Inactive"}
                         </Pill>
-                      </td>
+                      </td> */}
                       <td className="html-table-cell text-center">
                         <span className="font-semibold text-slate-800">{r.activeCount}</span>
                         {r.inactiveCount > 0 ? (

@@ -59,27 +59,20 @@ export default async function ClientParametersPage({ params, searchParams }: Pag
     <>
       <PageShell className="html-page-bg mx-auto w-full max-w-[1440px] px-4 py-4 md:px-6 md:py-6">
         <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <Link href="/parameters" className="mb-2 inline-flex items-center gap-1 text-sm font-medium text-slate-500 hover:text-slate-900">
-              <ArrowLeft className="h-4 w-4" /> Clients
-            </Link>
-            <h2 className="text-xl font-semibold tracking-tight text-slate-900">{client.name}</h2>
-            <p className="text-sm text-slate-500">Audit parameter setup and prompt configuration.</p>
-          </div>
+         
            </div>
         <section className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-3">
           <div className="html-card p-4">
             <div className="text-xs font-semibold text-slate-500">Client</div>
             <div className="mt-1 text-lg font-semibold text-slate-900">{client.name}</div>
-            <div className="text-xs text-slate-500">Code: <code className="font-mono">{client.slug}</code></div>
-          </div>
+             </div>
           <div className="html-card p-4">
             <div className="text-xs font-semibold text-slate-500">Active parameters</div>
             <div className="mt-1 text-2xl font-semibold text-slate-900">{activeParams.length}</div>
         
           </div>
           <div className="html-card p-4">
-            <div className="text-xs font-semibold text-slate-500">Total score (active)</div>
+            <div className="text-xs font-semibold text-slate-500">Total score</div>
             <div className="mt-1 text-2xl font-semibold text-slate-900">{totalScore}</div>
            
           </div>

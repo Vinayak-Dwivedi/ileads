@@ -89,7 +89,7 @@ export function CallsFilterBar({
       </div> */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <Field>
-          <FieldLabel htmlFor="from-date">From</FieldLabel>
+          {/* <FieldLabel htmlFor="from-date">From</FieldLabel> */}
           <Popover open={fromOpen} onOpenChange={setFromOpen}>
             <PopoverTrigger asChild>
               <Button
@@ -122,7 +122,7 @@ export function CallsFilterBar({
           </Popover>
         </Field>
         <Field>
-          <FieldLabel htmlFor="to-date">To</FieldLabel>
+          {/* <FieldLabel htmlFor="to-date">To</FieldLabel> */}
 
           <Popover open={toOpen} onOpenChange={setToOpen}>
             <PopoverTrigger asChild>
@@ -153,7 +153,7 @@ export function CallsFilterBar({
           </Popover>
         </Field>
         <Field>
-          <FieldLabel htmlFor="campaign">Campaign</FieldLabel>
+          {/* <FieldLabel htmlFor="campaign">Campaign</FieldLabel> */}
           <Select
             defaultValue={initial.campaignId ?? ""}
             onValueChange={(value) => applyParam("campaignId", value)}>
@@ -173,7 +173,7 @@ export function CallsFilterBar({
         </Field>
 
         <Field>
-          <FieldLabel htmlFor="select-team">Team</FieldLabel>
+          {/* <FieldLabel htmlFor="select-team">Team</FieldLabel> */}
           <Select
             defaultValue={initial.teamId ?? ""}
             onValueChange={(value) => applyParam("teamId", value)}
@@ -193,7 +193,7 @@ export function CallsFilterBar({
           </Select>
         </Field>
         <Field>
-          <FieldLabel htmlFor="select-agent">Agents</FieldLabel>
+          {/* <FieldLabel htmlFor="select-agent">Agents</FieldLabel> */}
           <Select
             defaultValue={initial.agentId ?? ""}
             onValueChange={(value) => applyParam("agentId", value)}
