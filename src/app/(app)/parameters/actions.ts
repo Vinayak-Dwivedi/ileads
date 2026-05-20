@@ -12,6 +12,7 @@ export interface ParameterActionResult {
 interface ParameterInput {
   id?: string;
   clientId: string;
+  standardParameterId?: string;
   parameterCategory: string;
   parameterName: string;
   parameterDescription: string;
@@ -25,6 +26,7 @@ function parseInput(formData: FormData): ParameterInput {
   const get = (k: string) => String(formData.get(k) ?? "").trim();
   const id = get("id") || undefined;
   const clientId = get("clientId");
+  const standardParameterId = get("standardParameterId") || undefined;
   const parameterCategory = get("parameterCategory");
   const parameterName = get("parameterName");
   const parameterDescription = get("parameterDescription");
@@ -43,6 +45,7 @@ function parseInput(formData: FormData): ParameterInput {
   return {
     id,
     clientId,
+    standardParameterId,
     parameterCategory: parameterCategory || "General",
     parameterName,
     parameterDescription,
@@ -78,11 +81,20 @@ export async function upsertParameter(
     const input = parseInput(formData);
     await assertClientAccess(input.clientId);
 
-    const standardParam = await prisma.standardAuditParameter.findUnique({
-      where: { name: input.parameterCategory },
-      select: { id: true },
-    });
-    const standardParameterId = standardParam?.id ?? null;
+    const standardParam = input.standardParameterId
+      ? await prisma.standardAuditParameter.findUnique({
+          where: { id: input.standardParameterId },
+          select: { id: true, name: true },
+        })
+      : await prisma.standardAuditParameter.findUnique({
+          where: { name: input.parameterCategory },
+          select: { id: true, name: true },
+        });
+    if (!standardParam) {
+      return { ok: false, error: "Standard KPI category is required." };
+    }
+    const parameterCategory = standardParam.name;
+    const standardParameterId = standardParam.id;
 
     if (input.id) {
       const existing = await prisma.clientParameter.findFirst({
@@ -93,7 +105,7 @@ export async function upsertParameter(
       await prisma.clientParameter.update({
         where: { id: existing.id },
         data: {
-          parameterCategory: input.parameterCategory,
+          parameterCategory,
           parameterName: input.parameterName,
           parameterDescription: input.parameterDescription,
           maxScore: input.maxScore,
@@ -107,7 +119,7 @@ export async function upsertParameter(
       await prisma.clientParameter.create({
         data: {
           clientId: input.clientId,
-          parameterCategory: input.parameterCategory,
+          parameterCategory,
           parameterName: input.parameterName,
           parameterDescription: input.parameterDescription,
           maxScore: input.maxScore,

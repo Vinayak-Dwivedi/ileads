@@ -5,7 +5,7 @@ import { PageShell } from "@/components/ui/page-shell";
 import { Pill } from "@/components/ui/pill";
 import { requireSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { listParameters, listParameterCategories } from "@/lib/data/parameters";
+import { listParameters, listParameterCategories, listStandardParameterOptions } from "@/lib/data/parameters";
 import { generateDefaultPromptForClient } from "@/services/audit/buildLiveAuditPrompt";
 import { ParameterEditor } from "../editor";
 import { PromptEditor } from "./prompt-editor";
@@ -31,9 +31,10 @@ export default async function ClientParametersPage({ params, searchParams }: Pag
   });
   if (!client) notFound();
 
-  const [parameters, categories, activePrompt] = await Promise.all([
+  const [parameters, categories, standardKpis, activePrompt] = await Promise.all([
     listParameters(clientId, { search, category }),
     listParameterCategories(clientId),
+    listStandardParameterOptions(),
     prisma.clientAuditPrompt.findFirst({
       where: { clientId, isActive: true },
       orderBy: { versionNo: "desc" },
@@ -47,7 +48,7 @@ export default async function ClientParametersPage({ params, searchParams }: Pag
     clientName: client.name,
     parameters: activeParams.map((p) => ({
       id: p.id,
-      parameterCategory: p.parameterCategory,
+      parameterCategory: p.standardParameter?.name ?? p.parameterCategory,
       parameterName: p.parameterName,
       parameterDescription: p.parameterDescription,
       maxScore: p.maxScore,
@@ -82,9 +83,12 @@ export default async function ClientParametersPage({ params, searchParams }: Pag
           clientId={client.id}
           clients={[{ id: client.id, name: client.name }]}
           categories={categories}
+          standardKpis={standardKpis}
           parameters={parameters.map((p) => ({
             id: p.id,
-            parameterCategory: p.parameterCategory,
+            parameterCategory: p.standardParameter?.name ?? p.parameterCategory,
+            standardParameterId: p.standardParameter?.id ?? null,
+            standardParameterName: p.standardParameter?.name ?? null,
             parameterName: p.parameterName,
             parameterDescription: p.parameterDescription,
             maxScore: p.maxScore,

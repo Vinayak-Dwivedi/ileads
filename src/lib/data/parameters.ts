@@ -25,6 +25,7 @@ export async function listParameters(clientId: string, filters: ParameterFilters
       { parameterName: "asc" },
     ],
     include: {
+      standardParameter: { select: { id: true, name: true } },
       _count: { select: { aiParameterScores: true } },
     },
   });
@@ -42,4 +43,11 @@ export async function listParameterCategories(clientId: string) {
 
 export async function getParameter(clientId: string, id: string) {
   return prisma.clientParameter.findFirst({ where: { id, clientId } });
+}
+
+export async function listStandardParameterOptions() {
+  return prisma.standardAuditParameter.findMany({
+    orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+    select: { id: true, name: true },
+  });
 }

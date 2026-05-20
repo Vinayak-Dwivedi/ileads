@@ -5,12 +5,13 @@ import { useEffect, useMemo, useState, useTransition } from "react";
 import { Pencil, Trash2, Plus, Search, Power } from "lucide-react";
 import { Pill } from "@/components/ui/pill";
 import { EmptyState } from "@/components/ui/page-shell";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { deleteParameter, toggleParameterActive, upsertParameter } from "./actions";
 
 interface ParameterRow {
   id: string;
   parameterCategory: string;
+  standardParameterId?: string | null;
+  standardParameterName?: string | null;
   parameterName: string;
   parameterDescription: string;
   maxScore: number;
@@ -24,6 +25,7 @@ interface Props {
   clientId: string;
   clients: { id: string; name: string }[];
   categories: string[];
+  standardKpis: { id: string; name: string }[];
   parameters?: ParameterRow[];
   initialSearch?: string;
   initialCategory?: string;
@@ -34,6 +36,7 @@ export function ParameterEditor({
   clientId,
   clients,
   categories,
+  standardKpis,
   parameters = [],
   initialSearch = "",
   initialCategory = "",
@@ -304,6 +307,7 @@ export function ParameterEditor({
           clientId={clientId}
           clients={clients}
           categories={categories}
+          standardKpis={standardKpis}
           editing={editing}
           error={error}
           pending={pending}
@@ -347,9 +351,6 @@ function CategoryGroup({
             <td className="html-table-cell whitespace-normal">
               <div className="font-medium text-slate-800">{p.parameterName}</div>
               <div className="text-xs text-slate-500 mt-1 max-w-2xl">{p.parameterDescription}</div>
-              {p.aiInstruction ? (
-                <div className="text-[11px] text-slate-400 mt-1">AI: {p.aiInstruction}</div>
-              ) : null}
               {hasHistory ? (
                 <div className="text-[11px] text-amber-700 mt-1">
                   Used in {p.scoreCount} audit{p.scoreCount === 1 ? "" : "s"} — deactivate instead of delete.
@@ -404,6 +405,7 @@ function ParameterFormModal({
   clientId,
   clients,
   categories,
+  standardKpis,
   editing,
   error,
   pending,
@@ -413,19 +415,27 @@ function ParameterFormModal({
   clientId: string;
   clients: { id: string; name: string }[];
   categories: string[];
+  standardKpis: { id: string; name: string }[];
   editing: ParameterRow | null;
   error: string | null;
   pending: boolean;
   onCancel: () => void;
   onSubmit: (fd: FormData) => void;
 }) {
+  const selectedStandardId =
+    editing?.standardParameterId ??
+    standardKpis.find((kpi) => kpi.name === editing?.standardParameterName)?.id ??
+    standardKpis.find((kpi) => kpi.name === editing?.parameterCategory)?.id ??
+    standardKpis[0]?.id ??
+    "";
+
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-10 backdrop-blur-sm sm:p-14"
       onClick={(e) => e.target === e.currentTarget && onCancel()}
     >
-      <div className="w-full max-w-2xl overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl">
-        <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+      <div className="max-h-[calc(100vh-7rem)] w-full max-w-xl overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl">
+        <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
           <h3 className="text-lg font-semibold text-slate-900">
             {editing ? "Edit Parameter" : "Add Parameter"}
           </h3>
@@ -433,8 +443,10 @@ function ParameterFormModal({
             ✕
           </button>
         </div>
-        <form action={onSubmit} className="space-y-3 p-5">
+        <form action={onSubmit} className="max-h-[calc(100vh-11rem)] space-y-2.5 overflow-y-auto p-4">
           <input type="hidden" name="id" value={editing?.id ?? ""} />
+          <input type="hidden" name="displayOrder" value={editing?.displayOrder ?? 0} />
+          <input type="hidden" name="aiInstruction" value={editing?.aiInstruction ?? ""} />
           <Row label="Client">
             <select
               name="clientId"
@@ -450,25 +462,23 @@ function ParameterFormModal({
             </select>
           </Row>
           <Row label="Standard KPI category">
-            <Select name="parameterCategory" defaultValue={editing?.parameterCategory ?? "Opening / Greeting"} required>
-              <SelectTrigger className="h-10 w-full rounded-lg border border-[#d6dcea] px-3 text-sm bg-white hover:bg-slate-50 focus:ring-1 focus:ring-blue-500 shadow-sm transition-all">
-                <SelectValue placeholder="Select a category" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Opening / Greeting">Opening / Greeting</SelectItem>
-                <SelectItem value="Customer Verification">Customer Verification</SelectItem>
-                <SelectItem value="Call Purpose Identification">Call Purpose Identification</SelectItem>
-                <SelectItem value="Communication Skills">Communication Skills</SelectItem>
-                <SelectItem value="Listening & Probing">Listening & Probing</SelectItem>
-                <SelectItem value="Empathy & Courtesy">Empathy & Courtesy</SelectItem>
-                <SelectItem value="Product / Process Knowledge">Product / Process Knowledge</SelectItem>
-                <SelectItem value="Resolution / Assistance Quality">Resolution / Assistance Quality</SelectItem>
-                <SelectItem value="Compliance">Compliance</SelectItem>
-                <SelectItem value="Closing & Documentation">Closing & Documentation</SelectItem>
-              </SelectContent>
-            </Select>
+            <select
+              name="standardParameterId"
+              defaultValue={selectedStandardId}
+              required
+              className="h-10 w-full rounded-lg border border-[#d6dcea] bg-white px-3 text-sm text-slate-700 shadow-sm outline-none transition-all hover:bg-slate-50 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            >
+              {standardKpis.length === 0 ? (
+                <option value="">No standard KPI categories found</option>
+              ) : null}
+              {standardKpis.map((kpi) => (
+                <option key={kpi.id} value={kpi.id}>
+                  {kpi.name}
+                </option>
+              ))}
+            </select>
           </Row>
-          <p className="-mt-1 text-xs text-slate-500">
+          <p className="-mt-1 text-xs leading-5 text-slate-500">
             Choose one of the 10 standard KPI buckets used by the audit scorecards.
           </p>
           <Row label="Sub Parameter (e.g. Greeting, Empathy)">
@@ -485,20 +495,11 @@ function ParameterFormModal({
               name="parameterDescription"
               defaultValue={editing?.parameterDescription ?? ""}
               required
-              rows={2}
-              className="w-full rounded-lg border border-[#d6dcea] p-2 text-sm"
+              rows={4}
+              className="min-h-28 w-full rounded-lg border border-[#d6dcea] p-2 text-sm"
             />
           </Row>
-          <Row label="AI instruction (optional)">
-            <textarea
-              name="aiInstruction"
-              defaultValue={editing?.aiInstruction ?? ""}
-              rows={2}
-              placeholder="Tell the AI exactly when to mark this as fulfilled."
-              className="w-full rounded-lg border border-[#d6dcea] p-2 text-sm"
-            />
-          </Row>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="max-w-[13rem]">
             <Row label="Max score">
               <input
                 name="maxScore"
@@ -506,16 +507,6 @@ function ParameterFormModal({
                 min={1}
                 step={1}
                 defaultValue={editing?.maxScore ?? 10}
-                required
-                className="h-10 w-full rounded-lg border border-[#d6dcea] px-3 text-sm"
-              />
-            </Row>
-            <Row label="Display order">
-              <input
-                name="displayOrder"
-                type="number"
-                step={1}
-                defaultValue={editing?.displayOrder ?? 0}
                 required
                 className="h-10 w-full rounded-lg border border-[#d6dcea] px-3 text-sm"
               />
