@@ -1,17 +1,23 @@
 "use client";
 
+import { format } from "date-fns";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useTransition } from "react";
-import { cn } from "@/lib/utils";
-import { SlidersHorizontal } from "lucide-react";
-import { Field, FieldLabel } from "@/components/ui/field";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
-import { format } from "date-fns";
-import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { UploadCallsDialog } from "./upload-calls-dialog";
-import type { CallUploadOptions } from "./upload-calls-dialog";
+import { Field } from "@/components/ui/field";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { cn } from "@/lib/utils";
+import { UploadCallsDialog, type CallUploadOptions } from "./upload-calls-dialog";
 
 interface Options {
   campaigns: { id: string; name: string }[];
@@ -31,41 +37,98 @@ interface Initial {
   to?: Date;
 }
 
-function toDateInput(d: Date | undefined): string {
-  if (!d) return "";
-  return d.toISOString().slice(0, 10);
+function parseDateParam(value: string | null): Date | undefined {
+  if (!value) return undefined;
+
+  const date = new Date(`${value}T00:00:00`);
+  return Number.isNaN(date.valueOf()) ? undefined : date;
+}
+
+function toDateParam(date: Date): string {
+  const year = date.getFullYear().toString().padStart(4, "0");
+  const month = (date.getMonth() + 1).toString().padStart(2, "0");
+  const day = date.getDate().toString().padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 export function CallsFilterBar({
   options,
   initial,
   className,
-  uploadOptions
+  uploadOptions,
+  maxFileMb,
 }: {
   options: Options;
   initial: Initial;
   className?: string;
-  uploadOptions: CallUploadOptions
+  uploadOptions: CallUploadOptions;
+  maxFileMb: number;
 }) {
   const router = useRouter();
   const sp = useSearchParams();
   const [pending, startTransition] = useTransition();
+  const [fromOpen, setFromOpen] = useState(false);
+  const [toOpen, setToOpen] = useState(false);
 
-  const [startDate, setStartDate] = useState<Date>()
-  const [endDate, setEndDate] = useState<Date>()
+  const campaignId = sp.get("campaignId") ?? initial.campaignId ?? "";
+  const teamId = sp.get("teamId") ?? initial.teamId ?? "";
+  const agentId = sp.get("agentId") ?? initial.agentId ?? "";
+  const sentiment = sp.get("sentiment") ?? initial.sentiment ?? "";
+  const auditStatus = sp.get("auditStatus") ?? initial.auditStatus ?? "";
+  const disposition = sp.get("disposition") ?? initial.manualDisposition ?? "";
+  const fromDate = parseDateParam(sp.get("from")) ?? initial.from;
+  const toDate = parseDateParam(sp.get("to")) ?? initial.to;
+  const visibleAgents = teamId
+    ? options.agents.filter((agent) => agent.teamId === teamId)
+    : options.agents;
 
-  const [fromOpen, setFromOpen] = useState(false)
-  const [toOpen, setToOpen] = useState(false)
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
 
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-
-
-  function applyParam(key: string, value: string) {
+  function update(values: Record<string, string | undefined>) {
     const next = new URLSearchParams(sp);
-    if (value) next.set(key, value);
-    else next.delete(key);
-    startTransition(() => router.replace(`?${next.toString()}`, { scroll: false }));
+
+    for (const [key, value] of Object.entries(values)) {
+      if (value) next.set(key, value);
+      else next.delete(key);
+    }
+
+    const query = next.toString();
+    startTransition(() => {
+      router.replace(query ? `?${query}` : "?", { scroll: false });
+    });
+  }
+
+  function handleTeamChange(value: string) {
+    const next: Record<string, string | undefined> = { teamId: value };
+    const selectedAgentStillVisible = options.agents.some(
+      (agent) => agent.id === agentId && agent.teamId === value,
+    );
+
+    if (agentId && value && !selectedAgentStillVisible) {
+      next.agentId = undefined;
+    }
+
+    update(next);
+  }
+
+  function handleFromDateChange(date: Date | undefined) {
+    if (!date) return;
+
+    const next: Record<string, string | undefined> = { from: toDateParam(date) };
+    if (toDate && date > toDate) {
+      next.to = undefined;
+    }
+
+    update(next);
+    setFromOpen(false);
+  }
+
+  function handleToDateChange(date: Date | undefined) {
+    if (!date) return;
+
+    update({ to: toDateParam(date) });
+    setToOpen(false);
   }
 
   function reset() {
@@ -73,98 +136,69 @@ export function CallsFilterBar({
   }
 
   return (
-    <section className={cn("", className)}>
-      {/* <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <div className="inline-flex items-center gap-2 text-sm font-semibold text-slate-900">
-            <SlidersHorizontal className="h-4 w-4 text-slate-500" />
-            Filters
-          </div>
-          <p className="text-sm text-slate-500">Narrow the call list by date, team, agent, sentiment, or audit status.</p>
-        </div>
-        <UploadCallsDialog
-          options={uploadOptions}
-          maxFileMb={Number(process.env.MAX_AUDIO_UPLOAD_MB ?? "100") || 100}
-        />
-      </div> */}
+    <section className={cn("rounded-xl border border-slate-200 bg-white p-4", className)}>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <Field>
-          {/* <FieldLabel htmlFor="from-date">From</FieldLabel> */}
           <Popover open={fromOpen} onOpenChange={setFromOpen}>
             <PopoverTrigger asChild>
               <Button
+                type="button"
                 variant="outline"
                 id="from-date"
-                className="justify-start font-normal bg-white"
+                className="w-full justify-start bg-white font-normal"
               >
-                {startDate ? format(startDate, "PPP") : <span>Pick a date</span>}
+                {fromDate ? format(fromDate, "PPP") : <span>From date</span>}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
               <Calendar
                 mode="single"
-                selected={startDate}
-                defaultMonth={startDate}
-                onSelect={(date) => {
-                  if (!date) return
-                  setStartDate(date)
-                  applyParam("from", toDateInput(date))
-                  setFromOpen(false)
-
-                  // optional: auto-fix end date if it becomes invalid
-                  if (endDate && date > endDate) {
-                    setEndDate(undefined)
-                  }
-                }}
+                selected={fromDate}
+                defaultMonth={fromDate}
+                onSelect={handleFromDateChange}
                 disabled={(date) => date > today}
               />
             </PopoverContent>
           </Popover>
         </Field>
-        <Field>
-          {/* <FieldLabel htmlFor="to-date">To</FieldLabel> */}
 
+        <Field>
           <Popover open={toOpen} onOpenChange={setToOpen}>
             <PopoverTrigger asChild>
               <Button
+                type="button"
                 variant="outline"
                 id="to-date"
-                className="justify-start font-normal bg-white"
+                className="w-full justify-start bg-white font-normal"
               >
-                {endDate ? format(endDate, "PPP") : <span>Pick a date</span>}
+                {toDate ? format(toDate, "PPP") : <span>To date</span>}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
               <Calendar
                 mode="single"
-                selected={endDate}
-                defaultMonth={endDate}
-                onSelect={(date) => {
-                  if (!date) return
-                  setEndDate(date)
-                  applyParam("to", toDateInput(date))
-                  setToOpen(false)
-                }}
-                disabled={(date) =>
-                  (startDate ? date < startDate : false) || date > today
-                }
+                selected={toDate}
+                defaultMonth={toDate ?? fromDate}
+                onSelect={handleToDateChange}
+                disabled={(date) => (fromDate ? date < fromDate : false) || date > today}
               />
             </PopoverContent>
           </Popover>
         </Field>
+
         <Field>
-          {/* <FieldLabel htmlFor="campaign">Campaign</FieldLabel> */}
           <Select
-            defaultValue={initial.campaignId ?? ""}
-            onValueChange={(value) => applyParam("campaignId", value)}>
-            <SelectTrigger id="campaign" className="bg-white">
+            value={campaignId}
+            onValueChange={(value) => update({ campaignId: value })}
+          >
+            <SelectTrigger id="campaign" className="w-full bg-white">
               <SelectValue placeholder="All campaigns" />
             </SelectTrigger>
             <SelectContent>
               <SelectGroup>
-                {options.campaigns.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    {c.name}
+                {options.campaigns.map((campaign) => (
+                  <SelectItem key={campaign.id} value={campaign.id}>
+                    {campaign.name}
                   </SelectItem>
                 ))}
               </SelectGroup>
@@ -173,13 +207,9 @@ export function CallsFilterBar({
         </Field>
 
         <Field>
-          {/* <FieldLabel htmlFor="select-team">Team</FieldLabel> */}
-          <Select
-            defaultValue={initial.teamId ?? ""}
-            onValueChange={(value) => applyParam("teamId", value)}
-          >
-            <SelectTrigger id="select-team" className="bg-white">
-              <SelectValue placeholder="All Teams" />
+          <Select value={teamId} onValueChange={handleTeamChange}>
+            <SelectTrigger id="select-team" className="w-full bg-white">
+              <SelectValue placeholder="All teams" />
             </SelectTrigger>
             <SelectContent>
               <SelectGroup>
@@ -192,18 +222,15 @@ export function CallsFilterBar({
             </SelectContent>
           </Select>
         </Field>
+
         <Field>
-          {/* <FieldLabel htmlFor="select-agent">Agents</FieldLabel> */}
-          <Select
-            defaultValue={initial.agentId ?? ""}
-            onValueChange={(value) => applyParam("agentId", value)}
-          >
-            <SelectTrigger id="select-agent" className="bg-white">
-              <SelectValue placeholder="All Agents" />
+          <Select value={agentId} onValueChange={(value) => update({ agentId: value })}>
+            <SelectTrigger id="select-agent" className="w-full bg-white">
+              <SelectValue placeholder="All agents" />
             </SelectTrigger>
             <SelectContent>
               <SelectGroup>
-                {options.agents.map((agent) => (
+                {visibleAgents.map((agent) => (
                   <SelectItem key={agent.id} value={agent.id}>
                     {agent.name}
                   </SelectItem>
@@ -213,55 +240,70 @@ export function CallsFilterBar({
           </Select>
         </Field>
       </div>
+
       <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <Field>
-          <select
-            defaultValue={initial.sentiment ?? ""}
-            onChange={(e) => applyParam("sentiment", e.target.value)}
-            className="h-9 w-full rounded-lg border border-[#d6dcea] bg-white px-2 text-sm"
-          >
-            <option value="">Sentiments</option>
-            <option value="POSITIVE">Positive</option>
-            <option value="NEUTRAL">Neutral</option>
-            <option value="NEGATIVE">Negative</option>
-          </select>
+          <Select value={sentiment} onValueChange={(value) => update({ sentiment: value })}>
+            <SelectTrigger id="select-sentiment" className="w-full bg-white">
+              <SelectValue placeholder="Sentiments" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                <SelectItem value="POSITIVE">Positive</SelectItem>
+                <SelectItem value="NEUTRAL">Neutral</SelectItem>
+                <SelectItem value="NEGATIVE">Negative</SelectItem>
+              </SelectGroup>
+            </SelectContent>
+          </Select>
         </Field>
+
         <Field>
-          <select
-            defaultValue={initial.auditStatus ?? ""}
-            onChange={(e) => applyParam("auditStatus", e.target.value)}
-            className="h-9 w-full rounded-lg border border-[#d6dcea] bg-white px-2 text-sm"
+          <Select
+            value={auditStatus}
+            onValueChange={(value) => update({ auditStatus: value })}
           >
-            <option value="">Audit Status</option>
-            <option value="AUDITED">Audited</option>
-            <option value="PENDING">Pending</option>
-            <option value="IN_REVIEW">In Review</option>
-          </select>
+            <SelectTrigger id="select-audit-status" className="w-full bg-white">
+              <SelectValue placeholder="Audit status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                <SelectItem value="AUDITED">Audited</SelectItem>
+                <SelectItem value="PENDING">Pending</SelectItem>
+                <SelectItem value="IN_REVIEW">In Review</SelectItem>
+              </SelectGroup>
+            </SelectContent>
+          </Select>
         </Field>
+
         <Field>
-          <select
-            defaultValue={initial.manualDisposition ?? ""}
-            onChange={(e) => applyParam("disposition", e.target.value)}
-            className="h-9 w-full rounded-lg border border-[#d6dcea] bg-white px-2 text-sm"
+          <Select
+            value={disposition}
+            onValueChange={(value) => update({ disposition: value })}
           >
-            <option value="">All Dispositions</option>
-            <option value="Good">Good</option>
-            <option value="Moderate">Moderate</option>
-            <option value="Bad">Bad</option>
-          </select>
+            <SelectTrigger id="select-disposition" className="w-full bg-white">
+              <SelectValue placeholder="All dispositions" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                <SelectItem value="Good">Good</SelectItem>
+                <SelectItem value="Moderate">Moderate</SelectItem>
+                <SelectItem value="Bad">Bad</SelectItem>
+              </SelectGroup>
+            </SelectContent>
+          </Select>
         </Field>
+
         <Button
           type="button"
           onClick={reset}
           disabled={pending}
-          variant={"outline"}
+          variant="outline"
+          className="w-full"
         >
           Clear
         </Button>
-        <UploadCallsDialog
-          options={uploadOptions}
-          maxFileMb={Number(process.env.MAX_AUDIO_UPLOAD_MB ?? "100") || 100}
-        />
+
+        <UploadCallsDialog options={uploadOptions} maxFileMb={maxFileMb} />
       </div>
     </section>
   );

@@ -45,6 +45,7 @@ interface DataTableProps<TData, TValue> {
   enableColumnVisibility?: boolean;
   getRowId?: (originalRow: TData, index: number) => string;
   initialPageSize?: number;
+  initialColumnVisibility?: VisibilityState;
   initialSorting?: SortingState;
   itemLabel?: string;
   pageSizeOptions?: number[];
@@ -71,6 +72,7 @@ export function DataTable<TData, TValue>({
   enableColumnVisibility = true,
   getRowId,
   initialPageSize = 10,
+  initialColumnVisibility = {},
   initialSorting = [],
   itemLabel = "rows",
   pageSizeOptions,
@@ -83,7 +85,7 @@ export function DataTable<TData, TValue>({
   const [sorting, setSorting] = React.useState<SortingState>(initialSorting);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] =
-    React.useState<VisibilityState>({});
+    React.useState<VisibilityState>(initialColumnVisibility);
   const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
   const [pagination, setPagination] = React.useState<PaginationState>({
     pageIndex: 0,
