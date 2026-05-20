@@ -35,6 +35,11 @@ function parseFilters(sp: Record<string, string | string[] | undefined>): CallLi
 }
 
 function getAuditStatus(call: CallListItem) {
+  if (call.processingStatus === "uploaded") return "UPLOADED";
+  if (call.processingStatus === "transcribing") return "TRANSCRIBING";
+  if (call.processingStatus === "auditing") return "AUDITING";
+  if (call.processingStatus === "failed") return "FAILED";
+  
   return call.aiScore != null ? "COMPLETED" : (call.manualReviews[0]?.status ?? "PENDING");
 }
 

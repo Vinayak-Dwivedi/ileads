@@ -368,22 +368,25 @@ export default async function CallDetailPage({ params }: PageProps) {
 
   const auditResultsTab = (
     <div className="space-y-5">
-      <AuditPanel
-        callId={call.id}
-        hasAudit={!!audit}
-        hasTranscript={!!call.transcript}
-        hasParameters={activeStandard.length > 0 || !!audit}
-        latestRunNo={audit?.auditRunNo ?? null}
-        isDevelopment={process.env.NODE_ENV !== "production"}
-        showMockAuditButton={shouldShowMockActions()}
-        openrouterKeyConfigured={hasOpenRouterKey()}
-        processingStatus={processingStatusText}
-      />
-
       <article className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-        <div className="mb-3 flex items-center gap-2 text-sm font-bold text-slate-800">
-          <ClipboardCheck className="h-4 w-4" /> Parameter Scores
-          <span className="ml-auto text-xs font-normal text-slate-500">Binary scoring</span>
+        <div className="mb-3 flex flex-wrap items-start justify-between gap-4">
+          <div className="flex items-center gap-2 text-sm font-bold text-slate-800">
+            <ClipboardCheck className="h-4 w-4" /> Parameter Scores
+            <span className="ml-2 text-xs font-normal text-slate-500">Binary scoring</span>
+          </div>
+          <div className="flex-1 min-w-[300px] flex justify-end">
+            <AuditPanel
+              callId={call.id}
+              hasAudit={!!audit}
+              hasTranscript={!!call.transcript}
+              hasParameters={activeStandard.length > 0 || !!audit}
+              latestRunNo={audit?.auditRunNo ?? null}
+              isDevelopment={process.env.NODE_ENV !== "production"}
+              showMockAuditButton={shouldShowMockActions()}
+              openrouterKeyConfigured={hasOpenRouterKey()}
+              processingStatus={processingStatusText}
+            />
+          </div>
         </div>
         {!audit || audit.parameterScores.length === 0 ? (
           <EmptyState

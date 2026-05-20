@@ -34,9 +34,9 @@ function buildExternalCallId(date: Date, index: number): string {
     .replaceAll(".", "")
     .replaceAll("T", "")
     .replaceAll("Z", "")
-    .slice(0, 14);
+    .slice(2, 8);
   const random = crypto.randomUUID().slice(0, 4).toUpperCase();
-  return `CALL-${stamp}-${String(index + 1).padStart(2, "0")}-${random}`;
+  return `C${stamp}-${String(index + 1).padStart(2, "0")}-${random}`;
 }
 
 async function resolveAgentByCodeOrName(

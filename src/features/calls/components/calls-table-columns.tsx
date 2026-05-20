@@ -191,6 +191,13 @@ export const callsTableColumns: ColumnDef<CallsTableRow>[] = [
   },
 ];
 
+function formatCallId(id: string) {
+  if (id.startsWith("CALL-") && id.length > 20) {
+    return `C-..${id.slice(-8)}`;
+  }
+  return id;
+}
+
 function CallIdCell({ call }: { call: CallsTableRow }) {
   return (
     <Tooltip>
@@ -199,7 +206,7 @@ function CallIdCell({ call }: { call: CallsTableRow }) {
           href={`/calls/${call.id}`}
           className="block max-w-36 truncate font-mono text-xs font-semibold text-blue-600 hover:underline"
         >
-          {call.callId}
+          {formatCallId(call.callId)}
         </Link>
       </TooltipTrigger>
       <TooltipContent side="top" sideOffset={6}>
