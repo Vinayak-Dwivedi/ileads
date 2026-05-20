@@ -15,8 +15,9 @@ export interface DashboardKpis {
   aiAudited: number;
   manualReviewed: number;
   averageQualityPercent: number | null;
-  firstResponseSeconds: number | null;
-  averageHandleSeconds: number | null;
+  aiAuditScorePercent: number | null;
+  manualAuditScorePercent: number | null;
+  averageAuditScorePercent: number | null;
 }
 
 function buildCallWhere(clientId: string, f: DashboardFilters): Prisma.CallWhereInput {
@@ -65,22 +66,26 @@ export async function getDashboardKpis(
       _avg: {
         finalScore: true,
         aiScore: true,
-        firstResponseSeconds: true,
-        averageHandleSeconds: true,
-        durationSeconds: true,
+        manualScore: true,
       },
     }),
   ]);
 
+  const aiAuditScore = aggregate._avg.aiScore ?? null;
+  const manualAuditScore = aggregate._avg.manualScore ?? null;
+  const averageAuditScore =
+    aiAuditScore != null && manualAuditScore != null
+      ? (aiAuditScore + manualAuditScore) / 2
+      : null;
   const avgQuality = aggregate._avg.finalScore ?? aggregate._avg.aiScore ?? null;
-  const aht = aggregate._avg.averageHandleSeconds ?? aggregate._avg.durationSeconds ?? null;
   return {
     totalCalls,
     aiAudited,
     manualReviewed,
     averageQualityPercent: avgQuality,
-    firstResponseSeconds: aggregate._avg.firstResponseSeconds,
-    averageHandleSeconds: aht,
+    aiAuditScorePercent: aiAuditScore,
+    manualAuditScorePercent: manualAuditScore,
+    averageAuditScorePercent: averageAuditScore,
   };
 }
 

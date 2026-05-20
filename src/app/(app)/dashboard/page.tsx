@@ -7,7 +7,6 @@ import {
   getSentimentBreakdown,
   type DashboardFilters,
 } from "@/features/dashboard/api/dashboard";
-import { formatMmSs } from "@/lib/utils";
 import { DashboardFilterBar } from "@/features/dashboard/components/filter-bar";
 import { SentimentGraph } from "@/features/dashboard/components/sentiment-graph";
 import { DailyQualityGraph } from "@/features/dashboard/components/daily-quality-graph";
@@ -58,7 +57,7 @@ export default async function DashboardPage({
         <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-4 p-4 md:gap-5 md:p-6">
           <DashboardFilterBar options={filterOptions} initial={filters} />
 
-          <section className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-5">
+          <section className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-6">
             <DashboardStat label="Total Calls" value={kpis.totalCalls.toLocaleString()} />
             <DashboardStat label="AI Audited" value={kpis.aiAudited.toLocaleString()} />
             <DashboardStat
@@ -66,20 +65,16 @@ export default async function DashboardPage({
               value={kpis.manualReviewed.toLocaleString()}
             />
             <DashboardStat
-              label="First Response Time"
-              value={
-                kpis.firstResponseSeconds != null
-                  ? formatMmSs(kpis.firstResponseSeconds)
-                  : "NA"
-              }
+              label="AI Audit Score"
+              value={formatScorePercent(kpis.aiAuditScorePercent)}
             />
             <DashboardStat
-              label="AHT"
-              value={
-                kpis.averageHandleSeconds != null
-                  ? formatMmSs(kpis.averageHandleSeconds)
-                  : "NA"
-              }
+              label="Manual Audit Score"
+              value={formatScorePercent(kpis.manualAuditScorePercent)}
+            />
+            <DashboardStat
+              label="Avg Score"
+              value={formatScorePercent(kpis.averageAuditScorePercent)}
             />
           </section>
 
@@ -100,6 +95,10 @@ export default async function DashboardPage({
       </div>
     </div>
   );
+}
+
+function formatScorePercent(value: number | null): string {
+  return value == null || Number.isNaN(value) ? "NA" : `${Math.round(value)}%`;
 }
 
 function DashboardStat({ label, value }: { label: string; value: string }) {
