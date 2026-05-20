@@ -49,6 +49,14 @@ import time
 from pathlib import Path
 from typing import Any, Iterable, List
 
+# Force UTF-8 on Windows stdout/stderr to prevent UnicodeEncodeError with Indian language transcripts
+if sys.platform.startswith("win"):
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
+    if hasattr(sys.stderr, "reconfigure"):
+        sys.stderr.reconfigure(encoding="utf-8")
+
+
 SAMPLE_RATE = 16000
 
 
