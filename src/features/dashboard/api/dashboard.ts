@@ -201,6 +201,71 @@ export async function getDashboardInsights(clientId: string, filters: DashboardF
   });
 }
 
+export interface DailyQualityPoint {
+  date: string; // YYYY-MM-DD
+  averagePercent: number; // 0-100
+  auditedCalls: number;
+}
+
+/**
+ * Group completed (latest) AI audits by day and return average score%
+ * with the number of audited calls per day. Uses the latest audit per call.
+ * Returns the last `days` consecutive dates (so the chart has a continuous axis),
+ * filling days with no audits as null/0.
+ */
+export async function getDailyQualityScore(
+  clientId: string,
+  filters: DashboardFilters,
+  days = 14,
+): Promise<DailyQualityPoint[]> {
+  const where = buildCallWhere(clientId, filters);
+  // Only audits flagged isLatest and with a score.
+  const audits = await prisma.aiAudit.findMany({
+    where: {
+      isLatest: true,
+      status: "COMPLETED",
+      scorePercent: { not: null },
+      call: where,
+    },
+    select: { scorePercent: true, createdAt: true, callId: true, call: { select: { callStartedAt: true } } },
+  });
+
+  const buckets = new Map<string, { sum: number; count: number }>();
+  for (const a of audits) {
+    if (a.scorePercent == null) continue;
+    // Prefer the call's start date if present; fall back to audit createdAt.
+    const ref = a.call.callStartedAt ?? a.createdAt;
+    const y = ref.getFullYear().toString().padStart(4, "0");
+    const m = (ref.getMonth() + 1).toString().padStart(2, "0");
+    const d = ref.getDate().toString().padStart(2, "0");
+    const key = `${y}-${m}-${d}`;
+    const b = buckets.get(key) ?? { sum: 0, count: 0 };
+    b.sum += a.scorePercent;
+    b.count += 1;
+    buckets.set(key, b);
+  }
+
+  // Build a continuous list of the last `days` days ending today.
+  const out: DailyQualityPoint[] = [];
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  for (let i = days - 1; i >= 0; i -= 1) {
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
+    const y = d.getFullYear().toString().padStart(4, "0");
+    const m = (d.getMonth() + 1).toString().padStart(2, "0");
+    const dd = d.getDate().toString().padStart(2, "0");
+    const key = `${y}-${m}-${dd}`;
+    const b = buckets.get(key);
+    out.push({
+      date: key,
+      averagePercent: b && b.count > 0 ? b.sum / b.count : 0,
+      auditedCalls: b?.count ?? 0,
+    });
+  }
+  return out;
+}
+
 export async function getFilterOptions(clientId: string) {
   const [campaigns, teams, agents] = await Promise.all([
     prisma.campaign.findMany({

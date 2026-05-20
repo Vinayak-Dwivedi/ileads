@@ -2,7 +2,7 @@ import { EmptyState } from "@/components/ui/page-shell";
 import { requireSession } from "@/lib/auth";
 import {
   getAgentScoreboard,
-  getDashboardInsights,
+  getDailyQualityScore,
   getDashboardKpis,
   getFilterOptions,
   getSentimentBreakdown,
@@ -11,6 +11,7 @@ import {
 import { formatMmSs, formatPercent } from "@/lib/utils";
 import { DashboardFilterBar } from "@/features/dashboard/components/filter-bar";
 import { SentimentGraph } from "@/features/dashboard/components/sentiment-graph";
+import { DailyQualityGraph } from "@/features/dashboard/components/daily-quality-graph";
 
 export const dynamic = "force-dynamic";
 
@@ -39,12 +40,12 @@ export default async function DashboardPage({
   const sp = await searchParams;
   const filters = parseFilters(sp);
 
-  const [kpis, sentiment, scoreboard, insights, filterOptions] = await Promise.all([
+  const [kpis, sentiment, scoreboard, filterOptions, dailyQuality] = await Promise.all([
     getDashboardKpis(session.clientId, filters),
     getSentimentBreakdown(session.clientId, filters),
     getAgentScoreboard(session.clientId, filters),
-    getDashboardInsights(session.clientId, filters),
     getFilterOptions(session.clientId),
+    getDailyQualityScore(session.clientId, filters, 14),
   ]);
 
 
@@ -54,14 +55,10 @@ export default async function DashboardPage({
         <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-4 p-4 md:gap-5 md:p-6">
           <DashboardFilterBar options={filterOptions} initial={filters} />
 
-          <section className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-6">
+          <section className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-5">
             <DashboardStat label="Total Calls" value={kpis.totalCalls.toLocaleString()} />
             <DashboardStat label="AI Audited" value={kpis.aiAudited.toLocaleString()} />
             <DashboardStat label="Manual Reviews" value={kpis.manualReviewed.toLocaleString()} />
-            <DashboardStat
-              label="Avg Quality Score"
-              value={kpis.averageQualityPercent != null ? formatPercent(kpis.averageQualityPercent, 1) : "NA"}
-            />
             <DashboardStat
               label="First Response Time"
               value={kpis.firstResponseSeconds != null ? formatMmSs(kpis.firstResponseSeconds) : "NA"}
@@ -74,62 +71,7 @@ export default async function DashboardPage({
 
           <section className="grid grid-cols-1 gap-3 md:grid-cols-3 md:gap-4">
             <SentimentGraph sentiment={sentiment} />
-
-            <article className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm md:col-span-2">
-              <h3 className="mb-1 text-base font-semibold text-slate-900">Average Quality Score</h3>
-             
-              {kpis.averageQualityPercent == null ? (
-                <EmptyState
-                  title="Trend data will appear after more calls are processed."
-                  description="No quality score is available for the selected filters."
-                />
-              ) : (
-                <div className="flex flex-col justify-center rounded-xl">
-                  <div className="text-4xl font-semibold leading-none text-slate-900">
-                    {formatPercent(kpis.averageQualityPercent, 1)}
-                  </div>
-                 
-                  <div className="mt-4 h-2 overflow-hidden rounded-full bg-slate-100">
-                    <div
-                      className="h-2 rounded-full bg-blue-600"
-                      style={{ width: `${Math.min(100, Math.max(0, kpis.averageQualityPercent))}%` }}
-                    />
-                  </div>
-                 
-                </div>
-              )}
-            </article>
-
-
-
-            {/* <article className="h-fit rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
-              <h3 className="mb-3 text-lg font-semibold text-slate-800">Recommendations</h3>
-              <div className="space-y-3 ">
-
-                {insights.length === 0 ? (
-                  <EmptyState
-                    title="No insights yet"
-                    description="Real AI insights appear once stored audits flag risks or opportunities."
-                  />
-                ) : (
-                  insights.map((insight) => {
-                    const { Icon, tint } = insightIcon(insight.insightType);
-                    return (
-                      <div key={insight.id} className="grid grid-cols-[32px_1fr] gap-2 rounded-xl border border-slate-100 bg-slate-50 p-3">
-                        <div className={`grid h-8 w-8 place-items-center rounded-lg ${tint}`}>
-                          <Icon className="h-4 w-4" />
-                        </div>
-                        <div>
-                          <div className="text-xs font-semibold text-muted-foreground">{insight.insightType.replace("_", " ")}</div>
-                          <div className="text-sm text-slate-700">{insight.title}</div>
-                          <div className="mt-1 text-xs text-slate-500">{insight.body}</div>
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-            </article> */}
+            <DailyQualityGraph data={dailyQuality} className="md:col-span-2" />
           </section>
 
           <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm xl:col-span-2">

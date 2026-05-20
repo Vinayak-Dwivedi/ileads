@@ -33,7 +33,6 @@ import { AuditPanel } from "./audit-panel";
 import { TranscriptionActionButton } from "./transcription-action-button";
 import { SpeakerCorrectionPanel } from "./speaker-correction-panel";
 import { SegmentSpeakerSelect } from "./segment-speaker-select";
-import { ProcessDemoPanel } from "./process-demo-panel";
 import { NotesPanel } from "./notes-panel";
 import { isActivelyProcessing } from "@/lib/processing-lock";
 import { hasOpenRouterKey } from "@/services/llm";
@@ -140,13 +139,6 @@ export default async function CallDetailPage({ params }: PageProps) {
       audit?.createdAt &&
       call.transcript.speakerCorrectedAt > audit.createdAt,
     );
-  // Reset is offered when a previous run got stuck or failed.
-  const canResetProcessing =
-    call.processingStatus === "failed" ||
-    (Boolean(call.processingStatus) &&
-      call.processingStatus !== "idle" &&
-      !processingActive);
-
   // KPI buckets — one row per active standard parameter for this client.
   // Sub-parameter scores roll up under their standardParameter; if the
   // ClientParameter isn't mapped (e.g. historical), fall back to its
@@ -216,23 +208,6 @@ export default async function CallDetailPage({ params }: PageProps) {
   const overviewTab = (
     <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,7fr)_minmax(0,3fr)]">
       <div className="space-y-5 min-w-0">
-        <ProcessDemoPanel
-          callId={call.id}
-          hasAudio={hasAudio}
-          hasTranscript={!!call.transcript}
-          hasParameters={activeStandard.length > 0 || !!audit}
-          hasAudit={!!audit}
-          durationSeconds={call.durationSeconds}
-          openrouterKeyConfigured={hasOpenRouterKey()}
-          mockMode={isMockMode()}
-          sttProvider={sttConfig.provider}
-          sarvamKeyConfigured={hasSarvamKey(sttConfig)}
-          processingStatus={processingStatusText}
-          processingStateLabel={call.processingStatus}
-          canResetProcessing={canResetProcessing}
-          processingError={call.processingError}
-        />
-
         <article className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
           <div className="mb-3 flex items-center gap-2 text-sm font-bold text-slate-800">
             <Sparkles className="h-4 w-4" /> Summary
