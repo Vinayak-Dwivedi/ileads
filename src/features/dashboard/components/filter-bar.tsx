@@ -1,14 +1,22 @@
 "use client";
 
+import { format } from "date-fns";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState, useTransition } from "react";
-import { cn } from "@/lib/utils";
-import { Field, FieldLabel } from "@/components/ui/field";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { useTransition, useState } from "react";
+
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
-import { format } from "date-fns";
-import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Field } from "@/components/ui/field";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { cn } from "@/lib/utils";
 
 interface Options {
   campaigns: { id: string; name: string }[];
@@ -24,9 +32,18 @@ interface Initial {
   to?: Date;
 }
 
-function toDateInput(d: Date | undefined): string {
-  if (!d) return "";
-  return d.toISOString().slice(0, 10);
+function parseDateParam(value: string | null): Date | undefined {
+  if (!value) return undefined;
+
+  const date = new Date(`${value}T00:00:00`);
+  return Number.isNaN(date.valueOf()) ? undefined : date;
+}
+
+function toDateParam(date: Date): string {
+  const year = date.getFullYear().toString().padStart(4, "0");
+  const month = (date.getMonth() + 1).toString().padStart(2, "0");
+  const day = date.getDate().toString().padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 export function DashboardFilterBar({
@@ -41,21 +58,65 @@ export function DashboardFilterBar({
   const router = useRouter();
   const sp = useSearchParams();
   const [pending, startTransition] = useTransition();
+  const [fromOpen, setFromOpen] = useState(false);
+  const [toOpen, setToOpen] = useState(false);
 
-  const [startDate, setStartDate] = useState<Date>()
-  const [endDate, setEndDate] = useState<Date>()
+  const campaignId = sp.get("campaignId") ?? initial.campaignId ?? "";
+  const teamId = sp.get("teamId") ?? initial.teamId ?? "";
+  const agentId = sp.get("agentId") ?? initial.agentId ?? "";
+  const fromDate = parseDateParam(sp.get("from")) ?? initial.from;
+  const toDate = parseDateParam(sp.get("to")) ?? initial.to;
+  const visibleAgents = teamId
+    ? options.agents.filter((agent) => agent.teamId === teamId)
+    : options.agents;
 
-  const [fromOpen, setFromOpen] = useState(false)
-  const [toOpen, setToOpen] = useState(false)
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
 
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-
-  function update(key: string, value: string) {
+  function update(values: Record<string, string | undefined>) {
     const next = new URLSearchParams(sp);
-    if (value) next.set(key, value);
-    else next.delete(key);
-    startTransition(() => router.replace(`?${next.toString()}`, { scroll: false }));
+
+    for (const [key, value] of Object.entries(values)) {
+      if (value) next.set(key, value);
+      else next.delete(key);
+    }
+
+    const query = next.toString();
+    startTransition(() => {
+      router.replace(query ? `?${query}` : "?", { scroll: false });
+    });
+  }
+
+  function handleTeamChange(value: string) {
+    const next: Record<string, string | undefined> = { teamId: value };
+    const selectedAgentStillVisible = options.agents.some(
+      (agent) => agent.id === agentId && agent.teamId === value,
+    );
+
+    if (agentId && value && !selectedAgentStillVisible) {
+      next.agentId = undefined;
+    }
+
+    update(next);
+  }
+
+  function handleFromDateChange(date: Date | undefined) {
+    if (!date) return;
+
+    const next: Record<string, string | undefined> = { from: toDateParam(date) };
+    if (toDate && date > toDate) {
+      next.to = undefined;
+    }
+
+    update(next);
+    setFromOpen(false);
+  }
+
+  function handleToDateChange(date: Date | undefined) {
+    if (!date) return;
+
+    update({ to: toDateParam(date) });
+    setToOpen(false);
   }
 
   function reset() {
@@ -66,120 +127,77 @@ export function DashboardFilterBar({
     <section className={cn("rounded-xl border border-slate-200 bg-white p-4", className)}>
       <div className="grid grid-cols-1 gap-3 md:grid-cols-3 xl:grid-cols-6">
         <Field>
-          {/* <FieldLabel htmlFor="from-date">From</FieldLabel> */}
           <Popover open={fromOpen} onOpenChange={setFromOpen}>
             <PopoverTrigger asChild>
               <Button
+                type="button"
                 variant="outline"
                 id="from-date"
-                className="justify-start font-normal bg-white"
+                className="justify-start bg-white font-normal"
               >
-                {startDate ? format(startDate, "PPP") : <span>Pick a date</span>}
+                {fromDate ? format(fromDate, "PPP") : <span>From date</span>}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
               <Calendar
                 mode="single"
-                selected={startDate}
-                defaultMonth={startDate}
-                onSelect={(date) => {
-                  if (!date) return
-                  setStartDate(date)
-                  update("from", toDateInput(date))
-                  setFromOpen(false)
-
-                  // optional: auto-fix end date if it becomes invalid
-                  if (endDate && date > endDate) {
-                    setEndDate(undefined)
-                  }
-                }}
+                selected={fromDate}
+                defaultMonth={fromDate}
+                onSelect={handleFromDateChange}
                 disabled={(date) => date > today}
               />
             </PopoverContent>
           </Popover>
-          {/* <input
-            type="date"
-            defaultValue={toDateInput(initial.from)}
-            onChange={(e) => update("from", e.target.value)}
-            className="h-9 w-full rounded-lg border border-slate-200 px-2 text-sm"
-          /> */}
         </Field>
-        {/* <input
-            type="date"
-            defaultValue={toDateInput(initial.to)}
-            onChange={(e) => update("to", e.target.value)}
-            className="h-9 w-full rounded-lg border border-slate-200 px-2 text-sm"
-          /> */}
-        <Field>
-          {/* <FieldLabel htmlFor="to-date">To</FieldLabel> */}
 
+        <Field>
           <Popover open={toOpen} onOpenChange={setToOpen}>
             <PopoverTrigger asChild>
               <Button
+                type="button"
                 variant="outline"
                 id="to-date"
-                className="justify-start font-normal bg-white"
+                className="justify-start bg-white font-normal"
               >
-                {endDate ? format(endDate, "PPP") : <span>Pick a date</span>}
+                {toDate ? format(toDate, "PPP") : <span>To date</span>}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
               <Calendar
                 mode="single"
-                selected={endDate}
-                defaultMonth={endDate}
-                onSelect={(date) => {
-                  if (!date) return
-                  setEndDate(date)
-                  update("to", toDateInput(date))
-                  setToOpen(false)
-                }}
-                disabled={(date) =>
-                  (startDate ? date < startDate : false) || date > today
-                }
+                selected={toDate}
+                defaultMonth={toDate ?? fromDate}
+                onSelect={handleToDateChange}
+                disabled={(date) => (fromDate ? date < fromDate : false) || date > today}
               />
             </PopoverContent>
           </Popover>
         </Field>
+
         <Field>
-          {/* <FieldLabel htmlFor="campaign">Campaign</FieldLabel> */}
           <Select
-            defaultValue={initial.campaignId ?? ""}
-            onValueChange={(value) => update("campaignId", value)}>
-            <SelectTrigger id="campaign" className="bg-white">
+            value={campaignId}
+            onValueChange={(value) => update({ campaignId: value })}
+          >
+            <SelectTrigger id="campaign" className="w-full bg-white">
               <SelectValue placeholder="All campaigns" />
             </SelectTrigger>
             <SelectContent>
               <SelectGroup>
-                {options.campaigns.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    {c.name}
+                {options.campaigns.map((campaign) => (
+                  <SelectItem key={campaign.id} value={campaign.id}>
+                    {campaign.name}
                   </SelectItem>
                 ))}
               </SelectGroup>
             </SelectContent>
           </Select>
-          {/* <select
-            defaultValue={initial.campaignId ?? ""}
-            onChange={(e) => update("campaignId", e.target.value)}
-            className="h-9 w-full rounded-lg border border-slate-200 px-2 text-sm bg-white"
-          >
-            <option value="">All campaigns</option>
-            {options.campaigns.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select> */}
         </Field>
+
         <Field>
-          {/* <FieldLabel htmlFor="select-team">Team</FieldLabel> */}
-          <Select
-            defaultValue={initial.teamId ?? ""}
-            onValueChange={(value) => update("teamId", value)}
-          >
-            <SelectTrigger id="select-team" className="bg-white">
-              <SelectValue placeholder="All Teams" />
+          <Select value={teamId} onValueChange={handleTeamChange}>
+            <SelectTrigger id="select-team" className="w-full bg-white">
+              <SelectValue placeholder="All teams" />
             </SelectTrigger>
             <SelectContent>
               <SelectGroup>
@@ -191,31 +209,16 @@ export function DashboardFilterBar({
               </SelectGroup>
             </SelectContent>
           </Select>
-          {/* <select
-            defaultValue={initial.teamId ?? ""}
-            onChange={(e) => update("teamId", e.target.value)}
-            className="h-9 w-full rounded-lg border border-slate-200 px-2 text-sm bg-white"
-          >
-            <option value="">All teams</option>
-            {options.teams.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.name}
-              </option>
-            ))}
-          </select> */}
         </Field>
+
         <Field>
-          {/* <FieldLabel htmlFor="select-agent">Agents</FieldLabel> */}
-          <Select
-            defaultValue={initial.agentId ?? ""}
-            onValueChange={(value) => update("agentId", value)}
-          >
-            <SelectTrigger id="select-agent" className="bg-white">
-              <SelectValue placeholder="All Agents" />
+          <Select value={agentId} onValueChange={(value) => update({ agentId: value })}>
+            <SelectTrigger id="select-agent" className="w-full bg-white">
+              <SelectValue placeholder="All agents" />
             </SelectTrigger>
             <SelectContent>
               <SelectGroup>
-                {options.agents.map((agent) => (
+                {visibleAgents.map((agent) => (
                   <SelectItem key={agent.id} value={agent.id}>
                     {agent.name}
                   </SelectItem>
@@ -223,47 +226,20 @@ export function DashboardFilterBar({
               </SelectGroup>
             </SelectContent>
           </Select>
-          {/* <select
-            defaultValue={initial.agentId ?? ""}
-            onChange={(e) => update("agentId", e.target.value)}
-            className="h-9 w-full rounded-lg border border-slate-200 px-2 text-sm bg-white"
-          >
-            <option value="">All agents</option>
-            {options.agents.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.name}
-              </option>
-            ))}
-          </select> */}
         </Field>
+
         <div className="flex items-end">
           <Button
             type="button"
             onClick={reset}
             disabled={pending}
-            variant={"outline"}
+            variant="outline"
+            className="w-full"
           >
             Clear filters
           </Button>
-          {/* <button
-            type="button"
-            onClick={reset}
-            disabled={pending}
-            className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 hover:bg-slate-50"
-          >
-            Clear filters
-          </button> */}
         </div>
       </div>
     </section>
   );
 }
-
-// function Field({ label, children }: { label: string; children: React.ReactNode }) {
-//   return (
-//     <div className="min-w-0">
-//       <label className="mb-1.5 block text-xs text-slate-500">{label}</label>
-//       {children}
-//     </div>
-//   );
-// }
