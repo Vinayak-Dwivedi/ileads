@@ -15,6 +15,14 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
+# Force UTF-8 on Windows stdout/stderr to prevent UnicodeEncodeError with Indian language transcripts
+if sys.platform.startswith("win"):
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
+    if hasattr(sys.stderr, "reconfigure"):
+        sys.stderr.reconfigure(encoding="utf-8")
+
+
 
 def write_result(path: str | None, payload: dict[str, Any]) -> None:
     encoded = json.dumps(payload, ensure_ascii=False, indent=2)

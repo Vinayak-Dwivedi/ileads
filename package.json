@@ -20,7 +20,8 @@
     "truncate:demo-calls": "tsx --require ./scripts/_stt-preload.cjs scripts/truncate-demo-call-data.ts",
     "import:beetel-parameters": "tsx scripts/import-beetel-parameters.ts",
     "import:standard-parameters": "tsx scripts/import-standard-parameters.ts",
-    "reset:beetel-parameters": "tsx scripts/reset-beetel-parameters.ts"
+    "reset:beetel-parameters": "tsx scripts/reset-beetel-parameters.ts",
+    "worker:queue": "tsx --require ./scripts/_stt-preload.cjs scripts/queue-worker.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

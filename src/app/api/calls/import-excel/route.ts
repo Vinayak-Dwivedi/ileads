@@ -43,62 +43,144 @@ async function resolveAgentByCodeOrName(
   clientId: string,
   agentCode: string | null,
   agentName: string | null,
+  cache: Map<string, string>,
 ): Promise<string | null> {
   if (!agentCode && !agentName) return null;
+  const cacheKey = `${agentCode ?? ""}_${agentName ?? ""}`.toLowerCase();
+  if (cache.has(cacheKey)) {
+    return cache.get(cacheKey)!;
+  }
+
+  // 1. Search by employeeCode
   if (agentCode) {
     const a = await prisma.agent.findFirst({
       where: { clientId, employeeCode: { equals: agentCode, mode: "insensitive" } },
       select: { id: true },
     });
-    if (a) return a.id;
+    if (a) {
+      cache.set(cacheKey, a.id);
+      return a.id;
+    }
   }
+
+  // 2. Search by name
   if (agentName) {
     const a = await prisma.agent.findFirst({
       where: { clientId, name: { equals: agentName, mode: "insensitive" } },
       select: { id: true },
     });
-    if (a) return a.id;
+    if (a) {
+      cache.set(cacheKey, a.id);
+      return a.id;
+    }
   }
-  return null;
+
+  // 3. Create Agent
+  const nameToUse = agentName || agentCode || "Unknown Agent";
+  const newAgent = await prisma.agent.create({
+    data: {
+      clientId,
+      name: nameToUse,
+      employeeCode: agentCode || null,
+      isActive: true,
+    },
+    select: { id: true },
+  });
+  cache.set(cacheKey, newAgent.id);
+  return newAgent.id;
 }
 
 async function resolveCampaign(
   clientId: string,
   campaignName: string | null,
+  cache: Map<string, string>,
 ): Promise<string | null> {
   if (!campaignName) return null;
+  const cacheKey = campaignName.toLowerCase();
+  if (cache.has(cacheKey)) {
+    return cache.get(cacheKey)!;
+  }
+
   const c = await prisma.campaign.findFirst({
     where: { clientId, name: { equals: campaignName, mode: "insensitive" } },
     select: { id: true },
   });
-  return c?.id ?? null;
+  if (c) {
+    cache.set(cacheKey, c.id);
+    return c.id;
+  }
+
+  // Create Campaign
+  const newCampaign = await prisma.campaign.create({
+    data: {
+      clientId,
+      name: campaignName,
+      isActive: true,
+    },
+    select: { id: true },
+  });
+  cache.set(cacheKey, newCampaign.id);
+  return newCampaign.id;
 }
 
 async function resolveTeam(
   clientId: string,
   teamName: string | null,
+  cache: Map<string, string>,
 ): Promise<string | null> {
   if (!teamName) return null;
+  const cacheKey = teamName.toLowerCase();
+  if (cache.has(cacheKey)) {
+    return cache.get(cacheKey)!;
+  }
+
   const t = await prisma.team.findFirst({
     where: { clientId, name: { equals: teamName, mode: "insensitive" } },
     select: { id: true },
   });
-  return t?.id ?? null;
+  if (t) {
+    cache.set(cacheKey, t.id);
+    return t.id;
+  }
+
+  // Create Team
+  const newTeam = await prisma.team.create({
+    data: {
+      clientId,
+      name: teamName,
+    },
+    select: { id: true },
+  });
+  cache.set(cacheKey, newTeam.id);
+  return newTeam.id;
 }
 
 async function importRow(
   clientId: string,
   row: ParsedCallRow,
   index: number,
+  caches: {
+    agentCache: Map<string, string>;
+    campaignCache: Map<string, string>;
+    teamCache: Map<string, string>;
+  },
 ): Promise<ImportedCall> {
   const callDate = row.callDate ?? new Date();
   const download = await downloadAudioToStorage(row.audioUrl, { date: callDate });
-  const durationSeconds = await probeAudioDurationSeconds(download.audioPath);
+
+  let durationSeconds = row.durationSeconds;
+  if (durationSeconds == null || durationSeconds <= 0) {
+    try {
+      durationSeconds = await probeAudioDurationSeconds(download.audioPath);
+    } catch {
+      durationSeconds = null;
+    }
+  }
 
   const [agentId, campaignId, teamId] = await Promise.all([
-    resolveAgentByCodeOrName(clientId, row.agentCode, row.agentName),
-    resolveCampaign(clientId, row.campaignName),
-    resolveTeam(clientId, row.teamName),
+    resolveAgentByCodeOrName(clientId, row.agentCode, row.agentName, caches.agentCache),
+    resolveCampaign(clientId, row.campaignName, caches.campaignCache),
+    resolveTeam(clientId, row.teamName, caches.teamCache),
   ]);
 
   const externalCallId = row.externalCallId ?? buildExternalCallId(callDate, index);
@@ -193,10 +275,14 @@ export async function POST(request: Request) {
     let skipped = errors.length;
     let failed = 0;
 
+    const agentCache = new Map<string, string>();
+    const campaignCache = new Map<string, string>();
+    const teamCache = new Map<string, string>();
+
     for (let i = 0; i < parsed.rows.length; i += 1) {
       const row = parsed.rows[i];
       try {
-        const r = await importRow(clientId, row, i);
+        const r = await importRow(clientId, row, i, { agentCache, campaignCache, teamCache });
         imported.push(r);
       } catch (e) {
         failed += 1;

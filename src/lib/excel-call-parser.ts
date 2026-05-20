@@ -14,6 +14,7 @@ export interface ParsedCallRow {
   teamName: string | null;
   disposition: string | null;
   language: string | null;
+  durationSeconds: number | null;
 }
 
 export interface ParseResult {
@@ -57,14 +58,28 @@ const CALL_ID_KEYS = [
 
 const DATE_KEYS = ["date", "call_date", "call date", "calldate", "started_at", "started at"];
 const TIME_KEYS = ["time", "call_time", "call time", "calltime"];
-const AGENT_ID_KEYS = ["agent_id", "agent id", "agentid", "agent code", "agent_code", "employee_code", "employee id", "employee_id"];
+const AGENT_ID_KEYS = ["agent_id", "agent id", "agentid", "agent code", "agent_code", "employee_code", "employee id", "employee_id", "user_id", "user id", "userid"];
 const AGENT_NAME_KEYS = ["agent_name", "agent name", "agentname", "agent"];
 const CUSTOMER_NAME_KEYS = ["customer_name", "customer name", "customername", "customer"];
-const CUSTOMER_NUMBER_KEYS = ["customer_number", "customer number", "customernumber", "phone", "phone_number", "msisdn", "mobile"];
+const CUSTOMER_NUMBER_KEYS = [
+  "customer_number",
+  "customer number",
+  "customernumber",
+  "phone",
+  "phone_number",
+  "msisdn",
+  "mobile",
+  "contact_no",
+  "contact no",
+  "contactno",
+  "contact_number",
+  "contact number",
+];
 const CAMPAIGN_KEYS = ["campaign", "campaign_name", "campaign name"];
 const TEAM_KEYS = ["team", "team_name", "team name"];
 const DISPOSITION_KEYS = ["disposition", "outcome", "call_disposition"];
 const LANGUAGE_KEYS = ["language", "lang", "locale"];
+const TALKTIME_KEYS = ["talktime", "talk time", "talk_time", "duration", "call duration", "call_duration"];
 
 function normalizeKey(key: string): string {
   return key.toString().trim().toLowerCase().replace(/\s+/g, " ");
@@ -90,6 +105,32 @@ function findValue(row: Record<string, unknown>, candidates: string[]): string |
 function detectAudioColumn(headerRow: string[]): boolean {
   const normalized = headerRow.map(normalizeKey);
   return AUDIO_URL_KEYS.some((c) => normalized.includes(normalizeKey(c)));
+}
+
+function parseDurationToSeconds(durationStr: string | null): number | null {
+  if (!durationStr) return null;
+  const clean = durationStr.trim();
+  if (!clean) return null;
+
+  // If it's a numeric string (e.g. raw seconds)
+  const num = Number(clean);
+  if (!Number.isNaN(num) && Number.isFinite(num)) {
+    return Math.floor(num);
+  }
+
+  // Match formats like HH:MM:SS or MM:SS
+  const parts = clean.split(":").map(Number);
+  if (parts.some((p) => Number.isNaN(p))) return null;
+
+  if (parts.length === 3) {
+    const [h, m, s] = parts;
+    return h * 3600 + m * 60 + s;
+  }
+  if (parts.length === 2) {
+    const [m, s] = parts;
+    return m * 60 + s;
+  }
+  return null;
 }
 
 function parseDateValue(dateStr: string | null, timeStr: string | null): Date | null {
@@ -173,6 +214,7 @@ export function parseCallExcel(buffer: Buffer): ParseResult {
 
     const dateStr = findValue(raw, DATE_KEYS);
     const timeStr = findValue(raw, TIME_KEYS);
+    const durationStr = findValue(raw, TALKTIME_KEYS);
 
     rows.push({
       rowNumber,
@@ -187,6 +229,7 @@ export function parseCallExcel(buffer: Buffer): ParseResult {
       teamName: findValue(raw, TEAM_KEYS),
       disposition: findValue(raw, DISPOSITION_KEYS),
       language: findValue(raw, LANGUAGE_KEYS),
+      durationSeconds: parseDurationToSeconds(durationStr),
     });
   });
 
