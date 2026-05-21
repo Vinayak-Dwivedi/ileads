@@ -21,7 +21,8 @@
     "import:beetel-parameters": "tsx scripts/import-beetel-parameters.ts",
     "import:standard-parameters": "tsx scripts/import-standard-parameters.ts",
     "reset:beetel-parameters": "tsx scripts/reset-beetel-parameters.ts",
-    "worker:queue": "tsx --require ./scripts/_stt-preload.cjs scripts/queue-worker.ts"
+    "worker:queue": "tsx --require ./scripts/_stt-preload.cjs scripts/queue-worker.ts",
+    "user:create": "tsx scripts/create-user.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
@@ -36,6 +37,7 @@
     "@radix-ui/react-label": "^2.1.1",
     "@radix-ui/react-select": "^2.1.4",
     "@radix-ui/react-slot": "^1.1.1",
+    "@sentry/nextjs": "^10.53.1",
     "@tanstack/react-table": "^8.21.3",
     "ai": "^6.0.185",
     "bcryptjs": "^2.4.3",

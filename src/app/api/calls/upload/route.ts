@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { requireSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { saveAudioFile } from "@/lib/audio-storage";
 import { probeAudioDurationSeconds } from "@/lib/audio-duration";
+import { requireRole } from "@/lib/rbac";
+import { writeAuditLog } from "@/lib/audit-log";
 
 export const runtime = "nodejs";
 
@@ -71,7 +72,9 @@ async function assertBelongsToClient(
 
 export async function POST(request: Request) {
   try {
-    const session = await requireSession();
+    const check = await requireRole("AGENT");
+    if (!check.ok) return check.response;
+    const session = check.session;
     const form = await request.formData();
 
     const meta = UploadMetadataSchema.safeParse({
@@ -149,6 +152,15 @@ export async function POST(request: Request) {
 
     revalidatePath("/calls");
     revalidatePath("/dashboard");
+
+    void writeAuditLog({
+      action: "CALL_UPLOADED",
+      entity: "Call",
+      clientId: session.clientId,
+      actorUserId: session.userId,
+      actorClientAccessId: session.userId ? undefined : session.accessId,
+      diff: { count: created.length, ids: created.map((c) => c.id) },
+    });
 
     return NextResponse.json({ ok: true, count: created.length, calls: created });
   } catch (error) {

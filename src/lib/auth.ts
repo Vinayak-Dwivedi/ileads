@@ -1,5 +1,6 @@
 // Node-side authentication helpers. Uses bcrypt to verify passwords against
-// the ClientAccess table; cookie signing/verification lives in lib/session.
+// the User table (per-user login) and ClientAccess table (legacy single
+// password). Cookie signing/verification lives in lib/session.
 // All routes that need to know "who is logged in" should call getSession().
 
 import "server-only";
@@ -25,6 +26,18 @@ export async function getSession(): Promise<AuthenticatedSession | null> {
   const token = store.get(SESSION_COOKIE_NAME)?.value;
   const payload = await verifySession(token);
   if (!payload) return null;
+
+  // Per-user session: validate against User table.
+  if (payload.userId) {
+    const user = await prisma.user.findFirst({
+      where: { id: payload.userId, isActive: true, clientId: payload.clientId },
+      include: { client: true },
+    });
+    if (!user || !user.client.isActive) return null;
+    return { ...payload, role: user.role, clientName: user.client.name };
+  }
+
+  // Legacy ClientAccess session.
   const access = await prisma.clientAccess.findFirst({
     where: { id: payload.accessId, isActive: true },
     include: { client: true },
@@ -41,6 +54,39 @@ export async function requireSession(): Promise<AuthenticatedSession> {
   return session;
 }
 
+// Per-user login: tries the (clientId-scoped) email + password against User.
+// Returns a signed session token on success, or null on failure.
+export async function attemptUserLogin(
+  email: string,
+  password: string,
+): Promise<string | null> {
+  if (!email || !password) return null;
+  const candidates = await prisma.user.findMany({
+    where: {
+      email: { equals: email, mode: "insensitive" },
+      isActive: true,
+      client: { isActive: true },
+    },
+  });
+  for (const user of candidates) {
+    const ok = await bcrypt.compare(password, user.passwordHash);
+    if (ok) {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { lastLoginAt: new Date() },
+      });
+      return signSession({
+        accessId: user.id,
+        clientId: user.clientId,
+        userId: user.id,
+        role: user.role,
+      });
+    }
+  }
+  return null;
+}
+
+// Legacy single-password login (kept for back-compat during the hybrid window).
 export async function attemptPasswordLogin(password: string): Promise<string | null> {
   if (!password) return null;
   const candidates = await prisma.clientAccess.findMany({

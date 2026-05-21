@@ -7,8 +7,12 @@ export const SESSION_COOKIE_NAME = "qms_session";
 const SESSION_TTL_SECONDS = 60 * 60 * 24 * 7; // 7 days
 
 export interface SessionPayload {
+  // For legacy single-password sessions, accessId is the ClientAccess id.
+  // For per-user sessions, accessId is the User id and userId === accessId.
   accessId: string;
   clientId: string;
+  userId?: string; // present iff session was issued via per-user login
+  role?: "OWNER" | "AUDITOR" | "AGENT" | "VIEWER";
   exp: number; // seconds since epoch
 }
 
@@ -77,6 +81,7 @@ export async function verifySession(token: string | undefined | null): Promise<S
   }
   if (!payload?.accessId || !payload?.clientId) return null;
   if (typeof payload.exp !== "number" || payload.exp * 1000 < Date.now()) return null;
+  if (payload.role && !["OWNER", "AUDITOR", "AGENT", "VIEWER"].includes(payload.role)) return null;
   return payload;
 }
 

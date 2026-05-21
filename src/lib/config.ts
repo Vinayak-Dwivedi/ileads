@@ -61,6 +61,16 @@ const EnvSchema = z.object({
   // Auth rate-limiting
   AUTH_RATE_LIMIT_MAX: z.coerce.number().int().positive().default(5),
   AUTH_RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(15 * 60 * 1000),
+
+  // Observability (Sentry no-ops when DSN missing)
+  SENTRY_DSN: z.string().optional(),
+  NEXT_PUBLIC_SENTRY_DSN: z.string().optional(),
+  SENTRY_TRACES_SAMPLE_RATE: z.coerce.number().min(0).max(1).default(0.1),
+  SENTRY_PROFILES_SAMPLE_RATE: z.coerce.number().min(0).max(1).default(0),
+
+  // Database connection pool
+  DATABASE_POOL_SIZE: z.coerce.number().int().positive().default(10),
+  DATABASE_CONNECTION_TIMEOUT_SECONDS: z.coerce.number().int().positive().default(10),
 });
 
 export type AppConfig = z.infer<typeof EnvSchema>;

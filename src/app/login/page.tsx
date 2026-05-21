@@ -19,9 +19,23 @@ export default async function LoginPage({ searchParams }: PageProps) {
         </div>
         <h2 className="text-2xl font-semibold text-slate-800 mb-1.5">Sign in</h2>
         <p className="text-sm text-slate-500 mb-6">
-          Enter the workspace password to access the QMS dashboard.
+          Sign in with your user account, or leave email empty for legacy workspace login.
         </p>
         <form method="post" action={action} className="space-y-4">
+          <div>
+            <label htmlFor="email" className="block text-xs text-slate-500 mb-1.5">
+              Email <span className="text-slate-400">(optional)</span>
+            </label>
+            <input
+              id="email"
+              name="email"
+              type="email"
+              autoComplete="email"
+              placeholder="you@example.com"
+              autoFocus
+              className="h-11 w-full rounded-lg border border-slate-200 px-3 text-sm focus:border-blue-500 focus:outline-none"
+            />
+          </div>
           <div>
             <label htmlFor="password" className="block text-xs text-slate-500 mb-1.5">
               Password
@@ -33,12 +47,11 @@ export default async function LoginPage({ searchParams }: PageProps) {
               autoComplete="current-password"
               placeholder="••••••••"
               required
-              autoFocus
               className="h-11 w-full rounded-lg border border-slate-200 px-3 text-sm focus:border-blue-500 focus:outline-none"
             />
           </div>
           {hasError ? (
-            <p className="text-sm text-red-600">Incorrect password. Try again.</p>
+            <p className="text-sm text-red-600">Incorrect credentials. Try again.</p>
           ) : null}
           <button
             type="submit"

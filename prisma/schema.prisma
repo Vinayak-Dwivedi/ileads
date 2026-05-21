@@ -116,6 +116,13 @@ enum ParameterResult {
   NOT_FOUND
 }
 
+enum UserRole {
+  OWNER
+  AUDITOR
+  AGENT
+  VIEWER
+}
+
 // ---------- Tenancy ----------
 
 model Client {
@@ -128,28 +135,79 @@ model Client {
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
-  accesses   ClientAccess[]
-  campaigns  Campaign[]
-  teams      Team[]
-  agents     Agent[]
-  parameters ClientParameter[]
-  calls      Call[]
+  accesses     ClientAccess[]
+  users        User[]
+  campaigns    Campaign[]
+  teams        Team[]
+  agents       Agent[]
+  parameters   ClientParameter[]
+  calls        Call[]
   auditPrompts ClientAuditPrompt[]
+  auditLogs    AuditLog[]
 
   @@map("clients")
+}
+
+// Per-user identity. Replaces ClientAccess long-term; both coexist during the
+// hybrid-auth window. A user belongs to exactly one client (multi-tenant
+// isolation). Email is unique within a client.
+model User {
+  id           String    @id @default(cuid())
+  clientId     String    @map("client_id")
+  email        String
+  passwordHash String    @map("password_hash")
+  name         String?
+  role         UserRole  @default(VIEWER)
+  isActive     Boolean   @default(true) @map("is_active")
+  lastLoginAt  DateTime? @map("last_login_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  client    Client     @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  auditLogs AuditLog[]
+
+  @@unique([clientId, email])
+  @@index([clientId])
+  @@index([clientId, isActive])
+  @@map("users")
+}
+
+// Append-only record of meaningful actions for compliance and forensics.
+// Either actorUserId or actorClientAccessId is set (legacy login uses the
+// latter). ipAddress + userAgent are best-effort.
+model AuditLog {
+  id                  String   @id @default(cuid())
+  clientId            String   @map("client_id")
+  actorUserId         String?  @map("actor_user_id")
+  actorClientAccessId String?  @map("actor_client_access_id")
+  action              String
+  entity              String?
+  entityId            String?  @map("entity_id")
+  diff                Json?
+  ipAddress           String?  @map("ip_address")
+  userAgent           String?  @map("user_agent")
+  createdAt           DateTime @default(now()) @map("created_at")
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  actor  User?  @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([clientId, createdAt])
+  @@index([actorUserId])
+  @@index([entity, entityId])
+  @@map("audit_logs")
 }
 
 // Editable, per-client audit prompt template. Only one row should have
 // isActive=true per client at a time. Versioned so future edits can be tracked.
 model ClientAuditPrompt {
-  id          String   @id @default(cuid())
-  clientId    String   @map("client_id")
-  promptName  String   @default("Default audit prompt") @map("prompt_name")
-  promptText  String   @map("prompt_text")
-  isActive    Boolean  @default(true) @map("is_active")
-  versionNo   Int      @default(1) @map("version_no")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  id         String   @id @default(cuid())
+  clientId   String   @map("client_id")
+  promptName String   @default("Default audit prompt") @map("prompt_name")
+  promptText String   @map("prompt_text")
+  isActive   Boolean  @default(true) @map("is_active")
+  versionNo  Int      @default(1) @map("version_no")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
 
   client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
@@ -162,7 +220,7 @@ model ClientAuditPrompt {
 // No user accounts yet — `label` lets you identify which credential is in use.
 model ClientAccess {
   id           String    @id @default(cuid())
-  clientId    String    @map("client_id")
+  clientId     String    @map("client_id")
   label        String
   passwordHash String    @map("password_hash")
   isActive     Boolean   @default(true) @map("is_active")
@@ -187,7 +245,7 @@ model Campaign {
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
 
-  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  client Client  @relation(fields: [clientId], references: [id], onDelete: Cascade)
   calls  Call[]
   agents Agent[]
 
@@ -270,9 +328,9 @@ model ClientParameter {
   createdAt            DateTime    @default(now()) @map("created_at")
   updatedAt            DateTime    @updatedAt @map("updated_at")
 
-  client             Client                  @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  standardParameter  StandardAuditParameter? @relation(fields: [standardParameterId], references: [id], onDelete: SetNull)
-  aiParameterScores  AiParameterScore[]
+  client            Client                  @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  standardParameter StandardAuditParameter? @relation(fields: [standardParameterId], references: [id], onDelete: SetNull)
+  aiParameterScores AiParameterScore[]
 
   @@index([clientId])
   @@index([clientId, displayOrder])
@@ -283,51 +341,51 @@ model ClientParameter {
 // ---------- Calls ----------
 
 model Call {
-  id                       String        @id @default(cuid())
-  clientId                 String        @map("client_id")
-  campaignId               String?       @map("campaign_id")
-  agentId                  String?       @map("agent_id")
-  teamId                   String?       @map("team_id")
-  externalCallId           String?       @map("external_call_id")
-  callerNumber             String?       @map("caller_number")
-  calleeNumber             String?       @map("callee_number")
-  customerName             String?       @map("customer_name")
-  direction                CallDirection @default(UNKNOWN)
-  callStartedAt            DateTime?     @map("call_started_at")
-  callEndedAt              DateTime?     @map("call_ended_at")
-  durationSeconds          Int?          @map("duration_seconds")
-  firstResponseSeconds     Int?          @map("first_response_seconds")
-  averageHandleSeconds     Int?          @map("average_handle_seconds")
-  recordingUrl             String?       @map("recording_url")
-  originalFileName         String?       @map("original_file_name")
-  storedFileName           String?       @map("stored_file_name")
-  audioPath                String?       @map("audio_path")
-  mimeType                 String?       @map("mime_type")
-  fileSizeBytes            BigInt?       @map("file_size_bytes")
-  language                 String?
-  status                   CallStatus    @default(UNKNOWN)
-  disposition              String?
-  sentiment                String?
-  aiScore                  Float?        @map("ai_score")
-  manualScore              Float?        @map("manual_score")
-  finalScore               Float?        @map("final_score")
-  manualDisposition        String?       @map("manual_disposition")
-  processingStatus         String?       @map("processing_status")
-  processingStartedAt      DateTime?     @map("processing_started_at")
-  processingError          String?       @map("processing_error")
-  createdAt                DateTime      @default(now()) @map("created_at")
-  updatedAt                DateTime      @updatedAt @map("updated_at")
+  id                   String        @id @default(cuid())
+  clientId             String        @map("client_id")
+  campaignId           String?       @map("campaign_id")
+  agentId              String?       @map("agent_id")
+  teamId               String?       @map("team_id")
+  externalCallId       String?       @map("external_call_id")
+  callerNumber         String?       @map("caller_number")
+  calleeNumber         String?       @map("callee_number")
+  customerName         String?       @map("customer_name")
+  direction            CallDirection @default(UNKNOWN)
+  callStartedAt        DateTime?     @map("call_started_at")
+  callEndedAt          DateTime?     @map("call_ended_at")
+  durationSeconds      Int?          @map("duration_seconds")
+  firstResponseSeconds Int?          @map("first_response_seconds")
+  averageHandleSeconds Int?          @map("average_handle_seconds")
+  recordingUrl         String?       @map("recording_url")
+  originalFileName     String?       @map("original_file_name")
+  storedFileName       String?       @map("stored_file_name")
+  audioPath            String?       @map("audio_path")
+  mimeType             String?       @map("mime_type")
+  fileSizeBytes        BigInt?       @map("file_size_bytes")
+  language             String?
+  status               CallStatus    @default(UNKNOWN)
+  disposition          String?
+  sentiment            String?
+  aiScore              Float?        @map("ai_score")
+  manualScore          Float?        @map("manual_score")
+  finalScore           Float?        @map("final_score")
+  manualDisposition    String?       @map("manual_disposition")
+  processingStatus     String?       @map("processing_status")
+  processingStartedAt  DateTime?     @map("processing_started_at")
+  processingError      String?       @map("processing_error")
+  createdAt            DateTime      @default(now()) @map("created_at")
+  updatedAt            DateTime      @updatedAt @map("updated_at")
 
-  client         Client           @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  campaign       Campaign?        @relation(fields: [campaignId], references: [id], onDelete: SetNull)
-  agent          Agent?           @relation(fields: [agentId], references: [id], onDelete: SetNull)
-  team           Team?            @relation(fields: [teamId], references: [id], onDelete: SetNull)
-  transcript     CallTranscript?
-  aiAudits       AiAudit[]
-  events         CallEvent[]
-  insights       AiInsight[]
-  manualReviews  ManualReview[]
-  notes          CallNote[]
+  client             Client                        @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  campaign           Campaign?                     @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  agent              Agent?                        @relation(fields: [agentId], references: [id], onDelete: SetNull)
+  team               Team?                         @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  transcript         CallTranscript?
+  aiAudits           AiAudit[]
+  events             CallEvent[]
+  insights           AiInsight[]
+  manualReviews      ManualReview[]
+  notes              CallNote[]
   segmentCorrections TranscriptSegmentCorrection[]
 
   @@unique([clientId, externalCallId])
@@ -340,44 +398,44 @@ model Call {
 }
 
 model CallTranscript {
-  id          String           @id @default(cuid())
-  callId      String           @unique @map("call_id")
-  source      TranscriptSource @default(AI)
-  language    String?
-  modelUsed   String?          @map("model_used")
-  fallbackUsed Boolean         @default(false) @map("fallback_used")
-  fallbackReason String?       @map("fallback_reason")
-  attemptedModels Json?        @map("attempted_models")
-  qualityFlags Json?           @map("quality_flags")
-  speakerLabelsCorrected Boolean @default(false) @map("speaker_labels_corrected")
-  speakerCorrectionNote String?  @map("speaker_correction_note")
-  speakerCorrectedAt DateTime?   @map("speaker_corrected_at")
-  fullText    String           @map("full_text")
-  generatedAt DateTime?        @map("generated_at")
-  createdAt   DateTime         @default(now()) @map("created_at")
-  updatedAt   DateTime         @updatedAt @map("updated_at")
+  id                     String           @id @default(cuid())
+  callId                 String           @unique @map("call_id")
+  source                 TranscriptSource @default(AI)
+  language               String?
+  modelUsed              String?          @map("model_used")
+  fallbackUsed           Boolean          @default(false) @map("fallback_used")
+  fallbackReason         String?          @map("fallback_reason")
+  attemptedModels        Json?            @map("attempted_models")
+  qualityFlags           Json?            @map("quality_flags")
+  speakerLabelsCorrected Boolean          @default(false) @map("speaker_labels_corrected")
+  speakerCorrectionNote  String?          @map("speaker_correction_note")
+  speakerCorrectedAt     DateTime?        @map("speaker_corrected_at")
+  fullText               String           @map("full_text")
+  generatedAt            DateTime?        @map("generated_at")
+  createdAt              DateTime         @default(now()) @map("created_at")
+  updatedAt              DateTime         @updatedAt @map("updated_at")
 
-  call     Call                 @relation(fields: [callId], references: [id], onDelete: Cascade)
-  segments TranscriptSegment[]
+  call               Call                          @relation(fields: [callId], references: [id], onDelete: Cascade)
+  segments           TranscriptSegment[]
   segmentCorrections TranscriptSegmentCorrection[]
 
   @@map("call_transcripts")
 }
 
 model TranscriptSegment {
-  id           String      @id @default(cuid())
-  transcriptId String      @map("transcript_id")
-  sequence     Int
-  speaker      SpeakerRole @default(UNKNOWN)
-  startMs      Int         @map("start_ms")
-  endMs        Int         @map("end_ms")
-  text         String
-  confidenceScore Float?   @map("confidence_score")
-  channel      String?
-  speakerSource String?    @map("speaker_source")
-  createdAt    DateTime    @default(now()) @map("created_at")
+  id              String      @id @default(cuid())
+  transcriptId    String      @map("transcript_id")
+  sequence        Int
+  speaker         SpeakerRole @default(UNKNOWN)
+  startMs         Int         @map("start_ms")
+  endMs           Int         @map("end_ms")
+  text            String
+  confidenceScore Float?      @map("confidence_score")
+  channel         String?
+  speakerSource   String?     @map("speaker_source")
+  createdAt       DateTime    @default(now()) @map("created_at")
 
-  transcript CallTranscript @relation(fields: [transcriptId], references: [id], onDelete: Cascade)
+  transcript  CallTranscript                @relation(fields: [transcriptId], references: [id], onDelete: Cascade)
   corrections TranscriptSegmentCorrection[]
 
   @@index([transcriptId, sequence])
@@ -414,40 +472,40 @@ model TranscriptSegmentCorrection {
 // ---------- AI audit ----------
 
 model AiAudit {
-  id                      String      @id @default(cuid())
-  callId                  String      @map("call_id")
-  modelUsed               String?     @map("model_used")
-  promptVersion           String?     @map("prompt_version")
-  auditMode               String?     @map("audit_mode")
-  auditRunNo              Int         @default(1) @map("audit_run_no")
-  isLatest                Boolean     @default(true) @map("is_latest")
-  status                  AuditStatus @default(PENDING)
-  overallScore            Float?      @map("overall_score")
-  maxPossibleScore        Float?      @map("max_possible_score")
-  scorePercent            Float?      @map("score_percent")
-  summary                 String?
-  sentiment               String?
-  agentTone               String?     @map("agent_tone")
-  customerEmotion         String?     @map("customer_emotion")
-  hasComplianceIssue      Boolean?    @map("has_compliance_issue")
-  complianceSeverity      String?     @map("compliance_severity")
-  improvementArea         String?     @map("improvement_area")
-  coachingRecommendation  String?     @map("coaching_recommendation")
-  nextBestAction          String?     @map("next_best_action")
-  agentStrengths          Json?       @map("agent_strengths")
-  agentWeaknesses         Json?       @map("agent_weaknesses")
-  customerObjections      Json?       @map("customer_objections")
-  complianceIssues        Json?       @map("compliance_issues")
-  promptText              String?     @map("prompt_text")
-  rawAiResponse           Json?       @map("raw_ai_response")
-  validatedResponse       Json?       @map("validated_response")
-  errorMessage            String?     @map("error_message")
-  startedAt               DateTime?   @map("started_at")
-  completedAt             DateTime?   @map("completed_at")
-  createdAt               DateTime    @default(now()) @map("created_at")
-  updatedAt               DateTime    @updatedAt @map("updated_at")
+  id                     String      @id @default(cuid())
+  callId                 String      @map("call_id")
+  modelUsed              String?     @map("model_used")
+  promptVersion          String?     @map("prompt_version")
+  auditMode              String?     @map("audit_mode")
+  auditRunNo             Int         @default(1) @map("audit_run_no")
+  isLatest               Boolean     @default(true) @map("is_latest")
+  status                 AuditStatus @default(PENDING)
+  overallScore           Float?      @map("overall_score")
+  maxPossibleScore       Float?      @map("max_possible_score")
+  scorePercent           Float?      @map("score_percent")
+  summary                String?
+  sentiment              String?
+  agentTone              String?     @map("agent_tone")
+  customerEmotion        String?     @map("customer_emotion")
+  hasComplianceIssue     Boolean?    @map("has_compliance_issue")
+  complianceSeverity     String?     @map("compliance_severity")
+  improvementArea        String?     @map("improvement_area")
+  coachingRecommendation String?     @map("coaching_recommendation")
+  nextBestAction         String?     @map("next_best_action")
+  agentStrengths         Json?       @map("agent_strengths")
+  agentWeaknesses        Json?       @map("agent_weaknesses")
+  customerObjections     Json?       @map("customer_objections")
+  complianceIssues       Json?       @map("compliance_issues")
+  promptText             String?     @map("prompt_text")
+  rawAiResponse          Json?       @map("raw_ai_response")
+  validatedResponse      Json?       @map("validated_response")
+  errorMessage           String?     @map("error_message")
+  startedAt              DateTime?   @map("started_at")
+  completedAt            DateTime?   @map("completed_at")
+  createdAt              DateTime    @default(now()) @map("created_at")
+  updatedAt              DateTime    @updatedAt @map("updated_at")
 
-  call            Call                @relation(fields: [callId], references: [id], onDelete: Cascade)
+  call            Call               @relation(fields: [callId], references: [id], onDelete: Cascade)
   parameterScores AiParameterScore[]
 
   @@index([callId])
@@ -457,22 +515,22 @@ model AiAudit {
 }
 
 model AiParameterScore {
-  id                      String           @id @default(cuid())
-  aiAuditId               String           @map("ai_audit_id")
-  parameterId             String           @map("parameter_id")
-  result                  ParameterResult  @default(NOT_FOUND)
-  score                   Int
-  maxScore                Int              @map("max_score")
-  isPassed                Boolean          @map("is_passed")
-  reasoning               String?
-  evidenceText            String?          @map("evidence_text")
-  evidenceStartSeconds    Float?           @map("evidence_start_seconds")
-  evidenceEndSeconds      Float?           @map("evidence_end_seconds")
-  confidenceScore         Float?           @map("confidence_score")
-  createdAt               DateTime         @default(now()) @map("created_at")
+  id                   String          @id @default(cuid())
+  aiAuditId            String          @map("ai_audit_id")
+  parameterId          String          @map("parameter_id")
+  result               ParameterResult @default(NOT_FOUND)
+  score                Int
+  maxScore             Int             @map("max_score")
+  isPassed             Boolean         @map("is_passed")
+  reasoning            String?
+  evidenceText         String?         @map("evidence_text")
+  evidenceStartSeconds Float?          @map("evidence_start_seconds")
+  evidenceEndSeconds   Float?          @map("evidence_end_seconds")
+  confidenceScore      Float?          @map("confidence_score")
+  createdAt            DateTime        @default(now()) @map("created_at")
 
-  aiAudit   AiAudit          @relation(fields: [aiAuditId], references: [id], onDelete: Cascade)
-  parameter ClientParameter  @relation(fields: [parameterId], references: [id], onDelete: Restrict)
+  aiAudit   AiAudit         @relation(fields: [aiAuditId], references: [id], onDelete: Cascade)
+  parameter ClientParameter @relation(fields: [parameterId], references: [id], onDelete: Restrict)
 
   @@unique([aiAuditId, parameterId])
   @@index([aiAuditId])
@@ -481,21 +539,21 @@ model AiParameterScore {
 }
 
 model CallEvent {
-  id                String         @id @default(cuid())
-  callId            String         @map("call_id")
-  aiAuditId         String?        @map("ai_audit_id")
-  eventType         CallEventType  @map("event_type")
-  speaker           EventSpeaker?
-  startTimeSeconds  Float?         @map("start_time_seconds")
-  endTimeSeconds    Float?         @map("end_time_seconds")
-  title             String?
-  description       String?
-  evidenceText      String?        @map("evidence_text")
-  severity          EventSeverity?
-  confidenceScore   Float?         @map("confidence_score")
-  payload           Json?
-  occurredAt        DateTime       @default(now()) @map("occurred_at")
-  createdAt         DateTime       @default(now()) @map("created_at")
+  id               String         @id @default(cuid())
+  callId           String         @map("call_id")
+  aiAuditId        String?        @map("ai_audit_id")
+  eventType        CallEventType  @map("event_type")
+  speaker          EventSpeaker?
+  startTimeSeconds Float?         @map("start_time_seconds")
+  endTimeSeconds   Float?         @map("end_time_seconds")
+  title            String?
+  description      String?
+  evidenceText     String?        @map("evidence_text")
+  severity         EventSeverity?
+  confidenceScore  Float?         @map("confidence_score")
+  payload          Json?
+  occurredAt       DateTime       @default(now()) @map("occurred_at")
+  createdAt        DateTime       @default(now()) @map("created_at")
 
   call Call @relation(fields: [callId], references: [id], onDelete: Cascade)
 
@@ -522,18 +580,18 @@ model AiInsight {
 // ---------- Manual review ----------
 
 model ManualReview {
-  id            String       @id @default(cuid())
-  callId        String       @map("call_id")
-  reviewerName  String       @map("reviewer_name")
-  status        ReviewStatus @default(PENDING)
-  score         Float?
-  maxScore      Float?       @map("max_score")
-  scorePercent  Float?       @map("score_percent")
-  notes         String?
-  startedAt     DateTime?    @map("started_at")
-  completedAt   DateTime?    @map("completed_at")
-  createdAt     DateTime     @default(now()) @map("created_at")
-  updatedAt     DateTime     @updatedAt @map("updated_at")
+  id           String       @id @default(cuid())
+  callId       String       @map("call_id")
+  reviewerName String       @map("reviewer_name")
+  status       ReviewStatus @default(PENDING)
+  score        Float?
+  maxScore     Float?       @map("max_score")
+  scorePercent Float?       @map("score_percent")
+  notes        String?
+  startedAt    DateTime?    @map("started_at")
+  completedAt  DateTime?    @map("completed_at")
+  createdAt    DateTime     @default(now()) @map("created_at")
+  updatedAt    DateTime     @updatedAt @map("updated_at")
 
   call Call @relation(fields: [callId], references: [id], onDelete: Cascade)
 
