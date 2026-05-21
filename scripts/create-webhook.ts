@@ -8,7 +8,8 @@
 
 import "dotenv/config";
 import { prisma } from "../src/lib/db";
-import { generateWebhookSecret, WEBHOOK_EVENTS } from "../src/lib/webhooks";
+import { generateWebhookSecret } from "../src/lib/credentials";
+import { WEBHOOK_EVENTS } from "../src/lib/webhooks";
 
 interface Args {
   client: string;

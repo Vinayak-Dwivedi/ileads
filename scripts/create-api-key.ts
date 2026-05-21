@@ -7,7 +7,7 @@
 
 import "dotenv/config";
 import { prisma } from "../src/lib/db";
-import { generateApiKey } from "../src/lib/api-key";
+import { generateApiKey } from "../src/lib/credentials";
 
 interface Args {
   client: string;

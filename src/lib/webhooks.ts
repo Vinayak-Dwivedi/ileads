@@ -1,7 +1,12 @@
 import "server-only";
-import { createHmac, randomBytes } from "node:crypto";
+import { createHmac } from "node:crypto";
 import { prisma } from "@/lib/db";
 import { logger } from "@/lib/logger";
+import { generateWebhookSecret } from "@/lib/credentials";
+
+// Re-exported so legacy callers (scripts/create-webhook.ts, webhooksRouter)
+// keep working unchanged.
+export { generateWebhookSecret };
 
 // Canonical event taxonomy. Add new strings here so consumers can subscribe
 // to them by name. Keep names dot-separated and stable — they're part of the
@@ -21,11 +26,6 @@ export interface WebhookDeliveryJob {
   payload: Record<string, unknown>;
   // Pre-generated UUID so retries dedupe deliveries on the consumer side.
   deliveryId: string;
-}
-
-/** Generate a fresh HMAC secret to store on a Webhook row. */
-export function generateWebhookSecret(): string {
-  return `whsec_${randomBytes(32).toString("base64url")}`;
 }
 
 /**

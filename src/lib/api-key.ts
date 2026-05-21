@@ -1,39 +1,16 @@
 import "server-only";
 import bcrypt from "bcryptjs";
-import { randomBytes } from "node:crypto";
 import { prisma } from "@/lib/db";
 import { ApiError } from "@/server/api/errors";
+import { API_KEY_PREFIX, generateApiKey, type GeneratedApiKey } from "@/lib/credentials";
 
-const KEY_PREFIX = "qms_live_";
+// Re-export the pure crypto helper for backwards compatibility — earlier
+// callers (Phase 3) imported generateApiKey from here. New CLI / non-server
+// code should import directly from `@/lib/credentials`.
+export { generateApiKey };
+export type GeneratedKey = GeneratedApiKey;
+
 const PREFIX_LEN = 8;
-const SECRET_LEN = 32;
-
-export interface GeneratedKey {
-  // The full plaintext key (qms_live_<prefix>_<secret>). Shown to the caller
-  // ONCE at creation; never recoverable afterwards.
-  plaintext: string;
-  // The 8-character lookup prefix stored unhashed in the DB.
-  prefix: string;
-  // The bcrypt hash of the secret half.
-  hashedSecret: string;
-}
-
-function randomBase62(length: number): string {
-  const chars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
-  const buf = randomBytes(length);
-  let out = "";
-  for (let i = 0; i < length; i += 1) out += chars[buf[i] % chars.length];
-  return out;
-}
-
-/** Mint a new API key. Hash + prefix go to DB; plaintext goes to the user. */
-export async function generateApiKey(): Promise<GeneratedKey> {
-  const prefix = randomBase62(PREFIX_LEN);
-  const secret = randomBase62(SECRET_LEN);
-  const plaintext = `${KEY_PREFIX}${prefix}_${secret}`;
-  const hashedSecret = await bcrypt.hash(secret, 12);
-  return { plaintext, prefix, hashedSecret };
-}
 
 export interface VerifiedApiKey {
   id: string;
@@ -53,10 +30,10 @@ export async function verifyApiKeyHeader(authHeader: string | null): Promise<Ver
     throw new ApiError("UNAUTHORIZED", "Expected `Authorization: Bearer <api-key>`.");
   }
   const token = m[1].trim();
-  if (!token.startsWith(KEY_PREFIX)) {
+  if (!token.startsWith(API_KEY_PREFIX)) {
     throw new ApiError("UNAUTHORIZED", "Invalid API key format.");
   }
-  const tail = token.slice(KEY_PREFIX.length);
+  const tail = token.slice(API_KEY_PREFIX.length);
   const sep = tail.indexOf("_");
   if (sep !== PREFIX_LEN) {
     throw new ApiError("UNAUTHORIZED", "Invalid API key format.");
@@ -105,4 +82,4 @@ export async function verifyApiKeyHeader(authHeader: string | null): Promise<Ver
   };
 }
 
-export const API_KEY_PREFIX = KEY_PREFIX;
+export { API_KEY_PREFIX };
