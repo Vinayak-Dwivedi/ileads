@@ -129,3 +129,45 @@ export async function toggleAgentActive(
     };
   }
 }
+
+export async function updateAgent(formData: FormData): Promise<AgentActionResult> {
+  try {
+    const agentId = String(formData.get("agentId") ?? "").trim();
+    const name = String(formData.get("name") ?? "").trim();
+    const employeeCode = String(formData.get("employeeCode") ?? "").trim();
+    const campaignId = String(formData.get("campaignId") ?? "").trim() || null;
+
+    if (!agentId) return { ok: false, error: "Missing agent id." };
+    if (!name) return { ok: false, error: "Agent name is required." };
+    if (!employeeCode) return { ok: false, error: "Agent ID is required." };
+
+    const { session, agent } = await getSessionAgent(agentId);
+    if (!agent) return { ok: false, error: "Agent not found." };
+
+    const existing = await prisma.agent.findFirst({
+      where: {
+        clientId: session.clientId,
+        employeeCode,
+        NOT: { id: agent.id },
+      },
+      select: { id: true },
+    });
+
+    if (existing) {
+      return { ok: false, error: `Agent ID "${employeeCode}" already exists.` };
+    }
+
+    await prisma.agent.update({
+      where: { id: agent.id },
+      data: { name, employeeCode, campaignId },
+    });
+
+    revalidateAgentRoutes();
+    return { ok: true, message: "Agent updated successfully." };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "Failed to update agent.",
+    };
+  }
+}

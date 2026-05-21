@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/features/dashboard/components/app-sidebar";
 import { SiteHeader } from "@/features/dashboard/components/site-header";
+import { Toaster } from "@/components/ui/sonner";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const session = await getSession();
@@ -21,6 +22,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <SidebarInset className="">
         <SiteHeader />
         <main className="min-w-0">{children}</main>
+        <Toaster position="top-right" richColors closeButton />
       </SidebarInset>
     </SidebarProvider>
   );

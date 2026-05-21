@@ -580,7 +580,7 @@ export default async function CallDetailPage({ params }: PageProps) {
           {kpiGrid}
 
           <Tabs defaultValue="overview" className="w-full">
-            <TabsList className="w-full justify-start overflow-x-auto rounded-lg border border-slate-200 bg-white px-2" variant="line">
+            <TabsList className="no-scrollbar w-full justify-start overflow-x-auto rounded-lg border border-slate-200 bg-white px-2" variant="line">
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="transcript">Transcript</TabsTrigger>
               <TabsTrigger value="audit">Audit Results</TabsTrigger>

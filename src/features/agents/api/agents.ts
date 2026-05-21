@@ -11,6 +11,7 @@ export interface AgentTableRow {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  campaignId: string | null;
   campaignName: string | null;
   teamName: string | null;
   callCount: number;
@@ -68,6 +69,7 @@ export async function getAgentsPageData(clientId: string): Promise<AgentsPageDat
         isActive: agent.isActive,
         createdAt: formatShortDate(agent.createdAt),
         updatedAt: formatShortDate(agent.updatedAt),
+        campaignId: agent.campaignId,
         campaignName,
         teamName,
         callCount,

@@ -1,7 +1,7 @@
 "use client";
 
 import type { ColumnDef } from "@tanstack/react-table";
-import { PowerIcon, Trash2Icon, UserIcon } from "lucide-react";
+import { PencilLineIcon, PowerIcon, Trash2Icon, UserIcon } from "lucide-react";
 
 import { DataTableColumnHeader } from "@/components/data-table/data-table-column-header";
 import { Button } from "@/components/ui/button";
@@ -17,8 +17,8 @@ import type { AgentTableRow } from "@/features/agents/api/agents";
 export const agentsColumnLabels: Record<string, string> = {
   name: "Agent",
   employeeCode: "Agent ID",
-  email: "Email",
-  teamName: "Team",
+  // email: "Email",
+  // teamName: "Team",
   campaignName: "Campaign",
   callCount: "Calls",
   isActive: "Status",
@@ -28,6 +28,7 @@ export const agentsColumnLabels: Record<string, string> = {
 interface AgentActionHandlers {
   busyAgentId: string | null;
   onDelete: (agent: AgentTableRow) => void;
+  onEdit: (agent: AgentTableRow) => void;
   onToggle: (agent: AgentTableRow) => void;
   pending: boolean;
 }
@@ -35,6 +36,7 @@ interface AgentActionHandlers {
 export function getAgentsTableColumns({
   busyAgentId,
   onDelete,
+  onEdit,
   onToggle,
   pending,
 }: AgentActionHandlers): ColumnDef<AgentTableRow>[] {
@@ -53,6 +55,10 @@ export function getAgentsTableColumns({
       ),
       cell: ({ row }) => <AgentNameCell agent={row.original} />,
       enableHiding: false,
+      meta: {
+        headClassName: "w-[24%]",
+        cellClassName: "w-[24%]",
+      },
     },
     {
       accessorKey: "employeeCode",
@@ -64,25 +70,29 @@ export function getAgentsTableColumns({
           {row.original.employeeCode ?? row.original.id}
         </span>
       ),
+      meta: {
+        headClassName: "w-[12%]",
+        cellClassName: "w-[12%]",
+      },
     },
-    {
-      accessorKey: "email",
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Email" />
-      ),
-      cell: ({ row }) => (
-        <span className="text-slate-600">{row.original.email ?? "-"}</span>
-      ),
-    },
-    {
-      accessorKey: "teamName",
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Team" />
-      ),
-      cell: ({ row }) => (
-        <span className="text-slate-600">{row.original.teamName ?? "-"}</span>
-      ),
-    },
+    // {
+    //   accessorKey: "email",
+    //   header: ({ column }) => (
+    //     <DataTableColumnHeader column={column} title="Email" />
+    //   ),
+    //   cell: ({ row }) => (
+    //     <span className="text-slate-600">{row.original.email ?? "-"}</span>
+    //   ),
+    // },
+    // {
+    //   accessorKey: "teamName",
+    //   header: ({ column }) => (
+    //     <DataTableColumnHeader column={column} title="Team" />
+    //   ),
+    //   cell: ({ row }) => (
+    //     <span className="text-slate-600">{row.original.teamName ?? "-"}</span>
+    //   ),
+    // },
     {
       accessorKey: "campaignName",
       header: ({ column }) => (
@@ -93,17 +103,25 @@ export function getAgentsTableColumns({
           {row.original.campaignName ?? "-"}
         </span>
       ),
+      meta: {
+        headClassName: "w-[18%]",
+        cellClassName: "w-[18%]",
+      },
     },
     {
       accessorKey: "callCount",
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Calls" className="justify-end" />
+        <DataTableColumnHeader column={column} title="Calls" className="justify-center" />
       ),
       cell: ({ row }) => (
-        <div className="text-right font-mono text-sm text-slate-700">
+        <div className="text-center font-mono text-sm text-slate-700">
           {row.original.callCount.toLocaleString()}
         </div>
       ),
+      meta: {
+        headClassName: "w-[8%]",
+        cellClassName: "w-[8%]",
+      },
     },
     {
       accessorKey: "isActive",
@@ -115,6 +133,10 @@ export function getAgentsTableColumns({
           {row.original.isActive ? "Active" : "Inactive"}
         </Pill>
       ),
+      meta: {
+        headClassName: "w-[12%]",
+        cellClassName: "w-[12%]",
+      },
     },
     {
       accessorKey: "createdAt",
@@ -126,6 +148,10 @@ export function getAgentsTableColumns({
           {row.original.createdAt}
         </span>
       ),
+      meta: {
+        headClassName: "w-[14%]",
+        cellClassName: "w-[14%]",
+      },
     },
     {
       id: "actions",
@@ -135,12 +161,17 @@ export function getAgentsTableColumns({
           agent={row.original}
           busy={busyAgentId === row.original.id}
           onDelete={onDelete}
+          onEdit={onEdit}
           onToggle={onToggle}
           pending={pending}
         />
       ),
       enableHiding: false,
       enableSorting: false,
+      meta: {
+        headClassName: "w-[12%]",
+        cellClassName: "w-[12%]",
+      },
     },
   ];
 }
@@ -165,12 +196,14 @@ function AgentActions({
   agent,
   busy,
   onDelete,
+  onEdit,
   onToggle,
   pending,
 }: {
   agent: AgentTableRow;
   busy: boolean;
   onDelete: (agent: AgentTableRow) => void;
+  onEdit: (agent: AgentTableRow) => void;
   onToggle: (agent: AgentTableRow) => void;
   pending: boolean;
 }) {
@@ -179,6 +212,24 @@ function AgentActions({
   return (
     <div className="flex justify-end">
       <ButtonGroup>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon-sm"
+              disabled={pending}
+              onClick={() => onEdit(agent)}
+              aria-label="Edit agent"
+            >
+              <PencilLineIcon />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="top" sideOffset={6}>
+            Edit agent
+          </TooltipContent>
+        </Tooltip>
+
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
