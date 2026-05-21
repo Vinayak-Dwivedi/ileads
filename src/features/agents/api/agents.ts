@@ -1,7 +1,16 @@
 import "server-only";
 
+import { appRouter, actorFromSession } from "@/server/api";
+import { getSession } from "@/lib/auth";
+import { newTraceId } from "@/lib/logger";
+import { ApiError } from "@/server/api";
 import { prisma } from "@/lib/db";
 import { formatShortDate } from "@/lib/utils";
+
+// Public types preserved for existing page imports. Internally this now
+// delegates to src/server/api/routers/agents.ts for the agent fetch, and
+// keeps the page-data shaping (search text, formatted dates) here so the UI
+// keeps its tidy contract.
 
 export interface AgentTableRow {
   id: string;
@@ -27,25 +36,21 @@ export interface AgentsPageData {
   campaigns: AgentCampaignOption[];
 }
 
+async function sessionContext(clientId: string) {
+  const session = await getSession();
+  if (!session) throw new ApiError("UNAUTHORIZED", "Not signed in.");
+  if (session.clientId !== clientId) {
+    throw new ApiError("FORBIDDEN", "Session client does not match.");
+  }
+  return { actor: actorFromSession(session), traceId: newTraceId() };
+}
+
 export async function getAgentsPageData(clientId: string): Promise<AgentsPageData> {
-  // TODO: consolidate this duplicated agents query into a feature-owned data layer
-  // once all route pages have moved away from direct app-folder Prisma access.
-  const [agents, campaigns] = await Promise.all([
-    prisma.agent.findMany({
-      where: { clientId },
-      include: {
-        campaign: {
-          select: { name: true },
-        },
-        team: {
-          select: { name: true },
-        },
-        _count: {
-          select: { calls: true },
-        },
-      },
-      orderBy: { name: "asc" },
-    }),
+  const ctx = await sessionContext(clientId);
+  const [{ items: agents }, campaigns] = await Promise.all([
+    appRouter.agents.list(ctx, { take: 500 } as never),
+    // Campaign filter list isn't an agent operation — keep here as a small,
+    // page-specific query. Could move into its own router method later.
     prisma.campaign.findMany({
       where: { clientId, isActive: true },
       select: { id: true, name: true },
@@ -59,7 +64,6 @@ export async function getAgentsPageData(clientId: string): Promise<AgentsPageDat
       const campaignName = agent.campaign?.name ?? null;
       const teamName = agent.team?.name ?? null;
       const callCount = agent._count.calls;
-
       return {
         id: agent.id,
         name: agent.name,

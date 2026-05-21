@@ -1,8 +1,17 @@
 import "server-only";
 import { callsRouter } from "./routers/calls";
+import { agentsRouter } from "./routers/agents";
+import { dashboardRouter } from "./routers/dashboard";
+import { auditsRouter, transcriptsRouter } from "./routers/audits";
+import { webhooksRouter } from "./routers/webhooks";
 
 export const appRouter = {
   calls: callsRouter,
+  agents: agentsRouter,
+  dashboard: dashboardRouter,
+  audits: auditsRouter,
+  transcripts: transcriptsRouter,
+  webhooks: webhooksRouter,
 } as const;
 
 export type AppRouter = typeof appRouter;
