@@ -8,6 +8,7 @@ import { probeAudioDurationSeconds } from "@/lib/audio-duration";
 import { getConfig } from "@/lib/config";
 import { requireRole } from "@/lib/rbac";
 import { writeAuditLog } from "@/lib/audit-log";
+import { enqueueCallProcessing } from "@/lib/queue";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -323,6 +324,7 @@ export async function POST(request: Request) {
       try {
         const r = await importRow(clientId, row, i, { agentCache, campaignCache, teamCache });
         imported.push(r);
+        void enqueueCallProcessing({ callId: r.id, clientId });
       } catch (e) {
         failed += 1;
         const message =

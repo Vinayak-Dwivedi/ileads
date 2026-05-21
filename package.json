@@ -22,12 +22,15 @@
     "import:standard-parameters": "tsx scripts/import-standard-parameters.ts",
     "reset:beetel-parameters": "tsx scripts/reset-beetel-parameters.ts",
     "worker:queue": "tsx --require ./scripts/_stt-preload.cjs scripts/queue-worker.ts",
+    "worker:bullmq": "tsx --require ./scripts/_stt-preload.cjs scripts/bullmq-worker.ts",
     "user:create": "tsx scripts/create-user.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1051.0",
+    "@aws-sdk/s3-request-presigner": "^3.1051.0",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/modifiers": "^9.0.0",
     "@dnd-kit/sortable": "^10.0.0",
@@ -41,10 +44,12 @@
     "@tanstack/react-table": "^8.21.3",
     "ai": "^6.0.185",
     "bcryptjs": "^2.4.3",
+    "bullmq": "^5.76.10",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "dotenv": "^17.4.2",
+    "ioredis": "^5.10.1",
     "lucide-react": "^0.469.0",
     "media-chrome": "^4.19.0",
     "next": "16.2.6",

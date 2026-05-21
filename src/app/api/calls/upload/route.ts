@@ -6,6 +6,7 @@ import { saveAudioFile } from "@/lib/audio-storage";
 import { probeAudioDurationSeconds } from "@/lib/audio-duration";
 import { requireRole } from "@/lib/rbac";
 import { writeAuditLog } from "@/lib/audit-log";
+import { enqueueCallProcessing } from "@/lib/queue";
 
 export const runtime = "nodejs";
 
@@ -132,6 +133,7 @@ export async function POST(request: Request) {
           audioPath: audio.audioPath,
           mimeType: audio.mimeType,
           fileSizeBytes: BigInt(audio.fileSizeBytes),
+          processingStatus: "uploaded",
           events: {
             create: {
               eventType: "CALL_IMPORTED",
@@ -148,6 +150,7 @@ export async function POST(request: Request) {
         select: { id: true, externalCallId: true },
       });
       created.push(call);
+      void enqueueCallProcessing({ callId: call.id, clientId: session.clientId });
     }
 
     revalidatePath("/calls");

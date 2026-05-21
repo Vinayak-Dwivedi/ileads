@@ -23,6 +23,7 @@ import {
   releaseProcessingLock,
   failProcessingLock,
 } from "../src/lib/processing-lock";
+import { publishCallEvent } from "../src/lib/event-bus";
 
 const POLL_MS = (() => {
   const v = Number(process.env.QUEUE_WORKER_POLL_MS ?? "5000");
@@ -102,6 +103,7 @@ async function claimNext(): Promise<{ id: string; clientId: string } | null> {
 
 async function processCall(callId: string, clientId: string): Promise<void> {
   log(`Processing call`, { callId });
+  publishCallEvent(callId, { type: "status", status: "transcribing" });
 
   // Stage 1 — transcription. Lock is already at "transcribing" from claim.
   try {
@@ -112,10 +114,17 @@ async function processCall(callId: string, clientId: string): Promise<void> {
       segments: stt.segmentCount,
       fallback: stt.usedFallback,
     });
+    publishCallEvent(callId, {
+      type: "transcribed",
+      model: stt.winningModel,
+      segments: stt.segmentCount,
+      usedFallback: stt.usedFallback,
+    });
   } catch (e) {
     const code = e instanceof SttError ? e.code : "UNKNOWN";
     const msg = e instanceof Error ? e.message : "Local STT failed.";
     await failProcessingLock(callId, `STT ${code}: ${msg}`);
+    publishCallEvent(callId, { type: "failed", stage: "stt", code, message: msg });
     log(`Transcription failed`, { callId, code, msg });
     return;
   }
@@ -125,10 +134,17 @@ async function processCall(callId: string, clientId: string): Promise<void> {
     where: { id: callId },
     data: { processingStatus: "auditing", processingStartedAt: new Date() },
   });
+  publishCallEvent(callId, { type: "status", status: "auditing" });
 
   try {
     const audit = await runLiveAuditForCall(callId, clientId);
     await releaseProcessingLock(callId);
+    publishCallEvent(callId, {
+      type: "completed",
+      auditRunNo: audit.audit.auditRunNo,
+      model: audit.model,
+      scorePercent: audit.validated.scorePercent,
+    });
     log(`Audit done`, {
       callId,
       auditRunNo: audit.audit.auditRunNo,
@@ -139,6 +155,7 @@ async function processCall(callId: string, clientId: string): Promise<void> {
     const code = e instanceof LiveAuditError ? e.code : "UNKNOWN";
     const msg = e instanceof Error ? e.message : "Live audit failed.";
     await failProcessingLock(callId, `AUDIT ${code}: ${msg}`);
+    publishCallEvent(callId, { type: "failed", stage: "audit", code, message: msg });
     log(`Audit failed`, { callId, code, msg });
   }
 }

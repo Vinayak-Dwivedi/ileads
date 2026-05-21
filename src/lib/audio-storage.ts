@@ -1,6 +1,6 @@
 import "server-only";
 import path from "node:path";
-import { mkdir, writeFile, access } from "node:fs/promises";
+import { access } from "node:fs/promises";
 
 export const ACCEPTED_AUDIO_EXTENSIONS = new Set([
   ".mp3",
@@ -99,21 +99,25 @@ export async function saveAudioFile(file: File, opts: { date?: Date } = {}): Pro
     throw new Error(`${originalFileName} exceeds the ${Math.round(maxBytes / 1024 / 1024)} MB limit.`);
   }
 
-  const dateFolder = formatDateFolder(opts.date ?? new Date());
-  const storageRoot = getAudioStorageRoot();
-  const dayDir = path.join(storageRoot, dateFolder);
-  await mkdir(dayDir, { recursive: true });
-
-  const storedFileName = buildStoredAudioFileName(originalFileName);
-  const audioPath = await getUniqueAudioPath(dayDir, storedFileName);
-  await writeFile(audioPath, Buffer.from(await file.arrayBuffer()));
+  // Delegate to the configured storage provider (local or S3). The provider
+  // owns where the bytes land and what `key`/audioPath we persist on the Call
+  // row. Dynamic import keeps this file usable from scripts that don't load
+  // server-only modules.
+  const { getStorageProvider } = await import("@/services/storage");
+  const provider = getStorageProvider();
+  const stored = await provider.save({
+    buffer: Buffer.from(await file.arrayBuffer()),
+    originalFileName,
+    contentType: file.type || AUDIO_CONTENT_TYPES[extension] || "application/octet-stream",
+    date: opts.date,
+  });
 
   return {
-    originalFileName,
-    storedFileName: path.basename(audioPath),
-    audioPath,
-    mimeType: file.type || AUDIO_CONTENT_TYPES[extension] || "application/octet-stream",
-    fileSizeBytes: file.size,
+    originalFileName: stored.originalFileName,
+    storedFileName: stored.storedFileName,
+    audioPath: stored.key,
+    mimeType: stored.contentType,
+    fileSizeBytes: stored.sizeBytes,
   };
 }
 

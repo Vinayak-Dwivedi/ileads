@@ -1,19 +1,13 @@
-import { createReadStream } from "node:fs";
-import { stat } from "node:fs/promises";
-import { Readable } from "node:stream";
 import { NextResponse } from "next/server";
+import { Readable } from "node:stream";
 import { requireSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { contentTypeForAudioPath } from "@/lib/audio-storage";
+import { getStorageProvider } from "@/services/storage";
 
 export const runtime = "nodejs";
 
 interface Params {
   params: Promise<{ callId: string }>;
-}
-
-function streamFile(path: string, start?: number, end?: number): ReadableStream<Uint8Array> {
-  return Readable.toWeb(createReadStream(path, { start, end })) as ReadableStream<Uint8Array>;
 }
 
 export async function GET(request: Request, { params }: Params) {
@@ -28,41 +22,56 @@ export async function GET(request: Request, { params }: Params) {
     return NextResponse.json({ error: "Audio not found." }, { status: 404 });
   }
 
+  const provider = getStorageProvider();
+
+  // S3 (or any provider with presigned downloads): redirect the browser to
+  // a short-lived signed URL — avoids streaming bytes through the Next server.
+  if (provider.name !== "local") {
+    const url = await provider.getDownloadUrl(call.audioPath, { expiresIn: 900 });
+    if (url) return NextResponse.redirect(url, 302);
+  }
+
+  // Local provider: stream from disk with HTTP Range support.
+  const range = request.headers.get("range");
+  const safeName = encodeURIComponent(call.originalFileName ?? "call-audio");
+
   let info;
   try {
-    info = await stat(call.audioPath);
+    info = await provider.getReadStream(call.audioPath);
   } catch {
     return NextResponse.json({ error: "Audio file is missing from storage." }, { status: 404 });
   }
 
-  const contentType = contentTypeForAudioPath(call.audioPath, call.mimeType);
-  const range = request.headers.get("range");
-  const safeName = encodeURIComponent(call.originalFileName ?? "call-audio");
+  const contentType = call.mimeType ?? info.contentType;
 
   if (range) {
     const match = /bytes=(\d+)-(\d*)/.exec(range);
     if (match) {
       const start = Number(match[1]);
-      const end = match[2] ? Number(match[2]) : info.size - 1;
-      if (start < info.size && end < info.size && start <= end) {
-        return new NextResponse(streamFile(call.audioPath, start, end), {
-          status: 206,
-          headers: {
-            "Accept-Ranges": "bytes",
-            "Content-Range": `bytes ${start}-${end}/${info.size}`,
-            "Content-Length": String(end - start + 1),
-            "Content-Type": contentType,
-            "Content-Disposition": `inline; filename*=UTF-8''${safeName}`,
+      const end = match[2] ? Number(match[2]) : info.sizeBytes - 1;
+      if (start < info.sizeBytes && end < info.sizeBytes && start <= end) {
+        const part = await provider.getReadStream(call.audioPath, { start, end });
+        return new NextResponse(
+          Readable.toWeb(part.stream) as ReadableStream<Uint8Array>,
+          {
+            status: 206,
+            headers: {
+              "Accept-Ranges": "bytes",
+              "Content-Range": `bytes ${start}-${end}/${info.sizeBytes}`,
+              "Content-Length": String(end - start + 1),
+              "Content-Type": contentType,
+              "Content-Disposition": `inline; filename*=UTF-8''${safeName}`,
+            },
           },
-        });
+        );
       }
     }
   }
 
-  return new NextResponse(streamFile(call.audioPath), {
+  return new NextResponse(Readable.toWeb(info.stream) as ReadableStream<Uint8Array>, {
     headers: {
       "Accept-Ranges": "bytes",
-      "Content-Length": String(info.size),
+      "Content-Length": String(info.sizeBytes),
       "Content-Type": contentType,
       "Content-Disposition": `inline; filename*=UTF-8''${safeName}`,
     },

@@ -25,11 +25,27 @@ const EnvSchema = z.object({
   APP_PASSWORD: z.string().optional(),
 
   // Storage
-  AUDIO_STORAGE_PROVIDER: z.enum(["local"]).default("local"),
+  AUDIO_STORAGE_PROVIDER: z.enum(["local", "s3"]).default("local"),
   AUDIO_STORAGE_PATH: z.string().default("./storage/audio"),
   MAX_AUDIO_UPLOAD_MB: z.coerce.number().int().positive().default(100),
   AUDIO_DOWNLOAD_TIMEOUT_SECONDS: z.coerce.number().int().positive().default(300),
   AUDIO_DOWNLOAD_PRIVATE_HOST_ALLOWLIST: z.string().default(""),
+
+  // S3-compatible storage (only required when AUDIO_STORAGE_PROVIDER=s3)
+  S3_BUCKET: z.string().optional(),
+  S3_REGION: z.string().default("us-east-1"),
+  S3_ENDPOINT: z.string().url().optional(),
+  S3_ACCESS_KEY_ID: z.string().optional(),
+  S3_SECRET_ACCESS_KEY: z.string().optional(),
+  S3_FORCE_PATH_STYLE: z
+    .string()
+    .optional()
+    .transform((v) => v === "true"),
+  S3_PUBLIC_BASE_URL: z.string().url().optional(),
+
+  // BullMQ / Redis (queue is in-process when REDIS_URL missing)
+  REDIS_URL: z.string().optional(),
+  QUEUE_CONCURRENCY: z.coerce.number().int().positive().default(2),
 
   // Excel import
   EXCEL_IMPORT_MAX_ROWS: z.coerce.number().int().positive().default(500),
