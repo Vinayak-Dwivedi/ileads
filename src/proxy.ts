@@ -56,6 +56,13 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // /api/v1/* uses Bearer API-key authentication enforced inside each route
+  // handler (verifyApiKeyHeader). The session-cookie proxy must NOT redirect
+  // those requests to /login — external integrators don't have a session.
+  if (pathname.startsWith("/api/v1/")) {
+    return NextResponse.next();
+  }
+
   // Public/static files under /public are served by Next from the route root
   // and must remain reachable before login, including the sidebar/login logo.
   if (/\.(?:png|jpg|jpeg|gif|svg|webp|ico|css|js|map|txt|xml)$/i.test(pathname)) {
