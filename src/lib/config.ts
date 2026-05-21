@@ -70,6 +70,9 @@ const EnvSchema = z.object({
     .optional()
     .transform((v) => v === "true"),
   ASSEMBLYAI_API_KEY: z.string().optional(),
+  DEEPGRAM_API_KEY: z.string().optional(),
+  DEEPGRAM_MODEL: z.string().default("nova-2"),
+  DEEPGRAM_LANGUAGE: z.string().default("multi"),
 
   // LLM / Audit
   OPENROUTER_API_KEY: z.string().optional(),

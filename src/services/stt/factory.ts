@@ -4,6 +4,7 @@ import { loadSttConfig, resolveModelChain, type SttConfig, type SttModelConfig }
 import { MockSttEngine } from "./engines/mockSttEngine";
 import { PythonSttEngine } from "./engines/pythonEngine";
 import { SarvamSttEngine } from "./engines/sarvamEngine";
+import { DeepgramSttEngine } from "./engines/deepgramEngine";
 import { evaluateSttQuality } from "./quality";
 import { SttError, type SttEngine, type SttResult } from "./types";
 import { buildSttEngine, registerSttEngine } from "./registry";
@@ -12,6 +13,7 @@ import { buildSttEngine, registerSttEngine } from "./registry";
 // them up by name without importing the concrete classes.
 registerSttEngine("mock", () => new MockSttEngine());
 registerSttEngine("sarvam", ({ config }) => new SarvamSttEngine(config));
+registerSttEngine("deepgram", () => new DeepgramSttEngine());
 registerSttEngine("python", ({ config, modelConfig }) => {
   if (!modelConfig) {
     throw new SttError("NOT_IMPLEMENTED", "python engine requires a modelConfig");

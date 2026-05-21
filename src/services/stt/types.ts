@@ -44,7 +44,11 @@ export type SttErrorCode =
   | "SARVAM_TIMEOUT"
   | "SARVAM_BATCH_FAILED"
   | "SARVAM_INVALID_RESPONSE"
-  | "SARVAM_TRANSCRIBE_FAILED";
+  | "SARVAM_TRANSCRIBE_FAILED"
+  | "DEEPGRAM_API_KEY_MISSING"
+  | "DEEPGRAM_HTTP_ERROR"
+  | "DEEPGRAM_TIMEOUT"
+  | "DEEPGRAM_INVALID_RESPONSE";
 
 export class SttError extends Error {
   readonly code: SttErrorCode;
