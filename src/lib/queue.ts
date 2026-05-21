@@ -12,6 +12,7 @@ import { logger } from "@/lib/logger";
 export const QUEUE_NAMES = {
   transcribe: "qms.transcribe",
   audit: "qms.audit",
+  webhook: "qms.webhook",
 } as const;
 
 export type QueueName = (typeof QUEUE_NAMES)[keyof typeof QUEUE_NAMES];
@@ -43,6 +44,7 @@ async function getConnection() {
 interface Queues {
   transcribe: import("bullmq").Queue;
   audit: import("bullmq").Queue;
+  webhook: import("bullmq").Queue;
 }
 let queuesPromise: Promise<Queues | null> | null = null;
 async function getQueues(): Promise<Queues | null> {
@@ -69,6 +71,16 @@ async function getQueues(): Promise<Queues | null> {
             backoff: { type: "exponential", delay: 5_000 },
             removeOnComplete: { count: 1000, age: 24 * 3600 },
             removeOnFail: { count: 5000, age: 7 * 24 * 3600 },
+          },
+        }),
+        webhook: new Queue(QUEUE_NAMES.webhook, {
+          connection: conn as never,
+          defaultJobOptions: {
+            // 8 attempts over ~24h with exponential backoff — Stripe-style.
+            attempts: 8,
+            backoff: { type: "exponential", delay: 30_000 },
+            removeOnComplete: { count: 5000, age: 7 * 24 * 3600 },
+            removeOnFail: { count: 10000, age: 30 * 24 * 3600 },
           },
         }),
       };
@@ -114,6 +126,28 @@ export async function enqueueAudit(data: CallJobData): Promise<boolean> {
   const queues = await getQueues();
   if (!queues) return false;
   await queues.audit.add("audit", data, { jobId: `audit:${data.callId}` });
+  return true;
+}
+
+export interface WebhookDeliveryJobData {
+  webhookId: string;
+  eventType: string;
+  payload: Record<string, unknown>;
+  deliveryId: string;
+}
+
+/** Enqueue a webhook delivery. Returns false when Redis isn't configured. */
+export async function enqueueWebhookDelivery(
+  data: WebhookDeliveryJobData,
+): Promise<boolean> {
+  if (!isQueueEnabled()) return false;
+  const queues = await getQueues();
+  if (!queues) return false;
+  await queues.webhook.add("deliver", data, {
+    // Idempotent at the (webhookId, deliveryId) level — same delivery row
+    // can't be enqueued twice.
+    jobId: `webhook:${data.deliveryId}`,
+  });
   return true;
 }
 

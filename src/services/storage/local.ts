@@ -57,6 +57,10 @@ export class LocalStorageProvider implements StorageProvider {
     return null;
   }
 
+  getPublicUrl(): string | null {
+    return null;
+  }
+
   async createPresignedUpload(_input: {
     originalFileName: string;
     contentType: string;

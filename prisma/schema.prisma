@@ -123,6 +123,19 @@ enum UserRole {
   VIEWER
 }
 
+enum WebhookDeliveryStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+// Daily-metered quotas. Add more kinds as we learn what to bill on.
+enum QuotaKind {
+  AUDITS_PER_DAY
+  CALLS_PER_DAY
+  STT_MINUTES_PER_DAY
+}
+
 // ---------- Tenancy ----------
 
 model Client {
@@ -138,6 +151,9 @@ model Client {
   accesses     ClientAccess[]
   users        User[]
   apiKeys      ApiKey[]
+  webhooks     Webhook[]
+  quotas       ClientQuota[]
+  quotaUsage   QuotaUsage[]
   campaigns    Campaign[]
   teams        Team[]
   agents       Agent[]
@@ -147,6 +163,88 @@ model Client {
   auditLogs    AuditLog[]
 
   @@map("clients")
+}
+
+// Outbound webhook subscription. `events` is a JSON array of event name strings
+// (e.g. ["call.audit.completed", "call.transcript.ready"]). `secret` is the
+// HMAC-SHA256 key included in the X-QMS-Signature header on delivery; stored
+// in plaintext because HMAC needs the raw value at sign time.
+model Webhook {
+  id              String   @id @default(cuid())
+  clientId        String   @map("client_id")
+  label           String
+  url             String
+  events          Json
+  secret          String
+  isActive        Boolean  @default(true) @map("is_active")
+  createdByUserId String?  @map("created_by_user_id")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  client     Client            @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  deliveries WebhookDelivery[]
+
+  @@index([clientId])
+  @@index([clientId, isActive])
+  @@map("webhooks")
+}
+
+// Append-only attempt log for outbound webhook deliveries. Used for debugging
+// failed integrations and as audit trail. One row per attempt; the worker
+// updates `status` + `responseStatus` once the HTTP call returns.
+model WebhookDelivery {
+  id                  String                @id @default(cuid())
+  webhookId           String                @map("webhook_id")
+  eventType           String                @map("event_type")
+  payload             Json
+  attempt             Int                   @default(1)
+  status              WebhookDeliveryStatus @default(PENDING)
+  responseStatus      Int?                  @map("response_status")
+  responseBodyExcerpt String?               @map("response_body_excerpt")
+  error               String?
+  deliveredAt         DateTime?             @map("delivered_at")
+  createdAt           DateTime              @default(now()) @map("created_at")
+
+  webhook Webhook @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+
+  @@index([webhookId, createdAt])
+  @@map("webhook_deliveries")
+}
+
+// Optional per-client daily quota. Absent row = unlimited.
+model ClientQuota {
+  id         String    @id @default(cuid())
+  clientId   String    @map("client_id")
+  kind       QuotaKind
+  dailyLimit Int       @map("daily_limit")
+  isActive   Boolean   @default(true) @map("is_active")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@unique([clientId, kind])
+  @@map("client_quotas")
+}
+
+// Per-day usage tally. `day` is the YYYY-MM-DD UTC date as a DATE column.
+// `cost` is reserved for future cost-of-goods tracking (e.g. STT minutes
+// times provider rate). One row per (clientId, kind, day).
+model QuotaUsage {
+  id        String    @id @default(cuid())
+  clientId  String    @map("client_id")
+  kind      QuotaKind
+  day       DateTime  @db.Date
+  count     Int       @default(0)
+  cost      Float?
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@unique([clientId, kind, day])
+  @@index([clientId, day])
+  @@map("quota_usage")
 }
 
 // Long-lived API key for /api/v1/* access. The plaintext key is shown to the

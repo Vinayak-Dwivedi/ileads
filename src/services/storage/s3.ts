@@ -123,6 +123,11 @@ export class S3StorageProvider implements StorageProvider {
     };
   }
 
+  getPublicUrl(key: string): string | null {
+    if (!this.cfg.publicBaseUrl) return null;
+    return `${this.cfg.publicBaseUrl.replace(/\/$/, "")}/${key}`;
+  }
+
   async getDownloadUrl(key: string, opts?: { expiresIn?: number }): Promise<string> {
     const [{ GetObjectCommand }, { getSignedUrl }] = await Promise.all([
       import("@aws-sdk/client-s3"),

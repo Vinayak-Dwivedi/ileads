@@ -54,6 +54,12 @@ export interface StorageProvider {
   // proxy via /api/calls/[id]/audio.
   getDownloadUrl(key: string, opts?: { expiresIn?: number }): Promise<string | null>;
 
+  // If the provider has a public, cacheable URL for the object (CDN base
+  // configured), return it. Otherwise null. Callers should prefer this over
+  // getDownloadUrl when available — no presigning roundtrip, plays nicely
+  // with CDN caches.
+  getPublicUrl(key: string): string | null;
+
   // Get a presigned URL the browser can POST/PUT to for direct uploads.
   // Throws if unsupported (LocalProvider).
   createPresignedUpload(input: {

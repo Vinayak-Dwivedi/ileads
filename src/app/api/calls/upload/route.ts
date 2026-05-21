@@ -7,6 +7,8 @@ import { probeAudioDurationSeconds } from "@/lib/audio-duration";
 import { requireRole } from "@/lib/rbac";
 import { writeAuditLog } from "@/lib/audit-log";
 import { enqueueCallProcessing } from "@/lib/queue";
+import { publishWebhookEvent } from "@/lib/webhooks";
+import { trackQuotaUsage } from "@/lib/quotas";
 
 export const runtime = "nodejs";
 
@@ -151,6 +153,12 @@ export async function POST(request: Request) {
       });
       created.push(call);
       void enqueueCallProcessing({ callId: call.id, clientId: session.clientId });
+      void publishWebhookEvent(session.clientId, "call.imported", {
+        callId: call.id,
+        externalCallId: call.externalCallId,
+        source: "upload",
+      });
+      void trackQuotaUsage(session.clientId, "CALLS_PER_DAY");
     }
 
     revalidatePath("/calls");

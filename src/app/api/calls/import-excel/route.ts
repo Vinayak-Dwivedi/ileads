@@ -9,6 +9,8 @@ import { getConfig } from "@/lib/config";
 import { requireRole } from "@/lib/rbac";
 import { writeAuditLog } from "@/lib/audit-log";
 import { enqueueCallProcessing } from "@/lib/queue";
+import { publishWebhookEvent } from "@/lib/webhooks";
+import { trackQuotaUsage } from "@/lib/quotas";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -325,6 +327,13 @@ export async function POST(request: Request) {
         const r = await importRow(clientId, row, i, { agentCache, campaignCache, teamCache });
         imported.push(r);
         void enqueueCallProcessing({ callId: r.id, clientId });
+        void publishWebhookEvent(clientId, "call.imported", {
+          callId: r.id,
+          externalCallId: r.externalCallId,
+          source: "excel",
+          row: r.row,
+        });
+        void trackQuotaUsage(clientId, "CALLS_PER_DAY");
       } catch (e) {
         failed += 1;
         const message =

@@ -24,8 +24,14 @@ export async function GET(request: Request, { params }: Params) {
 
   const provider = getStorageProvider();
 
-  // S3 (or any provider with presigned downloads): redirect the browser to
-  // a short-lived signed URL — avoids streaming bytes through the Next server.
+  // Prefer a CDN-fronted public URL when the provider exposes one — skips
+  // both the Next proxy and the presign roundtrip, and plays nicely with
+  // edge caches.
+  const publicUrl = provider.getPublicUrl(call.audioPath);
+  if (publicUrl) return NextResponse.redirect(publicUrl, 302);
+
+  // Otherwise: presigned download for remote providers (S3), proxied stream
+  // for local.
   if (provider.name !== "local") {
     const url = await provider.getDownloadUrl(call.audioPath, { expiresIn: 900 });
     if (url) return NextResponse.redirect(url, 302);

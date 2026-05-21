@@ -24,7 +24,8 @@
     "worker:queue": "tsx --require ./scripts/_stt-preload.cjs scripts/queue-worker.ts",
     "worker:bullmq": "tsx --require ./scripts/_stt-preload.cjs scripts/bullmq-worker.ts",
     "user:create": "tsx scripts/create-user.ts",
-    "apikey:create": "tsx scripts/create-api-key.ts"
+    "apikey:create": "tsx scripts/create-api-key.ts",
+    "webhook:create": "tsx scripts/create-webhook.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

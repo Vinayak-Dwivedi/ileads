@@ -24,6 +24,8 @@ import {
   failProcessingLock,
 } from "../src/lib/processing-lock";
 import { publishCallEvent } from "../src/lib/event-bus";
+import { publishWebhookEvent } from "../src/lib/webhooks";
+import { trackQuotaUsage } from "../src/lib/quotas";
 
 const POLL_MS = (() => {
   const v = Number(process.env.QUEUE_WORKER_POLL_MS ?? "5000");
@@ -120,11 +122,31 @@ async function processCall(callId: string, clientId: string): Promise<void> {
       segments: stt.segmentCount,
       usedFallback: stt.usedFallback,
     });
+    void publishWebhookEvent(clientId, "call.transcript.ready", {
+      callId,
+      model: stt.winningModel,
+      segments: stt.segmentCount,
+      usedFallback: stt.usedFallback,
+    });
+    // STT duration metering: query the call to get the recorded duration.
+    void prisma.call
+      .findUnique({ where: { id: callId }, select: { durationSeconds: true } })
+      .then((c) => {
+        const minutes = c?.durationSeconds ? Math.max(1, Math.ceil(c.durationSeconds / 60)) : 1;
+        return trackQuotaUsage(clientId, "STT_MINUTES_PER_DAY", minutes);
+      })
+      .catch(() => {});
   } catch (e) {
     const code = e instanceof SttError ? e.code : "UNKNOWN";
     const msg = e instanceof Error ? e.message : "Local STT failed.";
     await failProcessingLock(callId, `STT ${code}: ${msg}`);
     publishCallEvent(callId, { type: "failed", stage: "stt", code, message: msg });
+    void publishWebhookEvent(clientId, "call.audit.failed", {
+      callId,
+      stage: "stt",
+      code,
+      message: msg,
+    });
     log(`Transcription failed`, { callId, code, msg });
     return;
   }
@@ -145,6 +167,13 @@ async function processCall(callId: string, clientId: string): Promise<void> {
       model: audit.model,
       scorePercent: audit.validated.scorePercent,
     });
+    void publishWebhookEvent(clientId, "call.audit.completed", {
+      callId,
+      auditRunNo: audit.audit.auditRunNo,
+      model: audit.model,
+      scorePercent: audit.validated.scorePercent,
+    });
+    void trackQuotaUsage(clientId, "AUDITS_PER_DAY");
     log(`Audit done`, {
       callId,
       auditRunNo: audit.audit.auditRunNo,
@@ -156,6 +185,12 @@ async function processCall(callId: string, clientId: string): Promise<void> {
     const msg = e instanceof Error ? e.message : "Live audit failed.";
     await failProcessingLock(callId, `AUDIT ${code}: ${msg}`);
     publishCallEvent(callId, { type: "failed", stage: "audit", code, message: msg });
+    void publishWebhookEvent(clientId, "call.audit.failed", {
+      callId,
+      stage: "audit",
+      code,
+      message: msg,
+    });
     log(`Audit failed`, { callId, code, msg });
   }
 }
