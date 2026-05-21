@@ -1,11 +1,24 @@
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 import { requireSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { saveAudioFile } from "@/lib/audio-storage";
 import { probeAudioDurationSeconds } from "@/lib/audio-duration";
 
 export const runtime = "nodejs";
+
+const CUID_LIKE = /^[a-z0-9_-]{8,64}$/i;
+
+const UploadMetadataSchema = z.object({
+  clientId: z.string().regex(CUID_LIKE, "Invalid clientId"),
+  campaignId: z.string().regex(CUID_LIKE).nullable(),
+  teamId: z.string().regex(CUID_LIKE).nullable(),
+  agentId: z.string().regex(CUID_LIKE).nullable(),
+  customerNumber: z.string().max(64).nullable(),
+  customerName: z.string().max(256).nullable(),
+  callStartedAt: z.date(),
+});
 
 function value(form: FormData, key: string): string {
   return String(form.get(key) ?? "").trim();
@@ -60,7 +73,25 @@ export async function POST(request: Request) {
   try {
     const session = await requireSession();
     const form = await request.formData();
-    const clientId = value(form, "clientId");
+
+    const meta = UploadMetadataSchema.safeParse({
+      clientId: value(form, "clientId"),
+      campaignId: optionalValue(form, "campaignId"),
+      teamId: optionalValue(form, "teamId"),
+      agentId: optionalValue(form, "agentId"),
+      customerNumber: optionalValue(form, "customerNumber"),
+      customerName: optionalValue(form, "customerName"),
+      callStartedAt: parseDateTime(optionalValue(form, "callStartedAt")),
+    });
+    if (!meta.success) {
+      return NextResponse.json(
+        { error: "Invalid input.", details: meta.error.flatten() },
+        { status: 400 },
+      );
+    }
+    const { clientId, campaignId, teamId, agentId, customerNumber, customerName, callStartedAt } =
+      meta.data;
+
     if (clientId !== session.clientId) {
       return NextResponse.json({ error: "Selected client is not valid." }, { status: 400 });
     }
@@ -70,14 +101,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Select at least one audio file." }, { status: 400 });
     }
 
-    const campaignId = optionalValue(form, "campaignId");
-    const teamId = optionalValue(form, "teamId");
-    const agentId = optionalValue(form, "agentId");
     await assertBelongsToClient(session.clientId, { campaignId, teamId, agentId });
-
-    const callStartedAt = parseDateTime(optionalValue(form, "callStartedAt"));
-    const callerNumber = optionalValue(form, "customerNumber");
-    const customerName = optionalValue(form, "customerName");
 
     const created = [];
     for (const [index, file] of files.entries()) {
@@ -90,7 +114,7 @@ export async function POST(request: Request) {
           teamId,
           agentId,
           externalCallId: buildExternalCallId(callStartedAt, index),
-          callerNumber,
+          callerNumber: customerNumber,
           customerName,
           callStartedAt,
           durationSeconds,

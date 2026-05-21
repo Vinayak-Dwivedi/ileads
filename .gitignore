@@ -36,7 +36,6 @@ runtime/stt/*
 
 AGENTS.md
 CLAUDE.md
-.env.example
 __pycache__/
 *.pyc
 tsconfig.tsbuildinfo

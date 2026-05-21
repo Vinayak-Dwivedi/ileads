@@ -1,13 +1,27 @@
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 import { requireSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { parseCallExcel, ExcelParseError, type ParsedCallRow } from "@/lib/excel-call-parser";
 import { downloadAudioToStorage, AudioDownloadError } from "@/lib/audio-download";
 import { probeAudioDurationSeconds } from "@/lib/audio-duration";
+import { getConfig } from "@/lib/config";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+const ACCEPTED_EXCEL_MIME = new Set([
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/vnd.ms-excel",
+  "application/octet-stream", // some browsers send this for .xlsx
+]);
+
+const CUID_LIKE = /^[a-z0-9_-]{8,64}$/i;
+
+const ImportRequestSchema = z.object({
+  clientId: z.string().regex(CUID_LIKE, "Invalid clientId"),
+});
 
 interface ImportError {
   row: number;
@@ -22,8 +36,7 @@ interface ImportedCall {
 }
 
 function getMaxRows(): number {
-  const v = Number(process.env.EXCEL_IMPORT_MAX_ROWS ?? "500");
-  return Number.isFinite(v) && v > 0 ? v : 500;
+  return getConfig().EXCEL_IMPORT_MAX_ROWS;
 }
 
 function buildExternalCallId(date: Date, index: number): string {
@@ -233,7 +246,18 @@ export async function POST(request: Request) {
   try {
     const session = await requireSession();
     const form = await request.formData();
-    const clientId = String(form.get("clientId") ?? "").trim();
+
+    const meta = ImportRequestSchema.safeParse({
+      clientId: String(form.get("clientId") ?? "").trim(),
+    });
+    if (!meta.success) {
+      return NextResponse.json(
+        { error: "Invalid input.", details: meta.error.flatten() },
+        { status: 400 },
+      );
+    }
+    const { clientId } = meta.data;
+
     if (clientId !== session.clientId) {
       return NextResponse.json({ error: "Selected client is not valid." }, { status: 400 });
     }
@@ -241,8 +265,20 @@ export async function POST(request: Request) {
     if (!(file instanceof File)) {
       return NextResponse.json({ error: "Excel file is required." }, { status: 400 });
     }
-
+    if (file.type && !ACCEPTED_EXCEL_MIME.has(file.type)) {
+      return NextResponse.json(
+        { error: `Unsupported file type: ${file.type}` },
+        { status: 400 },
+      );
+    }
     const maxRows = getMaxRows();
+    const maxBytes = getConfig().MAX_AUDIO_UPLOAD_MB * 1024 * 1024;
+    if (file.size > maxBytes) {
+      return NextResponse.json(
+        { error: `Excel file exceeds ${getConfig().MAX_AUDIO_UPLOAD_MB} MB limit.` },
+        { status: 400 },
+      );
+    }
     const buffer = Buffer.from(await file.arrayBuffer());
 
     let parsed;

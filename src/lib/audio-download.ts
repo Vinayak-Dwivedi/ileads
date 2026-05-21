@@ -37,8 +37,14 @@ function getDownloadTimeoutMs(): number {
   return Number.isFinite(v) && v > 0 ? v * 1000 : 300_000;
 }
 
-function allowPrivateHosts(): boolean {
-  return /^true$/i.test(process.env.AUDIO_DOWNLOAD_ALLOWED_PRIVATE_HOSTS ?? "false");
+function getPrivateHostAllowlist(): Set<string> {
+  const raw = process.env.AUDIO_DOWNLOAD_PRIVATE_HOST_ALLOWLIST ?? "";
+  return new Set(
+    raw
+      .split(",")
+      .map((s) => s.trim().toLowerCase())
+      .filter(Boolean),
+  );
 }
 
 function isIpv4Private(ip: string): boolean {
@@ -76,9 +82,11 @@ async function validateUrl(rawUrl: string): Promise<URL> {
       `Unsupported protocol ${url.protocol}. Only http/https allowed.`,
     );
   }
-  if (allowPrivateHosts()) return url;
 
   const host = url.hostname.toLowerCase();
+  const allowlist = getPrivateHostAllowlist();
+  if (allowlist.has(host)) return url;
+
   if (host === "localhost" || host === "127.0.0.1" || host === "::1" || host === "0.0.0.0") {
     throw new AudioDownloadError("PRIVATE_HOST", "Localhost URLs are not allowed.");
   }
