@@ -1,7 +1,7 @@
 import "server-only";
 import { z } from "zod";
 import { Prisma } from "@prisma/client";
-import { prisma } from "@/lib/db";
+import { prismaRead as prisma } from "@/lib/db";
 import { query } from "../procedure";
 
 const FiltersSchema = z.object({

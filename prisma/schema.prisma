@@ -212,14 +212,23 @@ model WebhookDelivery {
 }
 
 // Optional per-client daily quota. Absent row = unlimited.
+//
+// Soft (hardEnforce=false, default): exceeding logs a warning + fires the
+// quota.exceeded webhook; the request still succeeds.
+//
+// Hard (hardEnforce=true): exceeding throws QuotaExceededError, the calling
+// route returns 429 with Retry-After, and the metered work is NOT done (so
+// the tenant isn't billed for a rejected operation). Flip per kind once
+// you have baseline usage data for that kind.
 model ClientQuota {
-  id         String    @id @default(cuid())
-  clientId   String    @map("client_id")
-  kind       QuotaKind
-  dailyLimit Int       @map("daily_limit")
-  isActive   Boolean   @default(true) @map("is_active")
-  createdAt  DateTime  @default(now()) @map("created_at")
-  updatedAt  DateTime  @updatedAt @map("updated_at")
+  id          String    @id @default(cuid())
+  clientId    String    @map("client_id")
+  kind        QuotaKind
+  dailyLimit  Int       @map("daily_limit")
+  isActive    Boolean   @default(true) @map("is_active")
+  hardEnforce Boolean   @default(false) @map("hard_enforce")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
 
   client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
 

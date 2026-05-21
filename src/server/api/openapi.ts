@@ -334,6 +334,134 @@ registry.registerPath({
   responses: StandardResponses(z.array(z.object({ id: z.string() }).passthrough())),
 });
 
+// ---- API Keys ----
+const ApiKeyView = z.object({
+  id: z.string(),
+  label: z.string(),
+  prefix: z.string(),
+  scopes: z.array(z.string()),
+  expiresAt: z.string().nullable(),
+  lastUsedAt: z.string().nullable(),
+  isActive: z.boolean(),
+  createdByUserId: z.string().nullable(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+registry.registerPath({
+  method: "get",
+  path: "/api/v1/apikeys",
+  tags: ["API Keys"],
+  summary: "List API keys",
+  security: Security,
+  responses: StandardResponses(z.array(ApiKeyView)),
+});
+registry.registerPath({
+  method: "post",
+  path: "/api/v1/apikeys",
+  tags: ["API Keys"],
+  summary: "Create an API key (plaintext returned once)",
+  security: Security,
+  request: {
+    body: {
+      required: true,
+      content: {
+        "application/json": {
+          schema: z.object({
+            label: z.string(),
+            scopes: z.array(z.string()).min(1),
+            expiresInDays: z.number().int().positive().optional(),
+          }),
+        },
+      },
+    },
+  },
+  responses: StandardResponses(ApiKeyView.extend({ plaintextKey: z.string() })),
+});
+registry.registerPath({
+  method: "get",
+  path: "/api/v1/apikeys/{id}",
+  tags: ["API Keys"],
+  summary: "Get an API key",
+  security: Security,
+  request: { params: z.object({ id: z.string() }) },
+  responses: StandardResponses(ApiKeyView),
+});
+registry.registerPath({
+  method: "patch",
+  path: "/api/v1/apikeys/{id}",
+  tags: ["API Keys"],
+  summary: "Update label / scopes / active flag",
+  security: Security,
+  request: {
+    params: z.object({ id: z.string() }),
+    body: {
+      required: true,
+      content: {
+        "application/json": {
+          schema: z.object({
+            label: z.string().optional(),
+            scopes: z.array(z.string()).optional(),
+            isActive: z.boolean().optional(),
+          }),
+        },
+      },
+    },
+  },
+  responses: StandardResponses(ApiKeyView),
+});
+registry.registerPath({
+  method: "delete",
+  path: "/api/v1/apikeys/{id}",
+  tags: ["API Keys"],
+  summary: "Delete an API key",
+  security: Security,
+  request: { params: z.object({ id: z.string() }) },
+  responses: StandardResponses(z.object({ id: z.string(), deleted: z.literal(true) })),
+});
+registry.registerPath({
+  method: "post",
+  path: "/api/v1/apikeys/{id}/rotate",
+  tags: ["API Keys"],
+  summary: "Rotate the secret on an API key (new plaintext returned once)",
+  security: Security,
+  request: { params: z.object({ id: z.string() }) },
+  responses: StandardResponses(ApiKeyView.extend({ plaintextKey: z.string() })),
+});
+
+// ---- Audits: re-run ----
+registry.registerPath({
+  method: "post",
+  path: "/api/v1/audits/rerun",
+  tags: ["Audits"],
+  summary: "Re-audit a batch of calls (by IDs or filter)",
+  security: Security,
+  request: {
+    body: {
+      required: true,
+      content: {
+        "application/json": {
+          schema: z.object({
+            callIds: z.array(z.string()).optional(),
+            campaignId: z.string().optional(),
+            agentId: z.string().optional(),
+            teamId: z.string().optional(),
+            from: z.string().describe("ISO datetime").optional(),
+            to: z.string().describe("ISO datetime").optional(),
+            limit: z.number().int().positive().optional(),
+          }),
+        },
+      },
+    },
+  },
+  responses: StandardResponses(
+    z.object({
+      enqueued: z.number(),
+      callIds: z.array(z.string()),
+      queueAvailable: z.boolean(),
+    }),
+  ),
+});
+
 let cached: object | null = null;
 
 export function buildOpenApiDocument() {

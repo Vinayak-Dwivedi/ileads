@@ -11,6 +11,9 @@ const EnvSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
 
   DATABASE_URL: z.string().url(),
+  // Optional read-replica URL for read-heavy aggregates (dashboards, list
+  // endpoints). When unset, reads hit the primary.
+  DATABASE_REPLICA_URL: z.string().url().optional(),
   APP_BASE_URL: z.string().url().default("http://localhost:3000"),
   NEXT_PUBLIC_BASE_PATH: z.string().default(""),
 

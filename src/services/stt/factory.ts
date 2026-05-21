@@ -6,6 +6,18 @@ import { PythonSttEngine } from "./engines/pythonEngine";
 import { SarvamSttEngine } from "./engines/sarvamEngine";
 import { evaluateSttQuality } from "./quality";
 import { SttError, type SttEngine, type SttResult } from "./types";
+import { buildSttEngine, registerSttEngine } from "./registry";
+
+// Self-register built-in engines so getEngineByKey / external code can look
+// them up by name without importing the concrete classes.
+registerSttEngine("mock", () => new MockSttEngine());
+registerSttEngine("sarvam", ({ config }) => new SarvamSttEngine(config));
+registerSttEngine("python", ({ config, modelConfig }) => {
+  if (!modelConfig) {
+    throw new SttError("NOT_IMPLEMENTED", "python engine requires a modelConfig");
+  }
+  return new PythonSttEngine({ modelConfig, config });
+});
 
 export function isMockMode(config: SttConfig = loadSttConfig()): boolean {
   return config.mock === true;
@@ -40,8 +52,11 @@ export function getSttEngine(config: SttConfig = loadSttConfig()): SttEngine {
 
 /** Looks up a specific engine by model key (e.g. for smoke tests). */
 export function getEngineByKey(key: string, config: SttConfig = loadSttConfig()): SttEngine {
-  if (key === "mock") return new MockSttEngine();
-  if (key === "sarvam") return new SarvamSttEngine(config);
+  // Registry takes precedence: third-party engines (e.g. Deepgram, Whisper)
+  // can register themselves and become reachable via this function without
+  // editing factory.ts.
+  const registered = buildSttEngine(key, { config });
+  if (registered) return registered;
   for (const m of [config.primary, config.fallback1, config.fallback2]) {
     if (m.key === key) return createEngineForModel(m, config);
   }

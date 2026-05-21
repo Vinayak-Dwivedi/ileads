@@ -4,6 +4,7 @@ import { agentsRouter } from "./routers/agents";
 import { dashboardRouter } from "./routers/dashboard";
 import { auditsRouter, transcriptsRouter } from "./routers/audits";
 import { webhooksRouter } from "./routers/webhooks";
+import { apikeysRouter } from "./routers/apikeys";
 
 export const appRouter = {
   calls: callsRouter,
@@ -12,6 +13,7 @@ export const appRouter = {
   audits: auditsRouter,
   transcripts: transcriptsRouter,
   webhooks: webhooksRouter,
+  apikeys: apikeysRouter,
 } as const;
 
 export type AppRouter = typeof appRouter;

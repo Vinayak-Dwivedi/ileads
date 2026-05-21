@@ -8,7 +8,7 @@ import { requireRole } from "@/lib/rbac";
 import { writeAuditLog } from "@/lib/audit-log";
 import { enqueueCallProcessing } from "@/lib/queue";
 import { publishWebhookEvent } from "@/lib/webhooks";
-import { trackQuotaUsage } from "@/lib/quotas";
+import { assertQuotaAllows, trackQuotaUsage, QuotaExceededError } from "@/lib/quotas";
 
 export const runtime = "nodejs";
 
@@ -109,6 +109,10 @@ export async function POST(request: Request) {
 
     await assertBelongsToClient(session.clientId, { campaignId, teamId, agentId });
 
+    // Hard-quota pre-check for the whole batch so we don't half-import then
+    // bail. assertQuotaAllows() no-ops for soft quotas / absent rows.
+    await assertQuotaAllows(session.clientId, "CALLS_PER_DAY", files.length);
+
     const created = [];
     for (const [index, file] of files.entries()) {
       const audio = await saveAudioFile(file);
@@ -175,6 +179,21 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ ok: true, count: created.length, calls: created });
   } catch (error) {
+    if (error instanceof QuotaExceededError) {
+      return NextResponse.json(
+        {
+          error: error.message,
+          code: error.code,
+          kind: error.kind,
+          limit: error.limit,
+          currentCount: error.currentCount,
+        },
+        {
+          status: 429,
+          headers: { "Retry-After": String(error.retryAfterSeconds) },
+        },
+      );
+    }
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Upload failed." },
       { status: 400 },

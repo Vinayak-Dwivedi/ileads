@@ -20,3 +20,10 @@ export {
 } from "./config";
 export { SttError } from "./types";
 export type { SttEngine, SttResult, SttSegment, SttErrorCode } from "./types";
+export {
+  registerSttEngine,
+  getSttEngineFactory,
+  listRegisteredSttEngines,
+  buildSttEngine,
+  type SttEngineFactory,
+} from "./registry";

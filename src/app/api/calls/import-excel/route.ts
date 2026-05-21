@@ -10,7 +10,7 @@ import { requireRole } from "@/lib/rbac";
 import { writeAuditLog } from "@/lib/audit-log";
 import { enqueueCallProcessing } from "@/lib/queue";
 import { publishWebhookEvent } from "@/lib/webhooks";
-import { trackQuotaUsage } from "@/lib/quotas";
+import { assertQuotaAllows, trackQuotaUsage, QuotaExceededError } from "@/lib/quotas";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -312,6 +312,9 @@ export async function POST(request: Request) {
       );
     }
 
+    // Hard-quota pre-check for the whole batch so we don't half-import.
+    await assertQuotaAllows(clientId, "CALLS_PER_DAY", parsed.rows.length);
+
     const imported: ImportedCall[] = [];
     const errors: ImportError[] = parsed.errors.map((e) => ({ row: e.row, message: e.message }));
     let skipped = errors.length;
@@ -373,6 +376,21 @@ export async function POST(request: Request) {
       errors,
     });
   } catch (error) {
+    if (error instanceof QuotaExceededError) {
+      return NextResponse.json(
+        {
+          error: error.message,
+          code: error.code,
+          kind: error.kind,
+          limit: error.limit,
+          currentCount: error.currentCount,
+        },
+        {
+          status: 429,
+          headers: { "Retry-After": String(error.retryAfterSeconds) },
+        },
+      );
+    }
     const status = error instanceof Error && /unauthor/i.test(error.message) ? 401 : 400;
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Excel import failed." },
