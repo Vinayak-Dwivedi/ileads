@@ -47,6 +47,10 @@ const EnvSchema = z.object({
   REDIS_URL: z.string().optional(),
   QUEUE_CONCURRENCY: z.coerce.number().int().positive().default(2),
 
+  // /api/v1/* rate-limit (per API key)
+  API_RATE_LIMIT_MAX: z.coerce.number().int().positive().default(60),
+  API_RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(60 * 1000),
+
   // Excel import
   EXCEL_IMPORT_MAX_ROWS: z.coerce.number().int().positive().default(500),
 

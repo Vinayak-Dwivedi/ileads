@@ -9,6 +9,7 @@ interface Bucket {
 }
 
 const loginBuckets = new Map<string, Bucket>();
+const apiKeyBuckets = new Map<string, Bucket>();
 
 function pruneIfStale(bucket: Bucket, windowMs: number, now: number): boolean {
   if (now - bucket.firstAt >= windowMs) {
@@ -53,4 +54,32 @@ export function recordLoginFailure(key: string): void {
 
 export function resetLoginRateLimit(key: string): void {
   loginBuckets.delete(key);
+}
+
+/** Per-API-key rate-limit. Default 60 req/min/key. */
+export function checkApiKeyRateLimit(prefix: string): RateLimitResult {
+  const max = Number(process.env.API_RATE_LIMIT_MAX ?? "60");
+  const windowMs = Number(process.env.API_RATE_LIMIT_WINDOW_MS ?? "60000");
+  const now = Date.now();
+  const bucket = apiKeyBuckets.get(prefix) ?? { count: 0, firstAt: now };
+  pruneIfStale(bucket, windowMs, now);
+  apiKeyBuckets.set(prefix, bucket);
+
+  if (bucket.count >= max) {
+    return {
+      allowed: false,
+      remaining: 0,
+      retryAfterMs: Math.max(0, bucket.firstAt + windowMs - now),
+    };
+  }
+  return { allowed: true, remaining: max - bucket.count, retryAfterMs: 0 };
+}
+
+export function recordApiKeyHit(prefix: string): void {
+  const windowMs = Number(process.env.API_RATE_LIMIT_WINDOW_MS ?? "60000");
+  const now = Date.now();
+  const bucket = apiKeyBuckets.get(prefix) ?? { count: 0, firstAt: now };
+  pruneIfStale(bucket, windowMs, now);
+  bucket.count += 1;
+  apiKeyBuckets.set(prefix, bucket);
 }

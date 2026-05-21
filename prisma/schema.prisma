@@ -137,6 +137,7 @@ model Client {
 
   accesses     ClientAccess[]
   users        User[]
+  apiKeys      ApiKey[]
   campaigns    Campaign[]
   teams        Team[]
   agents       Agent[]
@@ -146,6 +147,32 @@ model Client {
   auditLogs    AuditLog[]
 
   @@map("clients")
+}
+
+// Long-lived API key for /api/v1/* access. The plaintext key is shown to the
+// caller exactly once at creation; only the bcrypt hash is stored. The
+// `prefix` is the unhashed lookup token (8 chars after qms_live_) so we can
+// fetch the row in a single indexed query before bcrypt-comparing the rest.
+// `scopes` is a JSON array of strings like ["calls:read", "calls:write"].
+model ApiKey {
+  id              String    @id @default(cuid())
+  clientId        String    @map("client_id")
+  label           String
+  prefix          String    @unique
+  hashedSecret    String    @map("hashed_secret")
+  scopes          Json
+  expiresAt       DateTime? @map("expires_at")
+  lastUsedAt      DateTime? @map("last_used_at")
+  isActive        Boolean   @default(true) @map("is_active")
+  createdByUserId String?   @map("created_by_user_id")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+  @@index([clientId, isActive])
+  @@map("api_keys")
 }
 
 // Per-user identity. Replaces ClientAccess long-term; both coexist during the
