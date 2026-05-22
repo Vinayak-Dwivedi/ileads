@@ -570,13 +570,6 @@ export default async function CallDetailPage({ params }: PageProps) {
                 {call.callStartedAt ? ` · ${formatShortDate(call.callStartedAt)} ${formatTime(call.callStartedAt)}` : ""}
               </p>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <Pill tone={processingFailed ? "red" : processingActive ? "blue" : audit ? "green" : call.transcript ? "yellow" : "slate"}>
-                {pipelineLabel}
-              </Pill>
-              <AuditStatusPill status={audit?.status ?? (call.aiScore != null ? "COMPLETED" : "PENDING")} />
-              <SentimentBadge value={call.sentiment} />
-            </div>
           </div>
           {kpiGrid}
 
