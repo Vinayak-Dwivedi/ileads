@@ -137,7 +137,7 @@ export function CallsFilterBar({
 
   return (
     <section className={cn("rounded-xl border border-slate-200 bg-white p-4", className)}>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
         <Field>
           <Popover open={fromOpen} onOpenChange={setFromOpen}>
             <PopoverTrigger asChild>
@@ -207,23 +207,6 @@ export function CallsFilterBar({
         </Field>
 
         <Field>
-          <Select value={teamId} onValueChange={handleTeamChange}>
-            <SelectTrigger id="select-team" className="w-full bg-white">
-              <SelectValue placeholder="All teams" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectGroup>
-                {options.teams.map((team) => (
-                  <SelectItem key={team.id} value={team.id}>
-                    {team.name}
-                  </SelectItem>
-                ))}
-              </SelectGroup>
-            </SelectContent>
-          </Select>
-        </Field>
-
-        <Field>
           <Select value={agentId} onValueChange={(value) => update({ agentId: value })}>
             <SelectTrigger id="select-agent" className="w-full bg-white">
               <SelectValue placeholder="All agents" />
@@ -239,9 +222,7 @@ export function CallsFilterBar({
             </SelectContent>
           </Select>
         </Field>
-      </div>
 
-      <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <Field>
           <Select value={sentiment} onValueChange={(value) => update({ sentiment: value })}>
             <SelectTrigger id="select-sentiment" className="w-full bg-white">
@@ -274,36 +255,20 @@ export function CallsFilterBar({
             </SelectContent>
           </Select>
         </Field>
+      </div>
 
-        {/* <Field>
-          <Select
-            value={disposition}
-            onValueChange={(value) => update({ disposition: value })}
-          >
-            <SelectTrigger id="select-disposition" className="w-full bg-white">
-              <SelectValue placeholder="All dispositions" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectGroup>
-                <SelectItem value="Good">Good</SelectItem>
-                <SelectItem value="Moderate">Moderate</SelectItem>
-                <SelectItem value="Bad">Bad</SelectItem>
-              </SelectGroup>
-            </SelectContent>
-          </Select>
-        </Field> */}
-
+      <div className="mt-3.5 grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
         <Button
           type="button"
           onClick={reset}
           disabled={pending}
           variant="outline"
-          className="w-full"
+          className="w-full md:col-start-2 lg:col-start-5"
         >
           Clear
         </Button>
 
-        <div className="w-full lg:col-start-5 [&>button]:w-full">
+        <div className="w-full [&>button]:w-full md:col-start-3 lg:col-start-6">
           <UploadCallsDialog options={uploadOptions} maxFileMb={maxFileMb} />
         </div>
       </div>

@@ -192,10 +192,7 @@ export const callsTableColumns: ColumnDef<CallsTableRow>[] = [
 ];
 
 function formatCallId(id: string) {
-  if (id.startsWith("CALL-") && id.length > 20) {
-    return `C-..${id.slice(-8)}`;
-  }
-  return id;
+  return `C-${id.slice(-4).toUpperCase()}`;
 }
 
 function CallIdCell({ call }: { call: CallsTableRow }) {

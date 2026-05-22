@@ -310,14 +310,6 @@ export function UploadCallsDialog({
                       ))}
                     </select>
                   </Field>
-                  <Field label="Team">
-                    <select name="teamId" className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700">
-                      <option value="">No team</option>
-                      {options.teams.map((team) => (
-                        <option key={team.id} value={team.id}>{team.name}</option>
-                      ))}
-                    </select>
-                  </Field>
                   <Field label="Agent">
                     <select name="agentId" className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700">
                       <option value="">No agent</option>
@@ -325,12 +317,6 @@ export function UploadCallsDialog({
                         <option key={agent.id} value={agent.id}>{agent.name}</option>
                       ))}
                     </select>
-                  </Field>
-                  <Field label="Customer number">
-                    <input name="customerNumber" className="h-10 w-full rounded-lg border border-slate-200 px-3 text-sm text-slate-700" placeholder="+91..." />
-                  </Field>
-                  <Field label="Customer name">
-                    <input name="customerName" className="h-10 w-full rounded-lg border border-slate-200 px-3 text-sm text-slate-700" placeholder="Optional" />
                   </Field>
                 </div>
 

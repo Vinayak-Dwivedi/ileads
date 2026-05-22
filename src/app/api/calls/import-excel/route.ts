@@ -19,6 +19,10 @@ const ACCEPTED_EXCEL_MIME = new Set([
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   "application/vnd.ms-excel",
   "application/octet-stream", // some browsers send this for .xlsx
+  "text/csv",
+  "text/plain",
+  "application/csv",
+  "text/comma-separated-values",
 ]);
 
 const CUID_LIKE = /^[a-z0-9_-]{8,64}$/i;

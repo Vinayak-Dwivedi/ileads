@@ -16,7 +16,7 @@ export interface SttModelConfig {
 export interface SttConfig {
   mock: boolean;
   showMockActions: boolean;
-  provider: "local" | "sarvam";
+  provider: "local" | "sarvam" | "deepgram";
   pythonBin: string;
   scriptDir: string;
   runtimeDir: string;
@@ -77,9 +77,12 @@ function envBool(name: string, fallback: boolean): boolean {
   return fallback;
 }
 
-function envProvider(name: string, fallback: "local" | "sarvam"): "local" | "sarvam" {
+function envProvider(
+  name: string,
+  fallback: "local" | "sarvam" | "deepgram",
+): "local" | "sarvam" | "deepgram" {
   const raw = (process.env[name] || "").trim().toLowerCase();
-  if (raw === "local" || raw === "sarvam") return raw;
+  if (raw === "local" || raw === "sarvam" || raw === "deepgram") return raw;
   return fallback;
 }
 
@@ -135,7 +138,7 @@ export function loadSttConfig(): SttConfig {
   return {
     mock: envBool("MOCK_STT", false),
     showMockActions: envBool("SHOW_MOCK_ACTIONS", process.env.NODE_ENV === "development"),
-    provider: envProvider("STT_PROVIDER", "local"),
+    provider: envProvider("STT_PROVIDER", "local") as "local" | "sarvam" | "deepgram",
     pythonBin: envStr("STT_PYTHON_BIN", repoSubdir(".venv-stt", "bin", "python")),
     scriptDir: envStr("STT_SCRIPT_DIR", repoSubdir("stt")),
     runtimeDir: envStr("STT_RUNTIME_DIR", repoSubdir("runtime", "stt")),

@@ -58,7 +58,7 @@ const EnvSchema = z.object({
   EXCEL_IMPORT_MAX_ROWS: z.coerce.number().int().positive().default(500),
 
   // STT
-  STT_PROVIDER: z.enum(["sarvam", "assemblyai", "local"]).default("sarvam"),
+  STT_PROVIDER: z.enum(["sarvam", "assemblyai", "local", "deepgram"]).default("sarvam"),
   MOCK_STT: z
     .string()
     .optional()

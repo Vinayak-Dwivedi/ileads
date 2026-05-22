@@ -9,7 +9,7 @@ interface Props {
   hasAudio: boolean;
   hasTranscript: boolean;
   mockMode: boolean;
-  sttProvider: "local" | "sarvam";
+  sttProvider: "local" | "sarvam" | "assemblyai" | "deepgram";
   sarvamKeyConfigured: boolean;
   processingStatus?: string | null;
   processingFailed?: boolean;

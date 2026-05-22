@@ -120,7 +120,17 @@ export async function transcribeWithChain(
           },
           ...(config.localSttEnabled ? localAttempts(config) : []),
         ]
-      : localAttempts(config);
+      : config.provider === "deepgram"
+        ? [
+            {
+              provider: "deepgram",
+              model: process.env.DEEPGRAM_MODEL?.trim() || "nova-2",
+              engine: new DeepgramSttEngine(),
+              qualityGate: false,
+            },
+            ...(config.localSttEnabled ? localAttempts(config) : []),
+          ]
+        : localAttempts(config);
 
   const attempts: AttemptResult[] = [];
   let fallbackReason: string | null = null;
@@ -187,6 +197,7 @@ export async function transcribeWithChain(
       const message = e instanceof Error ? e.message : String(e);
       if (index === 0) {
         if (attempt.provider === "sarvam") fallbackReason = "sarvam_failed";
+        else if (attempt.provider === "deepgram") fallbackReason = "deepgram_failed";
         else fallbackReason = code === "MODEL_NOT_FOUND" ? "primary_model_missing" : "primary_model_failed";
       }
       attempts.push({
@@ -198,6 +209,7 @@ export async function transcribeWithChain(
         durationMs: Date.now() - t0,
       });
       if (code === "SARVAM_API_KEY_MISSING") break;
+      if (code === "DEEPGRAM_API_KEY_MISSING") break;
       // Try the next model in the chain.
     }
   }

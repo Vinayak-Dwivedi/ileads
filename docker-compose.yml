@@ -1,0 +1,69 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        # Bake base path into the Next.js bundle at build time (e.g. /ileads-qms)
+        - NEXT_PUBLIC_BASE_PATH=/ileads-qms
+    container_name: qms-app
+    restart: always
+    ports:
+      - "3010:3010"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # Connect to the local postgres container
+      - DATABASE_URL=postgresql://ileads_qms_user:securepassword123@db:5432/ileads_qms?schema=public
+      
+      # App Security and Credentials
+      - APP_SECRET=supersecretgenerichashkeyshouldbeoverriddeninproduction32charminimum
+      - APP_PASSWORD=demopassword
+      
+      # App Routing
+      - NEXT_PUBLIC_BASE_PATH=/ileads-qms
+      - APP_BASE_URL=http://localhost:3010/ileads-qms
+      
+      # Speech to Text Configuration
+      - STT_PROVIDER=sarvam
+      - SARVAM_API_KEY=your_sarvam_api_key_here
+      - SARVAM_USE_BATCH=true
+      
+      # LLM Config
+      - OPENROUTER_API_KEY=your_openrouter_api_key_here
+      
+      # Storage Config
+      - AUDIO_STORAGE_PROVIDER=local
+      - AUDIO_STORAGE_PATH=/app/storage/audio
+      
+      # Seed DB with Beetel/demo parameters on first run (optional)
+      - RUN_DB_SEED=true
+    volumes:
+      # Persist audio files locally
+      - qms-audio-storage:/app/storage/audio
+
+  db:
+    image: postgres:16-alpine
+    container_name: qms-db
+    restart: always
+    environment:
+      - POSTGRES_USER=ileads_qms_user
+      - POSTGRES_PASSWORD=securepassword123
+      - POSTGRES_DB=ileads_qms
+    ports:
+      # Exposed on host port 5433 to match default configuration and avoid conflicts
+      - "5433:5432"
+    volumes:
+      - qms-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ileads_qms_user -d ileads_qms"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  qms-db-data:
+  qms-audio-storage:

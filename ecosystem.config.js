@@ -9,7 +9,7 @@ module.exports = {
     {
       name: "ileads-web",
       script: "node_modules/next/dist/bin/next",
-      args: "start -H 127.0.0.1 -p 3010",
+      args: "start -H " + (process.env.HOST || "127.0.0.1") + " -p " + (process.env.PORT || "3010"),
       cwd: __dirname,
       instances: 1,
       autorestart: true,

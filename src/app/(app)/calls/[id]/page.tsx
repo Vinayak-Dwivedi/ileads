@@ -206,59 +206,57 @@ export default async function CallDetailPage({ params }: PageProps) {
   );
 
   const overviewTab = (
-    <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,7fr)_minmax(0,3fr)]">
-      <div className="space-y-5 min-w-0">
-        <article className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="mb-3 flex items-center gap-2 text-sm font-bold text-slate-800">
-            <Sparkles className="h-4 w-4" /> Summary
-          </div>
-          {audit?.summary ? (
-            <p className="text-sm text-slate-700">{audit.summary}</p>
-          ) : (
-            <p className="text-sm text-slate-500">
-              Audit summary will appear here once the AI audit has run.
-            </p>
-          )}
-        </article>
+    <article className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="mb-3 flex items-center gap-2 text-sm font-bold text-slate-800">
+        <Sparkles className="h-4 w-4" /> Summary
       </div>
+      {audit?.summary ? (
+        <p className="text-sm text-slate-700">{audit.summary}</p>
+      ) : (
+        <p className="text-sm text-slate-500">
+          Audit summary will appear here once the AI audit has run.
+        </p>
+      )}
+    </article>
+  );
 
-      <article className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-        <div className="mb-3">
-          <div className="text-sm font-semibold text-slate-900">Call Information</div>
-          <p className="text-xs text-slate-500">Audio and metadata for this recording.</p>
+  const callInformationCard = (
+    <article className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="mb-3">
+        <div className="text-sm font-semibold text-slate-900">Call Information</div>
+        <p className="text-xs text-slate-500">Audio and metadata for this recording.</p>
+      </div>
+      <div>
+        <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+          Audio
         </div>
-        <div>
-          <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-            Audio
-          </div>
-          <AudioPlayerCard recordingUrl={audioUrl} durationSeconds={call.durationSeconds} />
-        </div >
-        <InfoRow label="Call ID">{callIdText}</InfoRow>
-        <InfoRow label="Client">{call.client.name}</InfoRow>
-        <InfoRow label="Campaign">{call.campaign?.name ?? "—"}</InfoRow>
-        <InfoRow label="Agent ID">{call.agent?.employeeCode ?? "—"}</InfoRow>
-        <InfoRow label="Agent Name">{call.agent?.name ?? "—"}</InfoRow>
-        <InfoRow label="Date & Time">
-          {formatShortDate(call.callStartedAt)} · {formatTime(call.callStartedAt)}
-        </InfoRow>
-        {call.customerName ? <InfoRow label="Customer name">{call.customerName}</InfoRow> : null}
-        {
-          call.durationSeconds != null ? (
-            <InfoRow label="Duration">{formatDuration(call.durationSeconds)}</InfoRow>
-          ) : null
-        }
-        <InfoRow label="Disposition">{call.disposition ?? "—"}</InfoRow>
+        <AudioPlayerCard recordingUrl={audioUrl} durationSeconds={call.durationSeconds} />
+      </div>
+      <InfoRow label="Call ID">{callIdText}</InfoRow>
+      <InfoRow label="Client">{call.client.name}</InfoRow>
+      <InfoRow label="Campaign">{call.campaign?.name ?? "—"}</InfoRow>
+      <InfoRow label="Agent ID">{call.agent?.employeeCode ?? "—"}</InfoRow>
+      <InfoRow label="Agent Name">{call.agent?.name ?? "—"}</InfoRow>
+      <InfoRow label="Date & Time">
+        {formatShortDate(call.callStartedAt)} · {formatTime(call.callStartedAt)}
+      </InfoRow>
+      {call.customerName ? <InfoRow label="Customer name">{call.customerName}</InfoRow> : null}
+      {
+        call.durationSeconds != null ? (
+          <InfoRow label="Duration">{formatDuration(call.durationSeconds)}</InfoRow>
+        ) : null
+      }
+      <InfoRow label="Disposition">{call.disposition ?? "—"}</InfoRow>
 
-        <div className="flex items-center justify-between border-t border-slate-100 pt-3 mt-3">
-          <span className="text-xs text-slate-500">Audit</span>
-          <AuditStatusPill status={audit?.status ?? (call.aiScore != null ? "COMPLETED" : "PENDING")} />
-        </div>
-        <div className="flex items-center justify-between border-t border-slate-100 pt-3 mt-3">
-          <span className="text-xs text-slate-500">Customer Sentiment</span>
-          <SentimentBadge value={call.sentiment} />
-        </div>
-      </article >
-    </div >
+      <div className="flex items-center justify-between border-t border-slate-100 pt-3 mt-3">
+        <span className="text-xs text-slate-500">Audit</span>
+        <AuditStatusPill status={audit?.status ?? (call.aiScore != null ? "COMPLETED" : "PENDING")} />
+      </div>
+      <div className="flex items-center justify-between border-t border-slate-100 pt-3 mt-3">
+        <span className="text-xs text-slate-500">Customer Sentiment</span>
+        <SentimentBadge value={call.sentiment} />
+      </div>
+    </article>
   );
 
   const transcriptTab = (
@@ -480,8 +478,8 @@ export default async function CallDetailPage({ params }: PageProps) {
   );
 
   const notesTab = (
-    <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
-      <div className="space-y-5">
+    <div className="space-y-5">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
         <ManualReviewForm
           callId={call.id}
           initial={
@@ -502,57 +500,57 @@ export default async function CallDetailPage({ params }: PageProps) {
               }
           }
         />
-        <article className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="mb-3 flex items-center gap-2 text-sm font-bold text-slate-800">
-            <Activity className="h-4 w-4" /> Timeline
-          </div>
-          {call.events.length === 0 ? (
-            <EmptyState title="No events" description="No call events recorded yet." />
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>When</TableHead>
-                  <TableHead>Event</TableHead>
-                  <TableHead>Speaker</TableHead>
-                  <TableHead>Severity</TableHead>
-                  <TableHead>Description</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {call.events.map((e) => (
-                  <TableRow key={e.id} className="align-top">
-                    <TableCell className="whitespace-nowrap text-xs text-slate-500">
-                      {formatShortDate(e.occurredAt)} · {formatTime(e.occurredAt)}
-                    </TableCell>
-                    <TableCell className="whitespace-normal text-sm font-medium text-slate-700">
-                      {e.title ?? e.eventType}
-                    </TableCell>
-                    <TableCell className="text-xs text-slate-500">{e.speaker ?? "—"}</TableCell>
-                    <TableCell className="text-xs">
-                      {e.severity ? <Pill tone={e.severity === "HIGH" || e.severity === "CRITICAL" ? "red" : e.severity === "MEDIUM" ? "yellow" : "blue"}>{e.severity}</Pill> : "—"}
-                    </TableCell>
-                    <TableCell className="whitespace-normal text-xs text-slate-600">
-                      {e.description ?? "—"}
-                      {e.evidenceText ? <div className="mt-1 italic text-slate-500">“{e.evidenceText}”</div> : null}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </article>
+        <NotesPanel
+          callId={call.id}
+          notes={call.notes.map((n) => ({
+            id: n.id,
+            author: n.authorName,
+            body: n.body,
+            isPinned: n.isPinned,
+            createdAt: n.createdAt.toISOString(),
+          }))}
+        />
       </div>
-      <NotesPanel
-        callId={call.id}
-        notes={call.notes.map((n) => ({
-          id: n.id,
-          author: n.authorName,
-          body: n.body,
-          isPinned: n.isPinned,
-          createdAt: n.createdAt.toISOString(),
-        }))}
-      />
+      <article className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="mb-3 flex items-center gap-2 text-sm font-bold text-slate-800">
+          <Activity className="h-4 w-4" /> Timeline
+        </div>
+        {call.events.length === 0 ? (
+          <EmptyState title="No events" description="No call events recorded yet." />
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>When</TableHead>
+                <TableHead>Event</TableHead>
+                <TableHead>Speaker</TableHead>
+                <TableHead>Severity</TableHead>
+                <TableHead>Description</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {call.events.map((e) => (
+                <TableRow key={e.id} className="align-top">
+                  <TableCell className="whitespace-nowrap text-xs text-slate-500">
+                    {formatShortDate(e.occurredAt)} · {formatTime(e.occurredAt)}
+                  </TableCell>
+                  <TableCell className="whitespace-normal text-sm font-medium text-slate-700">
+                    {e.title ?? e.eventType}
+                  </TableCell>
+                  <TableCell className="text-xs text-slate-500">{e.speaker ?? "—"}</TableCell>
+                  <TableCell className="text-xs">
+                    {e.severity ? <Pill tone={e.severity === "HIGH" || e.severity === "CRITICAL" ? "red" : e.severity === "MEDIUM" ? "yellow" : "blue"}>{e.severity}</Pill> : "—"}
+                  </TableCell>
+                  <TableCell className="whitespace-normal text-xs text-slate-600">
+                    {e.description ?? "—"}
+                    {e.evidenceText ? <div className="mt-1 italic text-slate-500">“{e.evidenceText}”</div> : null}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </article>
     </div>
   );
 
@@ -582,26 +580,33 @@ export default async function CallDetailPage({ params }: PageProps) {
           </div>
           {kpiGrid}
 
-          <Tabs defaultValue="overview" className="w-full">
-            <TabsList className="w-full justify-start overflow-x-auto rounded-lg border border-slate-200 bg-white px-2" variant="line">
-              <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="transcript">Transcript</TabsTrigger>
-              <TabsTrigger value="audit">Audit Results</TabsTrigger>
-              <TabsTrigger value="notes">Notes &amp; Timeline</TabsTrigger>
-            </TabsList>
-            <TabsContent value="overview" className="mt-4">
-              {overviewTab}
-            </TabsContent>
-            <TabsContent value="transcript" className="mt-4">
-              {transcriptTab}
-            </TabsContent>
-            <TabsContent value="audit" className="mt-4">
-              {auditResultsTab}
-            </TabsContent>
-            <TabsContent value="notes" className="mt-4">
-              {notesTab}
-            </TabsContent>
-          </Tabs>
+          <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,7fr)_minmax(0,3fr)]">
+            <div className="space-y-5 min-w-0">
+              <Tabs defaultValue="overview" className="w-full">
+                <TabsList className="w-full justify-start overflow-x-auto rounded-lg border border-slate-200 bg-white px-2" variant="line">
+                  <TabsTrigger value="overview">Overview</TabsTrigger>
+                  <TabsTrigger value="transcript">Transcript</TabsTrigger>
+                  <TabsTrigger value="audit">Audit Results</TabsTrigger>
+                  <TabsTrigger value="notes">Notes &amp; Timeline</TabsTrigger>
+                </TabsList>
+                <TabsContent value="overview" className="mt-4">
+                  {overviewTab}
+                </TabsContent>
+                <TabsContent value="transcript" className="mt-4">
+                  {transcriptTab}
+                </TabsContent>
+                <TabsContent value="audit" className="mt-4">
+                  {auditResultsTab}
+                </TabsContent>
+                <TabsContent value="notes" className="mt-4">
+                  {notesTab}
+                </TabsContent>
+              </Tabs>
+            </div>
+            <div className="space-y-5">
+              {callInformationCard}
+            </div>
+          </div>
         </div>
       </div>
     </div>

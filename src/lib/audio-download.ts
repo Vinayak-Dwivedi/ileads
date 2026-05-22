@@ -95,7 +95,7 @@ async function validateUrl(rawUrl: string): Promise<URL> {
     const addresses = await dnsLookup(host, { all: true });
     for (const a of addresses) {
       const blocked = a.family === 6 ? isIpv6Private(a.address) : isIpv4Private(a.address);
-      if (blocked) {
+      if (blocked && !allowlist.has(a.address.toLowerCase())) {
         throw new AudioDownloadError(
           "PRIVATE_HOST",
           `Refusing to download from private/loopback address (${a.address}).`,
