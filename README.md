@@ -52,17 +52,16 @@ cp .env.example .env
 $EDITOR .env
 ```
 
-Provision local PostgreSQL on Ubuntu:
+For a fresh EC2 / Ubuntu host, the one-shot bootstrap script provisions
+PostgreSQL, applies the schema, and seeds demo data in a single command —
+see `docs/deployment-runbook.md`. To do the same steps by hand:
 
 ```bash
 sudo apt update
 sudo apt install -y postgresql postgresql-contrib
-sudo bash deploy/setup-postgres.sh
-```
-
-Then apply the schema and seed demo data:
-
-```bash
+# create the role + db (or just run deploy/bootstrap-ec2.sh which does this for you)
+sudo -u postgres psql -c "CREATE ROLE ileads_qms_user LOGIN PASSWORD '<pwd>';"
+sudo -u postgres psql -c "CREATE DATABASE ileads_qms OWNER ileads_qms_user;"
 npx prisma migrate deploy
 npm run db:seed
 ```
@@ -118,24 +117,22 @@ AUDIO_STORAGE_PATH="./storage/audio"
 MAX_AUDIO_UPLOAD_MB="100"
 ```
 
-Deploy or redeploy the app:
+First-time deploy (fresh EC2 instance, runs everything top to bottom):
 
 ```bash
-cd /root/qms_demo
-bash deploy/deploy-direct.sh
+cd /opt/qms
+sudo bash deploy/bootstrap-ec2.sh
 ```
 
-Seed during deployment only when needed:
+Re-deploy after a `git pull`:
 
 ```bash
-bash deploy/deploy-direct.sh --seed
+bash deploy/redeploy.sh             # install + migrate + build + pm2 reload
+bash deploy/redeploy.sh --seed      # also re-seed (idempotent)
+bash deploy/redeploy.sh --no-build  # env-only change
 ```
 
-Install the Nginx route:
-
-```bash
-sudo bash deploy/install-nginx-direct.sh
-```
+Full deployment guide: `docs/deployment-runbook.md`.
 
 Useful PM2 commands:
 
@@ -390,11 +387,12 @@ src/
     audit/
   proxy.ts
 deploy/
-  setup-postgres.sh
-  deploy-direct.sh
-  install-nginx-direct.sh
-  diagnose-direct.sh
-  nginx.conf
+  bootstrap-ec2.sh          # one-shot fresh-EC2 install
+  redeploy.sh               # re-deploy after a git pull
+  diagnose.sh               # read-only status snapshot
+  nginx.conf                # standalone vhost installed by bootstrap
+  nginx.snippet.conf        # location-only snippet for existing vhosts
+  docker-entrypoint.sh      # used by Dockerfile
 docs/
   deployment-runbook.md
 ```
