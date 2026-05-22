@@ -79,12 +79,19 @@ die()  { printf '%sERROR:%s %s\n' "$RED" "$RESET" "$*" >&2; exit 1; }
 # Run a command as $DEPLOY_USER, preserving the env vars Node + Next + Prisma
 # need. Pass-through when DEPLOY_USER is root. Use as:
 #   as_user bash -c 'cd "$1" && npm ci' _ "$REPO_DIR"
+#
+# CRITICAL: -H resets HOME to $DEPLOY_USER's home. Without it sudo keeps
+# the caller's $HOME (= /root when invoked via sudo from ubuntu) and npm
+# tries to write its cache under /root/.npm, which the deploy user can't
+# even traverse (/root is mode 700). Do NOT add HOME to --preserve-env.
+# PATH is also left out so sudo's secure_path applies (covers
+# /usr/bin, /usr/local/bin where node + npm + pm2 live).
 as_user() {
   if [[ "$DEPLOY_USER" == "root" ]]; then
     "$@"
   else
-    sudo -u "$DEPLOY_USER" \
-      --preserve-env=NODE_ENV,NEXT_PUBLIC_BASE_PATH,NODE_OPTIONS,PATH,HOME \
+    sudo -H -u "$DEPLOY_USER" \
+      --preserve-env=NODE_ENV,NEXT_PUBLIC_BASE_PATH,NODE_OPTIONS \
       "$@"
   fi
 }
@@ -293,7 +300,19 @@ if [[ "$DEPLOY_USER" != "root" ]]; then
   chown -R "$DEPLOY_USER":"$DEPLOY_USER" "$REPO_DIR"
   chown "$DEPLOY_USER":"$DEPLOY_USER" "$ENV_FILE"
   chmod 600 "$ENV_FILE"
-  ok "repo owned by $DEPLOY_USER"
+
+  # Ensure the deploy user's home + npm cache are writeable by them.
+  # If an earlier run did `sudo npm` without -H, root-owned files
+  # ended up under ~ubuntu/.npm. as_user (with -H below) makes npm
+  # use ~ubuntu/.npm, so heal it pre-emptively.
+  DEPLOY_HOME="$(getent passwd "$DEPLOY_USER" | cut -d: -f6)"
+  DEPLOY_HOME="${DEPLOY_HOME:-/home/$DEPLOY_USER}"
+  if [[ -d "$DEPLOY_HOME" ]]; then
+    mkdir -p "$DEPLOY_HOME/.npm" "$DEPLOY_HOME/.cache"
+    chown -R "$DEPLOY_USER":"$DEPLOY_USER" \
+      "$DEPLOY_HOME/.npm" "$DEPLOY_HOME/.cache" 2>/dev/null || true
+  fi
+  ok "repo owned by $DEPLOY_USER, ~/.npm cache ready"
 fi
 
 # ----- 5. npm install (as deploy user) -----

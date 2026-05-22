@@ -189,6 +189,12 @@ when you want a self-contained container.
   root-owned. Means you ran `redeploy.sh` or `npm` under `sudo`. Fix:
   `sudo chown -R $USER:$USER /opt/qms` then re-run `bash deploy/redeploy.sh`
   without sudo.
+- **`npm error EACCES … /root/.npm/_cacache/…`** — `sudo npm` (or an older
+  bootstrap without `sudo -H`) left a root-owned npm cache that the deploy
+  user can't reach (`/root` is mode 700). The current bootstrap uses
+  `sudo -H -u $DEPLOY_USER`, which makes npm write to
+  `~$DEPLOY_USER/.npm` instead. If you're recovering from the older
+  bootstrap, run `sudo rm -rf /root/.npm` once and re-run the bootstrap.
 - **Bootstrap exits after creating `.env`** — that's expected on first run.
   Fill in the secrets and re-run `sudo bash deploy/bootstrap-ec2.sh`.
 - **Nginx install skipped with a `default_server` warning** — another site
