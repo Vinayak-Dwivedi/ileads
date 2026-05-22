@@ -580,33 +580,26 @@ export default async function CallDetailPage({ params }: PageProps) {
           </div>
           {kpiGrid}
 
-          <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,7fr)_minmax(0,3fr)]">
-            <div className="space-y-5 min-w-0">
-              <Tabs defaultValue="overview" className="w-full">
-                <TabsList className="w-full justify-start overflow-x-auto rounded-lg border border-slate-200 bg-white px-2" variant="line">
-                  <TabsTrigger value="overview">Overview</TabsTrigger>
-                  <TabsTrigger value="transcript">Transcript</TabsTrigger>
-                  <TabsTrigger value="audit">Audit Results</TabsTrigger>
-                  <TabsTrigger value="notes">Notes &amp; Timeline</TabsTrigger>
-                </TabsList>
-                <TabsContent value="overview" className="mt-4">
-                  {overviewTab}
-                </TabsContent>
-                <TabsContent value="transcript" className="mt-4">
-                  {transcriptTab}
-                </TabsContent>
-                <TabsContent value="audit" className="mt-4">
-                  {auditResultsTab}
-                </TabsContent>
-                <TabsContent value="notes" className="mt-4">
-                  {notesTab}
-                </TabsContent>
-              </Tabs>
-            </div>
-            <div className="space-y-5">
-              {callInformationCard}
-            </div>
-          </div>
+          <Tabs defaultValue="overview" className="w-full">
+            <TabsList className="w-full justify-start overflow-x-auto rounded-lg border border-slate-200 bg-white px-2" variant="line">
+              <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="transcript">Transcript</TabsTrigger>
+              <TabsTrigger value="audit">Audit Results</TabsTrigger>
+              <TabsTrigger value="notes">Notes &amp; Timeline</TabsTrigger>
+            </TabsList>
+            <TabsContent value="overview" className="mt-4">
+              {overviewTab}
+            </TabsContent>
+            <TabsContent value="transcript" className="mt-4">
+              {transcriptTab}
+            </TabsContent>
+            <TabsContent value="audit" className="mt-4">
+              {auditResultsTab}
+            </TabsContent>
+            <TabsContent value="notes" className="mt-4">
+              {notesTab}
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
     </div>

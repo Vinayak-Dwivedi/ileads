@@ -2,10 +2,10 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { AlertTriangleIcon, UserPlusIcon } from "lucide-react";
+import { AlertTriangleIcon, PencilLineIcon } from "lucide-react";
 
-import { addAgent } from "@/features/agents/actions/agents";
-import type { AgentCampaignOption } from "@/features/agents/api/agents";
+import { updateAgent } from "@/features/agents/actions/agents";
+import type { AgentCampaignOption, AgentTableRow } from "@/features/agents/api/agents";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -25,24 +25,31 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-interface AddAgentDialogProps {
+interface EditAgentDialogProps {
+  agent: AgentTableRow | null;
   campaigns: AgentCampaignOption[];
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-export function AddAgentDialog({
+export function EditAgentDialog({
+  agent,
   campaigns,
   isOpen,
   onOpenChange,
-}: AddAgentDialogProps) {
+}: EditAgentDialogProps) {
   const router = useRouter();
   const [error, setError] = React.useState<string | null>(null);
   const [pending, startTransition] = React.useTransition();
 
+  React.useEffect(() => {
+    if (!isOpen) setError(null);
+  }, [isOpen]);
+
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
+    if (!agent) return;
 
     const form = event.currentTarget;
     const formData = new FormData(form);
@@ -51,15 +58,14 @@ export function AddAgentDialog({
     }
 
     startTransition(async () => {
-      const result = await addAgent(formData);
+      const result = await updateAgent(formData);
       if (result.ok) {
-        form.reset();
         onOpenChange(false);
         router.refresh();
         return;
       }
 
-      setError(result.error ?? "Failed to add agent.");
+      setError(result.error ?? "Failed to update agent.");
     });
   }
 
@@ -68,50 +74,43 @@ export function AddAgentDialog({
       <DialogContent className="max-w-md gap-0 overflow-hidden border-slate-200 bg-white p-0 shadow-[0_24px_70px_rgba(15,23,42,0.22)]">
         <DialogHeader className="border-b border-slate-100 px-6 py-5">
           <DialogTitle className="flex items-center gap-2 text-xl text-slate-900">
-            <UserPlusIcon className="h-5 w-5 text-blue-600" />
-            Add Agent
+            <PencilLineIcon className="h-5 w-5 text-blue-600" />
+            Edit Agent
           </DialogTitle>
           <DialogDescription>
-            Add an agent and optionally assign them to an active campaign.
+            Update the agent details and campaign assignment.
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="grid grid-rows-[1fr_auto]">
           <div className="space-y-4 overflow-y-auto px-6 py-5">
+            <input type="hidden" name="agentId" value={agent?.id ?? ""} />
             <Field>
-              <FieldLabel htmlFor="agent-name">Agent Name</FieldLabel>
+              <FieldLabel htmlFor="edit-agent-name">Agent Name</FieldLabel>
               <Input
-                id="agent-name"
+                id="edit-agent-name"
                 name="name"
                 required
+                defaultValue={agent?.name ?? ""}
                 placeholder="Enter agent name"
               />
             </Field>
 
             <Field>
-              <FieldLabel htmlFor="employee-code">Agent ID</FieldLabel>
+              <FieldLabel htmlFor="edit-employee-code">Agent ID</FieldLabel>
               <Input
-                id="employee-code"
+                id="edit-employee-code"
                 name="employeeCode"
                 required
+                defaultValue={agent?.employeeCode ?? ""}
                 placeholder="Enter agent ID"
               />
             </Field>
 
-            {/* <Field>
-              <FieldLabel htmlFor="agent-email">Email</FieldLabel>
-              <Input
-                id="agent-email"
-                name="email"
-                type="email"
-                placeholder="Optional"
-              />
-            </Field> */}
-
             <Field>
-              <FieldLabel htmlFor="agent-campaign">Campaign</FieldLabel>
-              <Select name="campaignId" defaultValue="__none">
-                <SelectTrigger id="agent-campaign" className="w-full bg-white">
+              <FieldLabel htmlFor="edit-agent-campaign">Campaign</FieldLabel>
+              <Select name="campaignId" defaultValue={agent?.campaignId ?? "__none"}>
+                <SelectTrigger id="edit-agent-campaign" className="w-full bg-white">
                   <SelectValue placeholder="No campaign" />
                 </SelectTrigger>
                 <SelectContent>
@@ -145,7 +144,7 @@ export function AddAgentDialog({
               Cancel
             </Button>
             <Button type="submit" disabled={pending}>
-              {pending ? "Adding..." : "Add agent"}
+              {pending ? "Saving..." : "Save changes"}
             </Button>
           </div>
         </form>
