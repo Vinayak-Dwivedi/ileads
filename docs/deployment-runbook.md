@@ -1,294 +1,162 @@
-# Deployment Runbook - `http://187.127.139.47/ileads-qms`
+# Deployment Runbook — EC2 (one-shot bootstrap)
 
-Run these commands on the production host. The repo path is assumed to be
-`/root/qms_demo`.
+Deploy QMS to a fresh Ubuntu EC2 instance in **one command**. The script is
+idempotent and safe to re-run.
 
-## 1. Install System Packages
-
-```bash
-sudo apt update
-sudo apt install -y curl ca-certificates nginx postgresql postgresql-contrib
-```
-
-## 2. Install Node.js LTS
-
-Install Node.js 22 LTS or newer. One common Ubuntu path is NodeSource:
+## TL;DR
 
 ```bash
-curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
-sudo apt install -y nodejs
-node -v
-npm -v
-```
-
-## 3. Install PostgreSQL
-
-```bash
-sudo apt update
-sudo apt install -y postgresql postgresql-contrib
-sudo systemctl enable --now postgresql
-```
-
-## 4. Create Database and User
-
-Use these names:
-
-```text
-database: ileads_qms
-user:     ileads_qms_user
-```
-
-Set a strong password in `.env` first:
-
-```bash
-cd /root/qms_demo
+# 1. SSH into the box, clone the repo, copy .env
+ssh ubuntu@<host>
+git clone https://github.com/ileads-auxiliary-services/qms /opt/qms
+cd /opt/qms
 cp .env.example .env
-$EDITOR .env
+$EDITOR .env       # fill in DATABASE_URL password, APP_PASSWORD, API keys
+
+# 2. Run the bootstrap (installs Node 22, PM2, Postgres, nginx; provisions
+#    the DB; runs migrations + seed; builds; starts under PM2; configures nginx)
+sudo bash deploy/bootstrap-ec2.sh
 ```
 
-`DATABASE_URL` should look like:
+That's it. Browse to `http://<host>/ileads-qms/login` and log in with
+`APP_PASSWORD`.
 
-```text
-postgresql://ileads_qms_user:<password>@localhost:5432/ileads_qms?schema=public
-```
+## What `bootstrap-ec2.sh` does
 
-If another local service already owns port `5432`, keep that service in place
-and use the direct PostgreSQL cluster port in `.env` instead. On the current
-host, QMS uses `localhost:5433` because `5432` is already occupied by another
-app.
+1. Verifies it's running as root on an apt-based distro.
+2. `apt install` system packages (Node 22 via NodeSource, PM2, PostgreSQL,
+   nginx, ffmpeg, jq, build-essential, git, curl, ca-certificates, gnupg).
+3. Loads `.env`. If it's missing, copies `.env.example` and **stops** — you
+   must fill it in and re-run.
+4. Generates a fresh `APP_SECRET` into `.env` only when the existing value
+   is empty / a placeholder / shorter than 32 chars.
+5. Parses `DATABASE_URL`, creates the Postgres role + database, resets the
+   role password, grants ownership, enables `pgcrypto`.
+6. `npm ci`, `npx prisma generate`, `npx prisma migrate deploy`.
+7. Runs `npm run db:seed` plus the standard + Beetel parameter imports.
+8. Builds Next.js with `NEXT_PUBLIC_BASE_PATH` taken from `.env`.
+9. Starts `ecosystem.config.js` under PM2, saves the process list, installs
+   a systemd unit so PM2 survives reboots.
+10. Installs `deploy/nginx.conf` as a sites-enabled vhost and reloads nginx
+    (refuses to clobber another `default_server` and explains how to merge
+    the snippet instead).
+11. Prints HEAD-request verification for upstream, nginx, and public IP.
 
-Provision the role and database:
+## Flags
+
+| Flag             | Effect |
+| ---------------- | ------ |
+| `--skip-system`  | Don't `apt install`. Use when Node/Postgres/nginx are pre-provisioned. |
+| `--skip-seed`    | Skip `db:seed` and the parameter imports. Use for empty production deployments. |
+| `--skip-nginx`   | Don't touch the nginx config. Use behind a managed load balancer / ALB. |
+| `--skip-pm2`     | Don't start PM2. Use when running inside Docker. |
+| `--no-build`     | Skip `npm run build`. Use after a manual build. |
+
+## Required `.env` keys
+
+The script reads these directly from `.env`:
+
+| Key | Purpose |
+| --- | --- |
+| `DATABASE_URL` | `postgresql://user:pass@host:port/db?schema=public`. The script provisions the role + db when host is localhost. |
+| `APP_SECRET` | Session signing key. Auto-generated when missing/placeholder. |
+| `APP_PASSWORD` | Demo login password (single-tenant). |
+| `NEXT_PUBLIC_BASE_PATH` | URL prefix baked into the bundle. Defaults to `/ileads-qms`. |
+| `APP_BASE_URL` | Absolute public URL of the app. Used in OpenAPI + webhooks. |
+
+Optional STT / LLM / storage keys are passed through unchanged — see
+`.env.example` for the full list.
+
+## Re-deploying after a git pull
 
 ```bash
-sudo bash deploy/setup-postgres.sh
+cd /opt/qms
+git pull
+bash deploy/redeploy.sh           # install + migrate + build + pm2 reload
+bash deploy/redeploy.sh --seed    # also re-seed (idempotent)
+bash deploy/redeploy.sh --no-build # env-only change
+bash deploy/redeploy.sh --pull    # convenience: git pull, then redeploy
 ```
 
-The script is safe to rerun. It reads `.env`, creates the role/database when
-missing, updates the role password, grants privileges, and enables `pgcrypto`.
+`redeploy.sh` assumes `bootstrap-ec2.sh` has been run at least once.
 
-## 5. Configure `.env`
-
-Production values:
-
-```text
-DATABASE_URL="postgresql://ileads_qms_user:<password>@localhost:5432/ileads_qms?schema=public"
-APP_SECRET="<long random secret>"
-APP_PASSWORD="<seed login password>"
-NEXT_PUBLIC_BASE_PATH="/ileads-qms"
-APP_BASE_URL="http://187.127.139.47/ileads-qms"
-NODE_ENV="production"
-MOCK_STT=false
-SHOW_MOCK_ACTIONS=false
-STT_PROVIDER=sarvam
-```
-
-Generate a secret with:
+## Diagnostics
 
 ```bash
-openssl rand -base64 32
+bash deploy/diagnose.sh > /tmp/qms-diag.txt
 ```
 
-## 6. Install NPM Dependencies
+Snapshots PM2 status + logs, `.env` (secrets redacted), Postgres service +
+DB connection test, Prisma migration status, upstream/nginx HEAD requests,
+nginx config dump, and the last nginx error log lines.
 
-```bash
-cd /root/qms_demo
-npm install
-```
-
-## 7. Generate Prisma Client
-
-```bash
-npx prisma generate
-```
-
-## 8. Run Migrations
-
-```bash
-npx prisma migrate deploy
-```
-
-## 9. Seed Database
-
-Run once for demo data or when intentionally refreshing seed content:
-
-```bash
-npm run db:seed
-```
-
-## 10. Build Next.js With Base Path
-
-The base path is baked into the production bundle:
-
-```bash
-NEXT_PUBLIC_BASE_PATH=/ileads-qms npm run build
-```
-
-## 11. Start App With PM2
-
-Install PM2:
-
-```bash
-sudo npm install -g pm2
-```
-
-Start the app on `127.0.0.1:3010`:
-
-```bash
-pm2 start npm --name ileads-qms -- run start:prod
-pm2 save
-pm2 startup
-```
-
-The package script is:
-
-```json
-"start:prod": "next start -H 127.0.0.1 -p 3010"
-```
-
-For repeat deployments, use:
-
-```bash
-cd /root/qms_demo
-bash deploy/deploy-direct.sh
-```
-
-Seed during deployment only when needed:
-
-```bash
-bash deploy/deploy-direct.sh --seed
-```
-
-## 12. Configure Nginx
-
-Install the direct reverse-proxy config:
-
-```bash
-cd /root/qms_demo
-sudo bash deploy/install-nginx-direct.sh
-```
-
-The installed server block proxies:
-
-```text
-/                 -> 302 /ileads-qms
-/ileads-qms       -> http://127.0.0.1:3010
-/ileads-qms/*     -> http://127.0.0.1:3010
-```
-
-If another active site already owns the default `:80` server, the installer
-prints a warning and stops before changing that app. In that case, merge the
-`/ileads-qms` locations into the existing server block.
-
-## 13. Verify Public URL
-
-On the host:
-
-```bash
-curl -I http://127.0.0.1:3010/ileads-qms
-curl -I http://127.0.0.1:3010/ileads-qms/login
-curl -I http://127.0.0.1/ileads-qms
-curl -I http://187.127.139.47/ileads-qms
-```
-
-Expected:
-
-```text
-127.0.0.1:3010/ileads-qms       -> 307 to /ileads-qms/dashboard
-127.0.0.1:3010/ileads-qms/login -> 200
-127.0.0.1/ileads-qms            -> 307 to /ileads-qms/dashboard
-187.127.139.47/ileads-qms       -> 307 to /ileads-qms/dashboard
-```
-
-Browser flow:
-
-1. Open `http://187.127.139.47/ileads-qms`.
-2. Sign in with `APP_PASSWORD`.
-3. Check Dashboard, Calls, Parameters, Clients, and Settings.
-4. Run the mock audit action on a call detail page.
-5. Confirm URLs do not contain `/ileads-qms/ileads-qms`.
-
-## 14. Restart Commands
-
-```bash
-pm2 restart ileads-qms
-pm2 reload ileads-qms --update-env
-pm2 stop ileads-qms
-pm2 start npm --name ileads-qms -- run start:prod
-sudo systemctl reload nginx
-sudo systemctl restart postgresql
-```
-
-## 15. Logs and Troubleshooting
-
-Direct diagnostics:
-
-```bash
-bash deploy/diagnose-direct.sh > /tmp/qms-diag.txt
-cat /tmp/qms-diag.txt
-```
-
-Useful manual checks:
+## Useful commands
 
 ```bash
 pm2 status
-pm2 logs ileads-qms --lines 100
-systemctl status postgresql
+pm2 logs ileads-web --lines 100
+pm2 logs ileads-queue-worker --lines 100
+pm2 reload ecosystem.config.js --update-env
+sudo systemctl reload nginx
+sudo systemctl restart postgresql
 npx prisma migrate status
-sudo nginx -t
-sudo nginx -T | grep -n ileads-qms
-sudo tail -80 /var/log/nginx/error.log
 ```
 
-Common issues:
+## Routing invariants — DO NOT BREAK
 
-- Nginx 404: active Nginx config is missing the `/ileads-qms` proxy block.
-- Next.js 404: the app was built without `NEXT_PUBLIC_BASE_PATH=/ileads-qms`.
-- Static asset 404: Nginx is not proxying `/ileads-qms/_next/*` to Node.
-- Login loops: verify `APP_SECRET` is stable and PM2 was restarted after env
-  changes.
-- DB errors: verify `DATABASE_URL`, PostgreSQL status, and
-  `npx prisma migrate status`.
+The Next.js bundle is built with `basePath=/ileads-qms`, so the upstream
+**expects** the `/ileads-qms` prefix on every request, including
+`/ileads-qms/_next/*`. `deploy/nginx.conf` reflects this:
 
-## Upload Troubleshooting
+- `location = /ileads-qms` → proxy (no 301 — Next's strict-slash policy
+  would 308 back into a loop).
+- `location ^~ /ileads-qms/` → prefix-passthrough proxy
+  (`proxy_pass http://127.0.0.1:3010;` with no URI).
+- `client_max_body_size 200M` so audio uploads aren't rejected at the
+  edge before the app sees them.
 
-- **HTTP 413 (Request Entity Too Large)** on `POST /ileads-qms/api/calls/upload`
-  means Nginx is rejecting the body before it reaches Node. Increase
-  `client_max_body_size` in the active vhost (snippet below) — the app's
-  `MAX_AUDIO_UPLOAD_MB` is irrelevant until Nginx accepts the body.
-- The active vhost for `/ileads-qms` is
-  `/etc/nginx/sites-available/zepto-vb-demo.conf` (symlinked into
-  `sites-enabled/`). It sets `client_max_body_size 500M` at the server level
-  *and* inside both `/ileads-qms` location blocks, with 300s proxy timeouts so
-  large WAVs don't get cut off mid-upload.
-- Inspect the active limit:
+If you need to merge the routes into an existing vhost instead, use
+`deploy/nginx.snippet.conf`.
 
-  ```bash
-  sudo nginx -T | grep -n "client_max_body_size" -C 10
-  ```
+## Docker deploys (alternative path)
 
-- Reload after editing:
-
-  ```bash
-  sudo nginx -t && sudo systemctl reload nginx
-  ```
-
-- App-level cap is `MAX_AUDIO_UPLOAD_MB` in `.env` (currently `250`). The
-  upload dialog reads this from the calls page and rejects oversize files
-  client-side with a clear message; the `/api/calls/upload` route also enforces
-  it via `saveAudioFile()`.
-
-## AI Pipeline Note
-
-Sarvam Batch STT and OpenRouter/Gemma live audit are implemented. Keep
-`MOCK_STT=false` and `SHOW_MOCK_ACTIONS=false` for the production demo.
-
-For demo data, import existing local audio from `AUDIO_STORAGE_PATH` with:
+`Dockerfile` + `docker-compose.yml` ship the same app as a self-contained
+container that runs PM2 + Next + queue worker. The container's entrypoint
+(`deploy/docker-entrypoint.sh`) runs `prisma migrate deploy`, optionally
+seeds, and execs `pm2-runtime`. Compose brings up a sidecar Postgres.
 
 ```bash
-npm run import:audio
+docker compose up -d --build
 ```
 
-This creates one pending call per unlinked audio file and does not move,
-delete, or overwrite the recordings. Use call detail's live transcription and
-AI audit actions for the demo. Raw audio goes only to the STT layer; OpenRouter
-receives transcript text only.
+Use the bootstrap script for plain EC2 / VM deploys, and Docker compose
+when you want a self-contained container.
+
+## Troubleshooting
+
+- **Bootstrap exits after creating `.env`** — that's expected on first run.
+  Fill in the secrets and re-run `sudo bash deploy/bootstrap-ec2.sh`.
+- **Nginx install skipped with a `default_server` warning** — another site
+  on `:80` already owns `default_server`. Either disable it and re-run,
+  or inline `deploy/nginx.snippet.conf` into that vhost.
+- **`prisma migrate deploy` fails with `P1000`** — the Postgres role
+  password in `DATABASE_URL` doesn't match the actual role password.
+  Re-run the bootstrap; it will reset the role password from `.env`.
+- **PM2 process restarting on every request** — `pm2 logs ileads-web`
+  usually points at a missing env var (`APP_SECRET` empty, Sentry DSN
+  malformed). Fix `.env` and `pm2 reload ecosystem.config.js --update-env`.
+- **413 Request Entity Too Large** on audio upload — nginx
+  `client_max_body_size` is too small. The shipped vhost sets `200M`;
+  raise it and `sudo nginx -t && sudo systemctl reload nginx`.
+
+## Audio + STT notes
+
+- Local audio uploads are saved under `AUDIO_STORAGE_PATH` (default
+  `./storage/audio`). The bootstrap creates this directory and chowns it
+  to the deploy user.
+- STT defaults to Deepgram (`STT_PROVIDER=deepgram`). For Sarvam or local
+  Python STT, see `.env.example` and `stt/README.md`. The bootstrap does
+  not download local model weights — run `scripts/stt/download-models.sh`
+  manually if you need them.
+- The OpenRouter audit pipeline receives transcript text only; raw audio
+  never leaves the STT path.
