@@ -13,28 +13,32 @@
 #   --no-build        skip `npm run build` (use after manual deploy)
 #
 # What it does, idempotently:
-#   1. Verifies it's running as root on an apt-based distro.
-#   2. apt update + installs curl, ca-certificates, gnupg, build-essential,
-#      git, ffmpeg, jq, nginx, postgresql, postgresql-contrib.
-#   3. Installs Node.js 22 LTS via NodeSource if `node -v` is missing or < 22.
-#   4. Installs PM2 globally (`npm i -g pm2`).
-#   5. Loads .env (creating it from .env.example if missing) and parses
-#      DATABASE_URL.
-#   6. Generates a fresh APP_SECRET into .env if the existing value is empty
-#      or still the placeholder.
-#   7. Creates the Postgres role + database, sets the password from
-#      DATABASE_URL, grants privileges, enables pgcrypto extension.
-#   8. Runs `npm ci` (falls back to `npm install` if no lockfile).
-#   9. Runs `npx prisma generate` + `npx prisma migrate deploy`.
-#  10. Runs `npm run db:seed`, plus the standard + Beetel parameter imports
-#      (skipped behind --skip-seed).
-#  11. Builds Next.js with NEXT_PUBLIC_BASE_PATH from .env.
-#  12. Installs deploy/nginx.conf as a sites-enabled vhost and reloads nginx.
-#  13. Starts/reloads the PM2 ecosystem and persists it via `pm2 startup`.
-#  14. Prints verification HEAD requests.
+#   1.  apt update + installs Node 22 (NodeSource), PM2, PostgreSQL, nginx,
+#       ffmpeg, jq, build-essential, git, curl, ca-certificates, gnupg.
+#   1b. Creates a 4 GB /swapfile when total swap < 2 GB (so the Turbopack
+#       build doesn't get OOM-killed on t2/t3.micro).
+#   2.  Loads .env (copies from .env.example and STOPS if missing — fill it
+#       in and re-run).
+#   3.  Generates a fresh APP_SECRET into .env if it's empty or a placeholder.
+#   4.  Parses DATABASE_URL, creates the Postgres role + database, sets the
+#       role password, grants privileges, enables pgcrypto.
+#   4b. Chowns the entire repo to $DEPLOY_USER ($SUDO_USER) so every later
+#       step runs as that user, not root.
+#   5.  npm ci as $DEPLOY_USER.
+#   6.  npx prisma generate + migrate deploy as $DEPLOY_USER.
+#   7.  npm run db:seed + import:standard-parameters + import:beetel-parameters
+#       as $DEPLOY_USER (skipped behind --skip-seed).
+#   8.  next build with NEXT_PUBLIC_BASE_PATH from .env and
+#       NODE_OPTIONS=--max-old-space-size=4096, as $DEPLOY_USER.
+#   9.  Starts ecosystem.config.js under PM2 as $DEPLOY_USER, saves the
+#       process list, installs the pm2-$DEPLOY_USER systemd unit.
+#  10.  Installs deploy/nginx.conf as a sites-enabled vhost; reloads nginx.
+#  11.  Prints verification HEAD requests.
 #
-# Safe to re-run. Designed for Ubuntu 22.04 / 24.04 (will also work on Debian
-# 12). Tested mental model: a fresh EC2 instance with only ssh access.
+# Safe to re-run. Designed for Ubuntu 22.04 / 24.04 (also works on Debian 12).
+# Tested mental model: a fresh EC2 instance with only ssh access. Min size:
+# t3.small. Smaller instances will work via the auto-swap, but the build is
+# slow.
 
 set -euo pipefail
 
@@ -71,6 +75,19 @@ note() { printf '%s    %s%s\n' "$DIM" "$*" "$RESET"; }
 ok()   { printf '%s    ✓ %s%s\n' "$GREEN" "$*" "$RESET"; }
 warn() { printf '%s    ! %s%s\n' "$YELLOW" "$*" "$RESET" >&2; }
 die()  { printf '%sERROR:%s %s\n' "$RED" "$RESET" "$*" >&2; exit 1; }
+
+# Run a command as $DEPLOY_USER, preserving the env vars Node + Next + Prisma
+# need. Pass-through when DEPLOY_USER is root. Use as:
+#   as_user bash -c 'cd "$1" && npm ci' _ "$REPO_DIR"
+as_user() {
+  if [[ "$DEPLOY_USER" == "root" ]]; then
+    "$@"
+  else
+    sudo -u "$DEPLOY_USER" \
+      --preserve-env=NODE_ENV,NEXT_PUBLIC_BASE_PATH,NODE_OPTIONS,PATH,HOME \
+      "$@"
+  fi
+}
 
 # ----- preflight -----
 if [[ $EUID -ne 0 ]]; then
@@ -129,6 +146,24 @@ if [[ $SKIP_SYSTEM -eq 0 ]]; then
   ok "postgresql active"
 else
   note "Skipping system package install (--skip-system)"
+fi
+
+# ----- 1b. Swap (so Next.js / Turbopack builds don't OOM-kill) -----
+# A Next 16 production build needs ~2 GB resident memory; default EC2
+# t2/t3.micro AMIs ship with 1 GB RAM and zero swap, which kills the build.
+TOTAL_SWAP_MB=$(free -m 2>/dev/null | awk '/^Swap:/ {print $2}')
+if [[ "${TOTAL_SWAP_MB:-0}" -lt 2048 && ! -e /swapfile ]]; then
+  log "Creating 4 GB /swapfile (existing swap = ${TOTAL_SWAP_MB:-0} MB)"
+  fallocate -l 4G /swapfile || dd if=/dev/zero of=/swapfile bs=1M count=4096 status=none
+  chmod 600 /swapfile
+  mkswap /swapfile >/dev/null
+  swapon /swapfile
+  grep -q '^/swapfile' /etc/fstab || echo '/swapfile none swap sw 0 0' >> /etc/fstab
+  sysctl -w vm.swappiness=10 >/dev/null
+  grep -q '^vm.swappiness' /etc/sysctl.conf || echo 'vm.swappiness=10' >> /etc/sysctl.conf
+  ok "swap on — total now $(free -m | awk '/^Swap:/ {print $2}') MB"
+else
+  note "swap already ok (${TOTAL_SWAP_MB:-0} MB) — not creating /swapfile"
 fi
 
 # ----- 2. .env -----
@@ -247,86 +282,96 @@ else
   fi
 fi
 
-# ----- 5. npm install -----
+# ----- 4b. Hand the repo to the deploy user -----
+# Everything below this point runs as $DEPLOY_USER via as_user, so the
+# files it creates (node_modules/, .next/, storage/, runtime/, ~/.npm)
+# must already be writeable by that user. The single recursive chown
+# replaces the previous late, partial chown.
+mkdir -p "$REPO_DIR/storage/audio" "$REPO_DIR/runtime/stt"
+if [[ "$DEPLOY_USER" != "root" ]]; then
+  log "Handing repo to $DEPLOY_USER (chown -R)"
+  chown -R "$DEPLOY_USER":"$DEPLOY_USER" "$REPO_DIR"
+  chown "$DEPLOY_USER":"$DEPLOY_USER" "$ENV_FILE"
+  chmod 600 "$ENV_FILE"
+  ok "repo owned by $DEPLOY_USER"
+fi
+
+# ----- 5. npm install (as deploy user) -----
 log "Installing npm dependencies"
 if [[ -f package-lock.json ]]; then
-  npm ci --no-audit --no-fund
+  as_user bash -c 'cd "$1" && npm ci --no-audit --no-fund' _ "$REPO_DIR"
 else
-  npm install --no-audit --no-fund
+  as_user bash -c 'cd "$1" && npm install --no-audit --no-fund' _ "$REPO_DIR"
 fi
 ok "npm dependencies installed"
 
-# ----- 6. Prisma -----
+# ----- 6. Prisma (as deploy user) -----
 log "Generating Prisma client"
-npx prisma generate
+as_user bash -c 'cd "$1" && npx prisma generate' _ "$REPO_DIR"
 
 log "Applying database migrations"
-npx prisma migrate deploy
+as_user bash -c 'cd "$1" && npx prisma migrate deploy' _ "$REPO_DIR"
 
-# ----- 7. Seed + parameter imports -----
+# ----- 7. Seed + parameter imports (as deploy user) -----
 if [[ $SKIP_SEED -eq 0 ]]; then
   log "Seeding database (npm run db:seed)"
-  npm run db:seed
-  # The Beetel + standard-parameters imports build on top of the seed and
-  # are themselves idempotent. They're optional for new deployments that
-  # don't want the demo client preloaded.
-  if npm run | grep -qE '^\s+import:standard-parameters'; then
+  as_user bash -c 'cd "$1" && npm run db:seed' _ "$REPO_DIR"
+  # Beetel + standard-parameters imports build on top of the seed and are
+  # themselves idempotent. Optional for non-demo deployments.
+  if npm run --silent 2>/dev/null | grep -qE '^\s+import:standard-parameters'; then
     log "Importing standard audit parameters"
-    npm run import:standard-parameters
+    as_user bash -c 'cd "$1" && npm run import:standard-parameters' _ "$REPO_DIR"
   fi
-  if npm run | grep -qE '^\s+import:beetel-parameters'; then
+  if npm run --silent 2>/dev/null | grep -qE '^\s+import:beetel-parameters'; then
     log "Importing Beetel demo parameter set"
-    npm run import:beetel-parameters
+    as_user bash -c 'cd "$1" && npm run import:beetel-parameters' _ "$REPO_DIR"
   fi
   ok "seed + parameter imports done"
 else
   note "Skipping seed + parameter imports (--skip-seed)"
 fi
 
-# ----- 8. Storage dir -----
-mkdir -p "$REPO_DIR/storage/audio" "$REPO_DIR/runtime/stt"
-# When invoked under sudo, hand the storage dir back to the deploy user so
-# the queue worker can write to it without root.
-if [[ "$DEPLOY_USER" != "root" ]]; then
-  chown -R "$DEPLOY_USER":"$DEPLOY_USER" \
-    "$REPO_DIR/storage" \
-    "$REPO_DIR/runtime" \
-    "$REPO_DIR/node_modules" \
-    "$REPO_DIR/.next" 2>/dev/null || true
-fi
-
-# ----- 9. Build -----
+# ----- 8. Build (as deploy user, with raised V8 heap) -----
 BASE_PATH="$(read_env NEXT_PUBLIC_BASE_PATH)"
 BASE_PATH="${BASE_PATH:-/ileads-qms}"
 export NEXT_PUBLIC_BASE_PATH="$BASE_PATH"
 export NODE_ENV=production
+# Lift V8 heap so the Turbopack build can actually use the RAM+swap we set
+# up in step 1b. The default ~1.7 GB cap is what gets OOM-killed on micros.
+export NODE_OPTIONS="${NODE_OPTIONS:-} --max-old-space-size=4096"
 
 if [[ $DO_BUILD -eq 1 ]]; then
-  log "Building Next.js (basePath=${BASE_PATH:-(empty)})"
-  npm run build
+  log "Building Next.js (basePath=${BASE_PATH:-(empty)}, heap=4096 MB)"
+  as_user bash -c 'cd "$1" && npm run build' _ "$REPO_DIR"
   ok "build complete"
 else
   note "Skipping build (--no-build)"
 fi
 
-# ----- 10. PM2 -----
+# Drop NODE_OPTIONS from the parent shell so PM2 doesn't inherit it —
+# the web + worker processes don't need 4 GB of heap.
+unset NODE_OPTIONS
+
+# ----- 9. PM2 (as deploy user) -----
 if [[ $SKIP_PM2 -eq 0 ]]; then
-  log "Starting/reloading PM2 ecosystem"
-  if pm2 describe "$APP_NAME" >/dev/null 2>&1; then
-    pm2 reload ecosystem.config.js --update-env
-  elif pm2 describe "ileads-web" >/dev/null 2>&1; then
-    pm2 reload ecosystem.config.js --update-env
+  log "Starting/reloading PM2 ecosystem as $DEPLOY_USER"
+  if as_user pm2 describe "$APP_NAME" >/dev/null 2>&1 \
+     || as_user pm2 describe "ileads-web" >/dev/null 2>&1; then
+    as_user bash -c 'cd "$1" && pm2 reload ecosystem.config.js --update-env' _ "$REPO_DIR"
   else
-    pm2 start ecosystem.config.js --update-env
+    as_user bash -c 'cd "$1" && pm2 start ecosystem.config.js --update-env' _ "$REPO_DIR"
   fi
-  pm2 save
-  # Persist the PM2 daemon across reboots. `pm2 startup` prints a systemd
-  # bootstrap command to run; with `systemd` available we just install it.
+  as_user pm2 save
+  # Persist the PM2 daemon across reboots — `pm2 startup systemd` installs a
+  # systemd unit that runs PM2 as $DEPLOY_USER. The install command itself
+  # needs root, which is what we are.
   if command -v systemctl >/dev/null 2>&1; then
-    PM2_STARTUP_CMD=$(pm2 startup systemd -u "$DEPLOY_USER" --hp "$(eval echo ~$DEPLOY_USER)" 2>&1 \
+    DEPLOY_HOME="$(getent passwd "$DEPLOY_USER" | cut -d: -f6)"
+    DEPLOY_HOME="${DEPLOY_HOME:-/home/$DEPLOY_USER}"
+    PM2_STARTUP_CMD=$(as_user pm2 startup systemd -u "$DEPLOY_USER" --hp "$DEPLOY_HOME" 2>&1 \
       | grep -E '^sudo env ' | tail -1 || true)
     if [[ -n "$PM2_STARTUP_CMD" ]]; then
-      note "Installing PM2 systemd unit"
+      note "Installing PM2 systemd unit (pm2-$DEPLOY_USER)"
       eval "$PM2_STARTUP_CMD" || warn "pm2 startup install failed (non-fatal)"
     fi
   fi
@@ -335,7 +380,7 @@ else
   note "Skipping PM2 setup (--skip-pm2)"
 fi
 
-# ----- 11. Nginx -----
+# ----- 10. Nginx -----
 if [[ $SKIP_NGINX -eq 0 ]]; then
   log "Installing nginx vhost"
   NGINX_SRC="$SCRIPT_DIR/nginx.conf"
@@ -369,7 +414,7 @@ else
   note "Skipping nginx install (--skip-nginx)"
 fi
 
-# ----- 12. Verification -----
+# ----- 11. Verification -----
 log "Verification"
 sleep 2
 set +e

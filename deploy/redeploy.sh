@@ -42,7 +42,20 @@ REPO_DIR="$( cd "$SCRIPT_DIR/.." && pwd )"
 APP_NAME="${APP_NAME:-ileads-qms}"
 cd "$REPO_DIR"
 
+# Refuse to run as root unless the repo is genuinely root-owned. Running
+# redeploy.sh with sudo on a user-owned tree re-creates .next/ + npm cache
+# as root and re-breaks subsequent non-sudo work. bootstrap-ec2.sh chowns
+# the repo to $SUDO_USER specifically so this script runs as that user.
+REPO_OWNER=$(stat -c '%U' "$REPO_DIR" 2>/dev/null || echo unknown)
+if [[ $EUID -eq 0 && "$REPO_OWNER" != "root" ]]; then
+  echo "ERROR: $REPO_DIR is owned by '$REPO_OWNER' but you're running as root." >&2
+  echo "       Don't use sudo — re-run as that user:" >&2
+  echo "         su - $REPO_OWNER -c 'cd $REPO_DIR && bash deploy/redeploy.sh $*'" >&2
+  exit 1
+fi
+
 [[ -f .env ]] || { echo "ERROR: $REPO_DIR/.env missing. Run deploy/bootstrap-ec2.sh first." >&2; exit 1; }
+[[ -r .env ]] || { echo "ERROR: $REPO_DIR/.env not readable as $(id -un). Check ownership/mode." >&2; exit 1; }
 
 # Read NEXT_PUBLIC_BASE_PATH from .env so the build matches deployment.
 BASE_PATH=$(grep -E '^NEXT_PUBLIC_BASE_PATH=' .env | tail -1 \
@@ -82,8 +95,10 @@ if [[ $DO_SEED -eq 1 ]]; then
 fi
 
 if [[ $DO_BUILD -eq 1 ]]; then
-  echo "==> Building Next.js (basePath '$BASE_PATH')"
-  npm run build
+  # Lift V8 heap so the Turbopack build can use the available RAM+swap.
+  # Default ~1.7 GB cap is what gets OOM-killed on small EC2 instances.
+  echo "==> Building Next.js (basePath '$BASE_PATH', heap=4096 MB)"
+  NODE_OPTIONS="${NODE_OPTIONS:-} --max-old-space-size=4096" npm run build
 else
   echo "==> Skipping build (--no-build)"
 fi

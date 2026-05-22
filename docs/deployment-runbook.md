@@ -3,6 +3,40 @@
 Deploy QMS to a fresh Ubuntu EC2 instance in **one command**. The script is
 idempotent and safe to re-run.
 
+## Requirements
+
+| Resource | Minimum | Recommended |
+| --- | --- | --- |
+| Instance | `t3.small` (2 GB RAM) — auto-swap will let `t3.micro` work but the build is slow | `t3.medium` (4 GB RAM) for comfortable builds |
+| Disk | 12 GB free (node_modules + .next + Postgres data + swap) | 20 GB+ |
+| OS | Ubuntu 22.04 / 24.04 LTS (or Debian 12) | Ubuntu 24.04 LTS |
+| Network | inbound 22 (ssh) + 80 (http) | + 443 if you terminate TLS on the box |
+
+If total swap is < 2 GB, the bootstrap auto-creates a 4 GB `/swapfile` and
+persists it in `/etc/fstab` with `vm.swappiness=10`. This is required —
+Next 16's Turbopack build needs ~2 GB resident memory and t2/t3.micro ship
+with 1 GB RAM and zero swap, which the kernel OOM-kills mid-build.
+
+## Ownership model
+
+`bootstrap-ec2.sh` runs as root via `sudo` but does **everything that
+doesn't strictly need root as `$SUDO_USER`** (typically `ubuntu`):
+
+- Root: `apt install`, NodeSource setup, swap creation, Postgres
+  role/db provisioning, repo `chown -R`, nginx vhost install, `pm2 startup`
+  systemd unit install.
+- Deploy user: `npm ci`, `npx prisma`, `db:seed`, `next build`, `pm2 start`.
+
+The repo is `chown -R $SUDO_USER` after the postgres step, so every
+artifact the build/PM2 produce (`.next/`, `node_modules/`, `storage/`,
+`runtime/`, `.env`) ends up owned by that user. After bootstrap, run
+`bash deploy/redeploy.sh` (no sudo) for incremental redeploys. The
+redeploy script refuses to run under sudo unless the repo is genuinely
+root-owned, so you can't accidentally re-break ownership.
+
+Override the deploy user explicitly with `DEPLOY_USER=foo sudo -E bash
+deploy/bootstrap-ec2.sh`.
+
 ## TL;DR
 
 ```bash
@@ -26,21 +60,27 @@ That's it. Browse to `http://<host>/ileads-qms/login` and log in with
 1. Verifies it's running as root on an apt-based distro.
 2. `apt install` system packages (Node 22 via NodeSource, PM2, PostgreSQL,
    nginx, ffmpeg, jq, build-essential, git, curl, ca-certificates, gnupg).
-3. Loads `.env`. If it's missing, copies `.env.example` and **stops** — you
-   must fill it in and re-run.
-4. Generates a fresh `APP_SECRET` into `.env` only when the existing value
-   is empty / a placeholder / shorter than 32 chars.
-5. Parses `DATABASE_URL`, creates the Postgres role + database, resets the
+3. Creates a 4 GB `/swapfile` when total swap < 2 GB (persisted in
+   `/etc/fstab`, `vm.swappiness=10`).
+4. Loads `.env`. If missing, copies `.env.example` and **stops** — fill it
+   in and re-run.
+5. Generates a fresh `APP_SECRET` into `.env` when the value is empty / a
+   placeholder / shorter than 32 chars.
+6. Parses `DATABASE_URL`, creates the Postgres role + database, resets the
    role password, grants ownership, enables `pgcrypto`.
-6. `npm ci`, `npx prisma generate`, `npx prisma migrate deploy`.
-7. Runs `npm run db:seed` plus the standard + Beetel parameter imports.
-8. Builds Next.js with `NEXT_PUBLIC_BASE_PATH` taken from `.env`.
-9. Starts `ecosystem.config.js` under PM2, saves the process list, installs
-   a systemd unit so PM2 survives reboots.
-10. Installs `deploy/nginx.conf` as a sites-enabled vhost and reloads nginx
+7. `chown -R $SUDO_USER` the repo so every later step runs as that user.
+8. `npm ci`, `npx prisma generate`, `npx prisma migrate deploy` (as
+   `$SUDO_USER`).
+9. `npm run db:seed` + standard + Beetel parameter imports (as `$SUDO_USER`).
+10. Builds Next.js with `NEXT_PUBLIC_BASE_PATH` from `.env` and
+    `NODE_OPTIONS=--max-old-space-size=4096` (so V8 can use the swap).
+11. Starts `ecosystem.config.js` under PM2 as `$SUDO_USER`, saves the
+    process list, installs a `pm2-$SUDO_USER` systemd unit so PM2
+    survives reboots.
+12. Installs `deploy/nginx.conf` as a sites-enabled vhost and reloads nginx
     (refuses to clobber another `default_server` and explains how to merge
     the snippet instead).
-11. Prints HEAD-request verification for upstream, nginx, and public IP.
+13. Prints HEAD-request verification for upstream, nginx, and public IP.
 
 ## Flags
 
@@ -134,6 +174,21 @@ when you want a self-contained container.
 
 ## Troubleshooting
 
+- **`npm run build` says `Killed`** — kernel OOM-killed the build. Means
+  swap wasn't set up or the heap cap wasn't raised. Re-run
+  `sudo bash deploy/bootstrap-ec2.sh` (it'll add 4 GB swap + pass
+  `NODE_OPTIONS=--max-old-space-size=4096`). For a manual recovery:
+
+  ```bash
+  sudo fallocate -l 4G /swapfile && sudo chmod 600 /swapfile
+  sudo mkswap /swapfile && sudo swapon /swapfile
+  echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+  NODE_OPTIONS="--max-old-space-size=4096" npm run build
+  ```
+- **`EACCES: permission denied` on `.env` or `.next/`** — repo got
+  root-owned. Means you ran `redeploy.sh` or `npm` under `sudo`. Fix:
+  `sudo chown -R $USER:$USER /opt/qms` then re-run `bash deploy/redeploy.sh`
+  without sudo.
 - **Bootstrap exits after creating `.env`** — that's expected on first run.
   Fill in the secrets and re-run `sudo bash deploy/bootstrap-ec2.sh`.
 - **Nginx install skipped with a `default_server` warning** — another site
