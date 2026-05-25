@@ -27,6 +27,14 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 REPO_DIR="$( cd "$SCRIPT_DIR/.." && pwd )"
 APP_NAME="${APP_NAME:-ileads-qms}"
 
+# basePath from .env; empty for subdomain deploys, "/ileads-qms" for the
+# legacy path-based layout. Empty default keeps probes pointed at the
+# right URLs without per-deploy edits.
+BASE_PATH=$(grep -E '^NEXT_PUBLIC_BASE_PATH=' "$REPO_DIR/.env" 2>/dev/null | tail -1 \
+  | sed -E 's/^NEXT_PUBLIC_BASE_PATH=//; s/^"(.*)"$/\1/; s/^'"'"'(.*)'"'"'$/\1/')
+APP_HOST=$(grep -E '^APP_BASE_URL=' "$REPO_DIR/.env" 2>/dev/null | tail -1 \
+  | sed -E 's/^APP_BASE_URL=//; s/^"(.*)"$/\1/; s/^'"'"'(.*)'"'"'$/\1/; s|^[a-z]+://||; s|/.*$||')
+
 H "ENVIRONMENT"
 echo "Hostname:    $(hostname -f 2>/dev/null || hostname)"
 echo "IP addrs:    $(hostname -I 2>/dev/null)"
@@ -79,7 +87,7 @@ H "PRISMA MIGRATE STATUS"
 ( cd "$REPO_DIR" && npx prisma migrate status 2>&1 | head -40 )
 
 H "UPSTREAM HEAD REQUESTS (Next.js on 127.0.0.1:3010)"
-for path in /  /ileads-qms  /ileads-qms/  /ileads-qms/login  /ileads-qms/dashboard ; do
+for path in / "${BASE_PATH}/login" "${BASE_PATH}/dashboard" ; do
   printf '%-30s -> ' "GET $path"
   curl -s -o /dev/null -w "%{http_code}  %{redirect_url}\n" "http://127.0.0.1:3010$path"
 done
@@ -107,25 +115,29 @@ H "ALL default_server BINDINGS ON :80"
 grep -nEr 'listen[[:space:]]+([^;]*\s)?80([^;]*\s)?default_server' \
   /etc/nginx/sites-enabled /etc/nginx/conf.d 2>&1 | head -20
 
-H "PUBLIC HEAD REQUESTS (through nginx on 127.0.0.1:80)"
-for path in /  /ileads-qms  /ileads-qms/  /ileads-qms/login  /ileads-qms/dashboard ; do
+H "PUBLIC HEAD REQUESTS (through nginx on 127.0.0.1:80, Host: ${APP_HOST:-(none)})"
+HOST_HEADER=()
+[[ -n "$APP_HOST" ]] && HOST_HEADER=(-H "Host: $APP_HOST")
+for path in / "${BASE_PATH}/login" "${BASE_PATH}/dashboard" ; do
   printf '%-30s -> ' "GET $path"
-  curl -s -o /dev/null -w "%{http_code}  %{redirect_url}\n" "http://127.0.0.1$path"
+  curl -s -o /dev/null "${HOST_HEADER[@]}" -w "%{http_code}  %{redirect_url}\n" "http://127.0.0.1$path"
 done
 
-H "PUBLIC HEAD REQUESTS (via public IP)"
+H "PUBLIC HEAD REQUESTS (via public IP, no Host header)"
 ip=$(hostname -I 2>/dev/null | awk '{print $1}')
 if [[ -n "$ip" ]]; then
-  for path in /  /ileads-qms  /ileads-qms/login ; do
+  for path in / "${BASE_PATH}/login" ; do
     printf '%-30s -> ' "GET http://$ip$path"
     curl -s -o /dev/null -w "%{http_code}  %{redirect_url}\n" "http://$ip$path"
   done
 fi
 
 H "_next ASSET ROUND-TRIP"
-asset=$(curl -s http://127.0.0.1/ileads-qms/login | grep -oE '/ileads-qms/_next/static/[^"]+' | head -1)
+asset=$(curl -s "${HOST_HEADER[@]}" "http://127.0.0.1${BASE_PATH}/login" \
+  | grep -oE "${BASE_PATH}/_next/static/[^\"]+" | head -1)
 echo "discovered asset: $asset"
-[ -n "$asset" ] && curl -s -o /dev/null -w "GET http://127.0.0.1$asset -> %{http_code}\n" "http://127.0.0.1$asset"
+[ -n "$asset" ] && curl -s -o /dev/null "${HOST_HEADER[@]}" \
+  -w "GET http://127.0.0.1$asset -> %{http_code}\n" "http://127.0.0.1$asset"
 
 H "RECENT NGINX ERRORS"
 journalctl -u nginx --no-pager -n 25 2>&1

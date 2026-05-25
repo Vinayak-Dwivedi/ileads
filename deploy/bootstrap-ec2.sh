@@ -352,7 +352,10 @@ fi
 
 # ----- 8. Build (as deploy user, with raised V8 heap) -----
 BASE_PATH="$(read_env NEXT_PUBLIC_BASE_PATH)"
-BASE_PATH="${BASE_PATH:-/ileads-qms}"
+# ${VAR-default} (no colon) so an explicit NEXT_PUBLIC_BASE_PATH="" in .env
+# stays empty for subdomain deploys. ${VAR:-default} would coerce empty back
+# to /ileads-qms.
+BASE_PATH="${BASE_PATH-/ileads-qms}"
 export NEXT_PUBLIC_BASE_PATH="$BASE_PATH"
 export NODE_ENV=production
 # Lift V8 heap so the Turbopack build can actually use the RAM+swap we set
@@ -409,26 +412,33 @@ if [[ $SKIP_NGINX -eq 0 ]]; then
 
   [[ -f "$NGINX_SRC" ]] || die "$NGINX_SRC missing"
 
-  # Refuse to clobber if another site already owns default_server on :80.
-  CONFLICTS=$(
-    grep -lEr 'listen[[:space:]]+([^;]*\s)?80([^;]*\s)?default_server' \
-      /etc/nginx/sites-enabled /etc/nginx/conf.d 2>/dev/null \
-      | grep -v "^$DEFAULT_SITE$" \
-      | grep -v "${APP_NAME}\.conf$" || true
-  )
-  if [[ -n "$CONFLICTS" ]]; then
-    warn "another nginx config already binds default_server on :80:"
-    printf '%s    %s%s\n' "$DIM" "$CONFLICTS" "$RESET" >&2
-    warn "skipping nginx install — drop deploy/nginx.snippet.conf into that"
-    warn "server block instead, or pass --skip-nginx to silence this."
-  else
-    install -m 0644 -D "$NGINX_SRC" "$NGINX_AVAIL"
-    ln -sfn "$NGINX_AVAIL" "$NGINX_ENABLED"
-    [[ -e "$DEFAULT_SITE" ]] && rm -f "$DEFAULT_SITE"
-    nginx -t
-    systemctl reload nginx
-    ok "nginx vhost installed and reloaded"
+  # Extract the hostname from APP_BASE_URL so the vhost answers for the right
+  # subdomain. Falls back to the public hostname if APP_BASE_URL is missing,
+  # which keeps a fresh box reachable for first-time login at http://<ip>/.
+  APP_BASE_URL_RAW="$(read_env APP_BASE_URL)"
+  if [[ -n "$APP_BASE_URL_RAW" ]]; then
+    SERVER_NAME="$(echo "$APP_BASE_URL_RAW" \
+      | sed -E 's|^[a-z]+://||; s|/.*$||; s|:[0-9]+$||')"
   fi
+  # `_` is nginx's "match any Host" placeholder — fine for first-time
+  # bootstrap before DNS is set up; later runs read APP_BASE_URL and pin
+  # the server_name to the real subdomain.
+  SERVER_NAME="${SERVER_NAME:-_}"
+  note "nginx server_name: $SERVER_NAME"
+
+  # Render the vhost template (__SERVER_NAME__ -> $SERVER_NAME) to a temp
+  # file so the source [deploy/nginx.conf] stays a clean template.
+  RENDERED_VHOST="$(mktemp)"
+  trap 'rm -f "$RENDERED_VHOST"' EXIT
+  sed "s|__SERVER_NAME__|$SERVER_NAME|g" "$NGINX_SRC" > "$RENDERED_VHOST"
+
+  install -m 0644 -D "$RENDERED_VHOST" "$NGINX_AVAIL"
+  ln -sfn "$NGINX_AVAIL" "$NGINX_ENABLED"
+  # Only remove the stock default site — never anything else.
+  [[ -e "$DEFAULT_SITE" ]] && rm -f "$DEFAULT_SITE"
+  nginx -t
+  systemctl reload nginx
+  ok "nginx vhost installed (server_name=$SERVER_NAME) and reloaded"
 else
   note "Skipping nginx install (--skip-nginx)"
 fi

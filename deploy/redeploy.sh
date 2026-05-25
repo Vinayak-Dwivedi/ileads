@@ -60,7 +60,10 @@ fi
 # Read NEXT_PUBLIC_BASE_PATH from .env so the build matches deployment.
 BASE_PATH=$(grep -E '^NEXT_PUBLIC_BASE_PATH=' .env | tail -1 \
   | sed -E 's/^NEXT_PUBLIC_BASE_PATH=//; s/^"(.*)"$/\1/; s/^'"'"'(.*)'"'"'$/\1/')
-BASE_PATH="${BASE_PATH:-/ileads-qms}"
+# Use ${VAR-default} (no colon) so an explicit empty value in .env stays
+# empty. With ${VAR:-default}, empty was being silently rewritten to the
+# default and the build kept the old basePath.
+BASE_PATH="${BASE_PATH-/ileads-qms}"
 
 echo "==> Repo:      $REPO_DIR"
 echo "==> App:       $APP_NAME"
