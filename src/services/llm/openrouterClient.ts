@@ -96,7 +96,7 @@ export function loadOpenRouterConfig(): OpenRouterConfig {
   return {
     apiKey: process.env.OPENROUTER_API_KEY?.trim() ?? "",
     baseUrl: envStr("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1").replace(/\/+$/, ""),
-    model: envStr("OPENROUTER_AUDIT_MODEL", "google/gemma-4-31b-it:free"),
+    model: envStr("OPENROUTER_AUDIT_MODEL", "google/gemini-2.5-flash"),
     fallbackModels,
     timeoutMs: Math.max(1000, Math.floor(timeoutSeconds * 1000)),
     httpReferer: process.env.OPENROUTER_HTTP_REFERER?.trim() || null,

@@ -20,20 +20,25 @@ services:
       - DATABASE_URL=postgresql://ileads_qms_user:securepassword123@db:5432/ileads_qms?schema=public
       
       # App Security and Credentials
-      - APP_SECRET=supersecretgenerichashkeyshouldbeoverriddeninproduction32charminimum
-      - APP_PASSWORD=demopassword
+      - APP_SECRET=${APP_SECRET}
+      - APP_PASSWORD=${APP_PASSWORD}
       
       # App Routing
       - NEXT_PUBLIC_BASE_PATH=/ileads-qms
       - APP_BASE_URL=http://localhost:3010/ileads-qms
       
       # Speech to Text Configuration
-      - STT_PROVIDER=sarvam
-      - SARVAM_API_KEY=your_sarvam_api_key_here
-      - SARVAM_USE_BATCH=true
+      - STT_PROVIDER=${STT_PROVIDER}
+      - SARVAM_API_KEY=${SARVAM_API_KEY}
+      - SARVAM_USE_BATCH=${SARVAM_USE_BATCH}
+      - DEEPGRAM_API_KEY=${DEEPGRAM_API_KEY}
+      - DEEPGRAM_MODEL=${DEEPGRAM_MODEL}
+      - DEEPGRAM_LANGUAGE=${DEEPGRAM_LANGUAGE}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
       
       # LLM Config
-      - OPENROUTER_API_KEY=your_openrouter_api_key_here
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - OPENROUTER_AUDIT_MODEL=${OPENROUTER_AUDIT_MODEL}
       
       # Storage Config
       - AUDIO_STORAGE_PROVIDER=local
