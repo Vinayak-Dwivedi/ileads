@@ -578,7 +578,7 @@ export default async function CallDetailPage({ params }: PageProps) {
                   <TabsTrigger value="overview">Overview</TabsTrigger>
                   <TabsTrigger value="transcript">Transcript</TabsTrigger>
                   <TabsTrigger value="audit">Audit Results</TabsTrigger>
-                  <TabsTrigger value="notes">Notes &amp; Timeline</TabsTrigger>
+                  <TabsTrigger value="notes">Manual Review</TabsTrigger>
                 </TabsList>
                 <TabsContent value="overview" className="mt-4">
                   {overviewTab}

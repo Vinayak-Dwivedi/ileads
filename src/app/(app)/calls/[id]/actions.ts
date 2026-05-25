@@ -43,6 +43,8 @@ export async function saveManualReview(formData: FormData) {
 
   const existing = call.manualReviews[0];
 
+  const shouldPersistScore = status === "COMPLETED";
+
   await prisma.$transaction(async (tx) => {
     if (existing) {
       await tx.manualReview.update({
@@ -77,9 +79,9 @@ export async function saveManualReview(formData: FormData) {
     await tx.call.update({
       where: { id: callId },
       data: {
-        manualScore: score,
+        manualScore: shouldPersistScore ? score : null,
         manualDisposition: disposition || null,
-        finalScore: score ?? call.aiScore ?? null,
+        finalScore: shouldPersistScore ? score ?? call.aiScore ?? null : call.aiScore ?? null,
       },
     });
 
@@ -564,6 +566,50 @@ export async function addCallNote(formData: FormData) {
       data: { callId, eventType: "NOTE_ADDED", payload: { authorName } },
     }),
   ]);
+
+  revalidatePath(`/calls/${callId}`);
+}
+
+export async function updateCallNote(formData: FormData) {
+  const session = await requireSession();
+  const callId = String(formData.get("callId") ?? "");
+  const noteId = String(formData.get("noteId") ?? "");
+  const body = String(formData.get("body") ?? "").trim();
+
+  if (!callId || !noteId || !body) {
+    throw new Error("Note text is required.");
+  }
+
+  const note = await prisma.callNote.findFirst({
+    where: { id: noteId, callId, call: { clientId: session.clientId } },
+    select: { id: true },
+  });
+  if (!note) throw new Error("Note not found.");
+
+  await prisma.callNote.update({
+    where: { id: noteId },
+    data: { body },
+  });
+
+  revalidatePath(`/calls/${callId}`);
+}
+
+export async function deleteCallNote(formData: FormData) {
+  const session = await requireSession();
+  const callId = String(formData.get("callId") ?? "");
+  const noteId = String(formData.get("noteId") ?? "");
+
+  if (!callId || !noteId) {
+    throw new Error("Missing note id.");
+  }
+
+  const note = await prisma.callNote.findFirst({
+    where: { id: noteId, callId, call: { clientId: session.clientId } },
+    select: { id: true },
+  });
+  if (!note) throw new Error("Note not found.");
+
+  await prisma.callNote.delete({ where: { id: noteId } });
 
   revalidatePath(`/calls/${callId}`);
 }

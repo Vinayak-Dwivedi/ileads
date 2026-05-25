@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { toast } from "sonner";
 import { saveManualReview } from "./actions";
 import { ClipboardCheck } from "lucide-react";
 
@@ -58,7 +59,7 @@ export function ManualReviewForm({ callId, initial }: { callId: string; initial:
               <option value="COMPLETED">Completed</option>
             </select>
           </FormRow>
-          <FormRow label="Disposition">
+          <FormRow label="Quality Status">
             <select
               name="disposition"
               defaultValue={initial.disposition ?? ""}
@@ -79,6 +80,15 @@ export function ManualReviewForm({ callId, initial }: { callId: string; initial:
             max={100}
             step={1}
             defaultValue={initial.score ?? ""}
+            onInput={(event) => {
+              const input = event.currentTarget;
+              const value = Number(input.value);
+              if (Number.isNaN(value)) return;
+              if (value > 100) {
+                toast.error("Max number that can be added is 100.");
+                input.value = "";
+              }
+            }}
             placeholder="—"
             className="h-9 w-full rounded-lg border border-slate-200 px-3 text-sm"
           />
