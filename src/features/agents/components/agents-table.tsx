@@ -124,7 +124,7 @@ export function AgentsTable({
                 initialColumnVisibility={{ searchText: false }}
                 initialSorting={[{ id: "name", desc: false }]}
                 searchColumnId="searchText"
-                searchPlaceholder="Search agents, IDs, teams..."
+                searchPlaceholder="Search agents, IDs..."
                 columnLabels={agentsColumnLabels}
                 emptyMessage="No agents match the current table filters."
                 itemLabel="agents"

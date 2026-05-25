@@ -62,27 +62,27 @@ export default async function ParametersClientsPage() {
           <div className="html-section-header flex items-center justify-between">
             <div>
               <h3 className="inline-flex items-center gap-2 text-base font-semibold text-slate-900">
-                <Users className="h-4 w-4" /> Clients
+                <Users className="h-4 w-4" /> Process
               </h3>
              
             </div>
             <div className="rounded-full border border-slate-200 bg-white px-3 py-1 text-[13px] font-semibold text-slate-700">
-              {rows.length} client{rows.length === 1 ? "" : "s"}
+              {rows.length} process{rows.length === 1 ? "" : "es"}
             </div>
           </div>
 
           {rows.length === 0 ? (
             <EmptyState
               className="m-4"
-              title="No clients"
-              description="Seed a client first via prisma seed."
+              title="No process"
+              description="Seed a process first via prisma seed."
             />
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr>
-                    <th className="html-table-head">Client</th>
+                    <th className="html-table-head">Process</th>
                     {/* <th className="html-table-head">Code</th>
                     <th className="html-table-head text-center">Active</th> */}
                     <th className="html-table-head text-center">Active parameters</th>
