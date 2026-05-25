@@ -233,10 +233,9 @@ export default async function CallDetailPage({ params }: PageProps) {
         <AudioPlayerCard recordingUrl={audioUrl} durationSeconds={call.durationSeconds} />
       </div>
       <InfoRow label="Call ID">{callIdText}</InfoRow>
-      <InfoRow label="Client">{call.client.name}</InfoRow>
+      <InfoRow label="Process">{call.client.name}</InfoRow>
       <InfoRow label="Campaign">{call.campaign?.name ?? "—"}</InfoRow>
       <InfoRow label="Agent ID">{call.agent?.employeeCode ?? "—"}</InfoRow>
-      <InfoRow label="Agent Name">{call.agent?.name ?? "—"}</InfoRow>
       <InfoRow label="Date & Time">
         {formatShortDate(call.callStartedAt)} · {formatTime(call.callStartedAt)}
       </InfoRow>
@@ -246,7 +245,6 @@ export default async function CallDetailPage({ params }: PageProps) {
           <InfoRow label="Duration">{formatDuration(call.durationSeconds)}</InfoRow>
         ) : null
       }
-      <InfoRow label="Disposition">{call.disposition ?? "—"}</InfoRow>
 
       <div className="flex items-center justify-between border-t border-slate-100 pt-3 mt-3">
         <span className="text-xs text-slate-500">Audit</span>

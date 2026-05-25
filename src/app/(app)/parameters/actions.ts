@@ -211,13 +211,16 @@ export async function addAgent(
 
     const name = String(formData.get("name") ?? "").trim();
     const employeeCode = String(formData.get("employeeCode") ?? "").trim();
-    const campaignId = String(formData.get("campaignId") ?? "").trim() || null;
+    const campaignId = String(formData.get("campaignId") ?? "").trim();
 
     if (!name) {
       return { ok: false, error: "Agent name is required." };
     }
     if (!employeeCode) {
       return { ok: false, error: "Agent ID is required." };
+    }
+    if (!campaignId) {
+      return { ok: false, error: "Campaign is required." };
     }
 
     // Check if agent with this employee code already exists for this client

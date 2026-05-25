@@ -39,6 +39,7 @@ export function AddAgentDialog({
   const router = useRouter();
   const [error, setError] = React.useState<string | null>(null);
   const [pending, startTransition] = React.useTransition();
+  const [campaignId, setCampaignId] = React.useState("");
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -46,14 +47,17 @@ export function AddAgentDialog({
 
     const form = event.currentTarget;
     const formData = new FormData(form);
-    if (formData.get("campaignId") === "__none") {
-      formData.set("campaignId", "");
+    if (!campaignId) {
+      setError("Campaign is required.");
+      return;
     }
+    formData.set("campaignId", campaignId);
 
     startTransition(async () => {
       const result = await addAgent(formData);
       if (result.ok) {
         form.reset();
+        setCampaignId("");
         onOpenChange(false);
         router.refresh();
         return;
@@ -72,7 +76,7 @@ export function AddAgentDialog({
             Add Agent
           </DialogTitle>
           <DialogDescription>
-            Add an agent and optionally assign them to an active campaign.
+            Add an agent and assign them to an active campaign.
           </DialogDescription>
         </DialogHeader>
 
@@ -110,13 +114,12 @@ export function AddAgentDialog({
 
             <Field>
               <FieldLabel htmlFor="agent-campaign">Campaign</FieldLabel>
-              <Select name="campaignId" defaultValue="__none">
+              <Select name="campaignId" value={campaignId} onValueChange={setCampaignId}>
                 <SelectTrigger id="agent-campaign" className="w-full bg-white">
-                  <SelectValue placeholder="No campaign" />
+                  <SelectValue placeholder="Select campaign" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectGroup>
-                    <SelectItem value="__none">No campaign</SelectItem>
                     {campaigns.map((campaign) => (
                       <SelectItem key={campaign.id} value={campaign.id}>
                         {campaign.name}
@@ -144,7 +147,7 @@ export function AddAgentDialog({
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={pending}>
+            <Button type="submit" disabled={pending || !campaignId}>
               {pending ? "Adding..." : "Add agent"}
             </Button>
           </div>

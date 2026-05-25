@@ -35,10 +35,11 @@ export async function addAgent(formData: FormData): Promise<AgentActionResult> {
     const name = String(formData.get("name") ?? "").trim();
     const employeeCode = String(formData.get("employeeCode") ?? "").trim();
     const email = String(formData.get("email") ?? "").trim() || null;
-    const campaignId = String(formData.get("campaignId") ?? "").trim() || null;
+    const campaignId = String(formData.get("campaignId") ?? "").trim();
 
     if (!name) return { ok: false, error: "Agent name is required." };
     if (!employeeCode) return { ok: false, error: "Agent ID is required." };
+    if (!campaignId) return { ok: false, error: "Campaign is required." };
 
     // TODO: remove this duplicate creation logic after parameter/agent actions
     // are fully split into feature-owned modules.

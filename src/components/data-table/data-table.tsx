@@ -167,7 +167,7 @@ export function DataTable<TData, TValue>({
                 <DropdownMenuTrigger asChild>
                   <Button type="button" variant="outline" size="sm">
                     <Columns3Icon data-icon="inline-start" />
-                    Columns
+                    Filter
                     <ChevronDownIcon data-icon="inline-end" />
                   </Button>
                 </DropdownMenuTrigger>

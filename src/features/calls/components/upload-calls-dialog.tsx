@@ -1,5 +1,6 @@
 "use client";
 
+import { format } from "date-fns";
 import { useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -19,6 +20,9 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Input } from "@/components/ui/input";
 import { withBasePath } from "@/lib/base-path";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -54,6 +58,7 @@ interface ExcelImportResult {
   errors: ExcelImportError[];
 }
 
+
 export function UploadCallsDialog({
   options,
   maxFileMb = 100,
@@ -73,6 +78,9 @@ export function UploadCallsDialog({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const [callDate, setCallDate] = useState<Date | undefined>(undefined);
+  const [callDateOpen, setCallDateOpen] = useState(false);
+  const [callTime, setCallTime] = useState("");
 
   // ---------- Excel mode state ----------
   const [excelFile, setExcelFile] = useState<File | null>(null);
@@ -82,6 +90,14 @@ export function UploadCallsDialog({
 
   const totalSize = useMemo(() => files.reduce((sum, file) => sum + file.size, 0), [files]);
   const client = options.client;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const safeTime = callTime || "00:01:00";
+  const callStartedAtValue = callDate
+    ? `${callDate.getFullYear().toString().padStart(4, "0")}-${
+        (callDate.getMonth() + 1).toString().padStart(2, "0")
+      }-${callDate.getDate().toString().padStart(2, "0")}T${safeTime}`
+    : "";
 
   function addFiles(nextFiles: FileList | null) {
     if (!nextFiles) return;
@@ -116,6 +132,8 @@ export function UploadCallsDialog({
     setFiles([]);
     setError(null);
     if (!opts.keepSuccess) setSuccess(null);
+    setCallDate(undefined);
+    setCallTime("");
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
@@ -281,7 +299,7 @@ export function UploadCallsDialog({
             <form onSubmit={submitAudio} className="grid max-h-[78vh] grid-rows-[1fr_auto]">
               <div className="overflow-y-auto px-6 py-5">
                 <div className="grid gap-4 md:grid-cols-2">
-                  <Field label="Client" required>
+                  <Field label="Process" required>
                     <select
                       name="clientId"
                       required
@@ -296,11 +314,39 @@ export function UploadCallsDialog({
                     </select>
                   </Field>
                   <Field label="Call date/time">
-                    <input
-                      type="datetime-local"
-                      name="callStartedAt"
-                      className="h-10 w-full rounded-lg border border-slate-200 px-3 text-sm text-slate-700"
-                    />
+                    <input type="hidden" name="callStartedAt" value={callStartedAtValue} />
+                    <div className="grid grid-cols-2 gap-2">
+                      <Popover open={callDateOpen} onOpenChange={setCallDateOpen}>
+                        <PopoverTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="w-full justify-start bg-white font-normal"
+                          >
+                            {callDate ? format(callDate, "PPP") : <span>Select date</span>}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={callDate}
+                            defaultMonth={callDate}
+                            onSelect={(date) => {
+                              setCallDate(date);
+                              if (date) setCallDateOpen(false);
+                            }}
+                            disabled={(date) => date > today}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      <Input
+                        type="time"
+                        step="1"
+                        value={callTime}
+                        onChange={(event) => setCallTime(event.target.value)}
+                        className="appearance-none bg-white [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
+                      />
+                    </div>
                   </Field>
                   <Field label="Campaign">
                     <select name="campaignId" className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700">
