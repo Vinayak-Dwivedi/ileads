@@ -20,13 +20,11 @@ import { cn } from "@/lib/utils";
 
 interface Options {
   campaigns: { id: string; name: string }[];
-  teams: { id: string; name: string }[];
   agents: { id: string; name: string; teamId: string | null }[];
 }
 
 interface Initial {
   campaignId?: string;
-  teamId?: string;
   agentId?: string;
   from?: Date;
   to?: Date;
@@ -62,13 +60,10 @@ export function DashboardFilterBar({
   const [toOpen, setToOpen] = useState(false);
 
   const campaignId = sp.get("campaignId") ?? initial.campaignId ?? "";
-  const teamId = sp.get("teamId") ?? initial.teamId ?? "";
   const agentId = sp.get("agentId") ?? initial.agentId ?? "";
   const fromDate = parseDateParam(sp.get("from")) ?? initial.from;
   const toDate = parseDateParam(sp.get("to")) ?? initial.to;
-  const visibleAgents = teamId
-    ? options.agents.filter((agent) => agent.teamId === teamId)
-    : options.agents;
+  const visibleAgents = options.agents;
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -87,18 +82,6 @@ export function DashboardFilterBar({
     });
   }
 
-  function handleTeamChange(value: string) {
-    const next: Record<string, string | undefined> = { teamId: value };
-    const selectedAgentStillVisible = options.agents.some(
-      (agent) => agent.id === agentId && agent.teamId === value,
-    );
-
-    if (agentId && value && !selectedAgentStillVisible) {
-      next.agentId = undefined;
-    }
-
-    update(next);
-  }
 
   function handleFromDateChange(date: Date | undefined) {
     if (!date) return;
@@ -125,7 +108,7 @@ export function DashboardFilterBar({
 
   return (
     <section className={cn("rounded-xl border border-slate-200 bg-white p-4", className)}>
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-3 xl:grid-cols-6">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-3 xl:grid-cols-5">
         <Field>
           <Popover open={fromOpen} onOpenChange={setFromOpen}>
             <PopoverTrigger asChild>
@@ -194,22 +177,6 @@ export function DashboardFilterBar({
           </Select>
         </Field>
 
-        <Field>
-          <Select value={teamId} onValueChange={handleTeamChange}>
-            <SelectTrigger id="select-team" className="w-full bg-white">
-              <SelectValue placeholder="All teams" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectGroup>
-                {options.teams.map((team) => (
-                  <SelectItem key={team.id} value={team.id}>
-                    {team.name}
-                  </SelectItem>
-                ))}
-              </SelectGroup>
-            </SelectContent>
-          </Select>
-        </Field>
 
         <Field>
           <Select value={agentId} onValueChange={(value) => update({ agentId: value })}>
