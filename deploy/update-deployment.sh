@@ -49,6 +49,38 @@ else
     esac
 fi
 
+# 2b. Verify Environment Configuration (STT & LLM)
+if [[ -f ".env" ]]; then
+    echo -e "\n${YELLOW}Checking server environment configuration...${NC}"
+    STT_PROV=$(grep -E '^STT_PROVIDER=' .env | tail -1 | sed -E 's/^STT_PROVIDER=//; s/^"(.*)"$/\1/; s/^'"'"'(.*)'"'"'$/\1/')
+    SARVAM_KEY=$(grep -E '^SARVAM_API_KEY=' .env | tail -1 | sed -E 's/^SARVAM_API_KEY=//; s/^"(.*)"$/\1/; s/^'"'"'(.*)'"'"'$/\1/')
+    OR_KEY=$(grep -E '^OPENROUTER_API_KEY=' .env | tail -1 | sed -E 's/^OPENROUTER_API_KEY=//; s/^"(.*)"$/\1/; s/^'"'"'(.*)'"'"'$/\1/')
+    OR_MODEL=$(grep -E '^OPENROUTER_AUDIT_MODEL=' .env | tail -1 | sed -E 's/^OPENROUTER_AUDIT_MODEL=//; s/^"(.*)"$/\1/; s/^'"'"'(.*)'"'"'$/\1/')
+
+    echo -e "  - Speech-To-Text Provider (STT_PROVIDER): ${BLUE}${STT_PROV:-(not set)}${NC}"
+    if [[ "$STT_PROV" != "sarvam" ]]; then
+        echo -e "    ${RED}[!] WARNING: STT_PROVIDER is not set to 'sarvam'. Currently: '${STT_PROV:-empty}'${NC}"
+        echo -e "    ${YELLOW}If you want to use Sarvam AI, please edit .env to set: STT_PROVIDER=sarvam${NC}"
+    else
+        echo -e "    ${GREEN}[✓] STT Provider configured correctly to 'sarvam'${NC}"
+    fi
+
+    if [[ -n "$SARVAM_KEY" ]]; then
+        echo -e "  - Sarvam API Key: ${GREEN}Configured${NC}"
+    else
+        echo -e "  - Sarvam API Key: ${RED}[!] Missing (Transcriptions will fail!)${NC}"
+    fi
+
+    echo -e "  - Audit Model (OPENROUTER_AUDIT_MODEL): ${BLUE}${OR_MODEL:-(not set)}${NC}"
+    if [[ -n "$OR_KEY" ]]; then
+        echo -e "  - OpenRouter API Key: ${GREEN}Configured${NC}"
+    else
+        echo -e "  - OpenRouter API Key: ${RED}[!] Missing (Auditing will fail!)${NC}"
+    fi
+else
+    echo -e "${RED}[!] WARNING: .env file not found. Environment checks skipped.${NC}"
+fi
+
 # 3. Pull latest changes
 echo -e "\n${YELLOW}Step 1: Pulling latest changes from Git...${NC}"
 
