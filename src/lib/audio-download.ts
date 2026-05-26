@@ -1,16 +1,11 @@
 import "server-only";
 import path from "node:path";
-import { mkdir, writeFile } from "node:fs/promises";
 import { lookup as dnsLookup } from "node:dns/promises";
 import {
   ACCEPTED_AUDIO_EXTENSIONS,
   AUDIO_CONTENT_TYPES,
-  buildStoredAudioFileName,
-  formatDateFolder,
   getAudioExtension,
-  getAudioStorageRoot,
   getMaxAudioUploadBytes,
-  getUniqueAudioPath,
   sanitizeOriginalFileName,
 } from "@/lib/audio-storage";
 
@@ -143,10 +138,13 @@ function guessExtensionFromContentType(ct: string | null): string {
 }
 
 /**
- * Download an audio file from a remote http(s) URL to local storage under
- * the configured AUDIO_STORAGE_PATH/<YYYY-MM-DD>/ folder.
- * Validates URL protocol + SSRF (private/loopback hosts blocked unless
- * AUDIO_DOWNLOAD_ALLOWED_PRIVATE_HOSTS=true).
+ * Download an audio file from a remote http(s) URL and persist it via the
+ * configured storage provider (local disk or S3). Validates URL protocol +
+ * SSRF (private/loopback hosts blocked unless the host is in
+ * AUDIO_DOWNLOAD_PRIVATE_HOST_ALLOWLIST).
+ *
+ * The returned `audioPath` is the provider's opaque key — an absolute path
+ * for the local provider, an object key for S3.
  */
 export async function downloadAudioToStorage(
   rawUrl: string,
@@ -216,21 +214,28 @@ export async function downloadAudioToStorage(
     );
   }
 
-  const dateFolder = formatDateFolder(opts.date ?? new Date());
-  const storageRoot = getAudioStorageRoot();
-  const dayDir = path.join(storageRoot, dateFolder);
-  await mkdir(dayDir, { recursive: true });
+  const resolvedContentType =
+    contentType?.split(";")[0]?.trim() ||
+    AUDIO_CONTENT_TYPES[extension] ||
+    "application/octet-stream";
 
-  const storedFileName = buildStoredAudioFileName(originalFileName);
-  const audioPath = await getUniqueAudioPath(dayDir, storedFileName);
-  await writeFile(audioPath, buf);
+  // Persist via the configured storage provider (local disk or S3) so remote
+  // imports land in the same bucket as direct uploads. Dynamic import keeps
+  // this module usable from scripts that don't load server-only deps eagerly.
+  const { getStorageProvider } = await import("@/services/storage");
+  const stored = await getStorageProvider().save({
+    buffer: buf,
+    originalFileName,
+    contentType: resolvedContentType,
+    date: opts.date,
+  });
 
   return {
-    originalFileName,
-    storedFileName: path.basename(audioPath),
-    audioPath,
-    mimeType: contentType?.split(";")[0]?.trim() || AUDIO_CONTENT_TYPES[extension] || "application/octet-stream",
-    fileSizeBytes: buf.length,
+    originalFileName: stored.originalFileName,
+    storedFileName: stored.storedFileName,
+    audioPath: stored.key,
+    mimeType: stored.contentType,
+    fileSizeBytes: stored.sizeBytes,
     sourceUrl: url.toString(),
   };
 }

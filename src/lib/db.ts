@@ -23,7 +23,7 @@ function withPoolParams(rawUrl: string | undefined): string | undefined {
 
 function buildClient(url: string | undefined): PrismaClient {
   return new PrismaClient({
-    log: process.env.NODE_ENV === "development" ? ["warn", "error"] : ["error"],
+    log: process.env.NODE_ENV === "development" ? ["warn", "error", "query"] : ["error"],
     datasources: { db: { url: url ?? "" } },
   });
 }

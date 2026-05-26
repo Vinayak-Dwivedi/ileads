@@ -216,6 +216,62 @@ export function UploadCallsDialog({
     });
   }
 
+  async function downloadSampleExcel() {
+    try {
+      const XLSX = await import("xlsx");
+      const headers = [
+        "audio_url",
+        "call_id",
+        "date",
+        "time",
+        "agent_id",
+        "agent_name",
+        "customer_name",
+        "customer_number",
+        "campaign",
+        "team",
+        "disposition",
+        "language"
+      ];
+      const sampleData = [
+        {
+          audio_url: "https://qms-calls-storage.s3.amazonaws.com/samples/call_1.mp3",
+          call_id: "C-001",
+          date: "2026-05-26",
+          time: "10:15:30",
+          agent_id: "4212",
+          agent_name: "Rahul Sharma",
+          customer_name: "Amit Patel",
+          customer_number: "9876543210",
+          campaign: "LG_Beetel-Manual",
+          team: "Beetel",
+          disposition: "Interested",
+          language: "hi-IN"
+        },
+        {
+          audio_url: "https://qms-calls-storage.s3.amazonaws.com/samples/call_2.mp3",
+          call_id: "C-002",
+          date: "2026-05-26",
+          time: "11:20:00",
+          agent_id: "4213",
+          agent_name: "Priya Singh",
+          customer_name: "Sunita Rao",
+          customer_number: "9988776655",
+          campaign: "LG_Beetel-Manual",
+          team: "Beetel",
+          disposition: "Not Interested",
+          language: "en-US"
+        }
+      ];
+      const worksheet = XLSX.utils.json_to_sheet(sampleData, { header: headers });
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Sample Format");
+      XLSX.writeFile(workbook, "sample_calls_format.xlsx");
+    } catch (e) {
+      console.error("Failed to generate sample Excel", e);
+    }
+  }
+
   function submitExcel(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!client) {
@@ -477,7 +533,17 @@ export function UploadCallsDialog({
             <form onSubmit={submitExcel} className="grid max-h-[78vh] grid-rows-[1fr_auto]">
               <div className="overflow-y-auto px-6 py-5">
                 <div className="rounded-lg border border-slate-200 bg-slate-50/60 p-4 text-sm text-slate-700">
-                  <div className="mb-2 font-semibold text-slate-800">Expected columns</div>
+                  <div className="mb-2.5 flex items-center justify-between">
+                    <div className="font-semibold text-slate-800">Expected columns</div>
+                    <button
+                      type="button"
+                      onClick={downloadSampleExcel}
+                      className="flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 shadow-sm hover:bg-slate-50 hover:text-emerald-700 transition-colors"
+                    >
+                      <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-600" />
+                      Download Sample Format
+                    </button>
+                  </div>
                   <p className="text-xs text-slate-600">
                     <strong>Required:</strong> one of <code className="rounded bg-white px-1 py-0.5 text-[11px]">audio_url</code>,
                     {" "}<code className="rounded bg-white px-1 py-0.5 text-[11px]">recording_url</code>,

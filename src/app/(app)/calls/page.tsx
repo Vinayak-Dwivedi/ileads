@@ -115,6 +115,7 @@ export default async function CallsPage({
             initial={filters}
             uploadOptions={uploadOptions}
             maxFileMb={maxFileMb}
+            callsData={tableRows}
           />
 
           <section className="html-card overflow-hidden">

@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { FileSpreadsheet } from "lucide-react";
 import { UploadCallsDialog, type CallUploadOptions } from "./upload-calls-dialog";
 
 interface Options {
@@ -57,12 +58,14 @@ export function CallsFilterBar({
   className,
   uploadOptions,
   maxFileMb,
+  callsData = [],
 }: {
   options: Options;
   initial: Initial;
   className?: string;
   uploadOptions: CallUploadOptions;
   maxFileMb: number;
+  callsData?: any[];
 }) {
   const router = useRouter();
   const sp = useSearchParams();
@@ -84,6 +87,60 @@ export function CallsFilterBar({
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
+
+  async function exportToExcel() {
+    if (!callsData || callsData.length === 0) return;
+    try {
+      const XLSX = await import("xlsx");
+      
+      const excelRows = callsData.map((call) => {
+        const isTableRow = "startedAtDate" in call;
+        
+        if (isTableRow) {
+          return {
+            "Call ID": call.callId,
+            "Date": call.startedAtDate,
+            "Time": call.startedAtTime,
+            "Campaign": call.campaignName ?? "-",
+            "Agent": call.agentName ?? "-",
+            "Duration (s)": call.durationSeconds ?? 0,
+            "AI Score": call.aiScore !== null && call.aiScore !== undefined ? call.aiScore : "-",
+            "Manual Score": call.manualScore !== null && call.manualScore !== undefined ? call.manualScore : "-",
+            "Final Score": call.finalScore !== null && call.finalScore !== undefined ? call.finalScore : "-",
+            "Sentiment": call.sentiment ?? "-",
+            "Audit Status": call.auditStatus,
+          };
+        } else {
+          const dateObj = call.callStartedAt ? new Date(call.callStartedAt) : null;
+          const dateStr = dateObj ? dateObj.toLocaleDateString() : "-";
+          const timeStr = dateObj ? dateObj.toLocaleTimeString() : "-";
+          const callId = call.externalCallId ?? `CALL-${call.id.slice(-6).toUpperCase()}`;
+          return {
+            "Call ID": callId,
+            "Date": dateStr,
+            "Time": timeStr,
+            "Campaign": call.campaign?.name ?? "-",
+            "Agent": call.agent?.name ?? "-",
+            "Duration (s)": call.durationSeconds ?? 0,
+            "AI Score": call.aiScore !== null && call.aiScore !== undefined ? call.aiScore : "-",
+            "Manual Score": call.manualScore !== null && call.manualScore !== undefined ? call.manualScore : "-",
+            "Final Score": call.finalScore !== null && call.finalScore !== undefined ? call.finalScore : "-",
+            "Sentiment": call.sentiment ?? "-",
+            "Audit Status": call.processingStatus,
+          };
+        }
+      });
+
+      const worksheet = XLSX.utils.json_to_sheet(excelRows);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Calls Report");
+      
+      const dateStr = new Date().toISOString().slice(0, 10);
+      XLSX.writeFile(workbook, `calls_export_${dateStr}.xlsx`);
+    } catch (e) {
+      console.error("Failed to export calls to Excel", e);
+    }
+  }
 
   function update(values: Record<string, string | undefined>) {
     const next = new URLSearchParams(sp);
@@ -258,6 +315,17 @@ export function CallsFilterBar({
       </div>
 
       <div className="mt-3.5 grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
+        <Button
+          type="button"
+          onClick={exportToExcel}
+          disabled={!callsData || callsData.length === 0}
+          variant="outline"
+          className="w-full border-emerald-200 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 md:col-start-1 lg:col-start-4"
+        >
+          <FileSpreadsheet className="mr-2 h-4 w-4 shrink-0 text-emerald-600" />
+          Export Excel
+        </Button>
+
         <Button
           type="button"
           onClick={reset}

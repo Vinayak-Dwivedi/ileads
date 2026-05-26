@@ -166,7 +166,9 @@ export class SarvamSttEngine implements SttEngine {
   }
 }
 
-function applySpeakerMapping(
+export type SarvamRawSegment = SarvamSegment;
+
+export function applySpeakerMapping(
   inputSegments: SarvamSegment[],
   config: SttConfig,
 ): {

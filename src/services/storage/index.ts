@@ -4,6 +4,7 @@ import { S3StorageProvider } from "./s3";
 import type { StorageProvider } from "./types";
 
 export type { StorageProvider, StoredObject, PresignedUpload, SaveInput } from "./types";
+export { materializeAudioToLocalFile, type LocalAudioFile } from "./materialize";
 
 let cached: StorageProvider | null = null;
 

@@ -24,7 +24,7 @@
 
 import "dotenv/config";
 import { prisma } from "../src/lib/db";
-import { runLocalSttForCall } from "../src/services/transcription";
+import { runLocalSttForCall, runMockTranscriptionForCall } from "../src/services/transcription";
 import { runLiveAuditForCall, LiveAuditError } from "../src/services/audit";
 import { SttError } from "../src/services/stt";
 import {
@@ -163,7 +163,17 @@ async function processCall(callId: string, clientId: string): Promise<void> {
 
   // Stage 1 — transcription. Lock is already at "transcribing" from claim.
   try {
-    const stt = await runLocalSttForCall(callId, clientId);
+    const isMock = process.env.MOCK_STT === "true" || process.env.MOCK_STT === "1";
+    const sttRaw = isMock
+      ? await runMockTranscriptionForCall(callId, clientId)
+      : await runLocalSttForCall(callId, clientId);
+
+    const stt = {
+      winningModel: (sttRaw as any).winningModel || sttRaw.modelUsed || "mock-model",
+      segmentCount: sttRaw.segmentCount,
+      usedFallback: (sttRaw as any).usedFallback || false,
+    };
+
     log(`Transcription done`, {
       callId,
       model: stt.winningModel,

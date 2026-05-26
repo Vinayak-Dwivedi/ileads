@@ -4,15 +4,29 @@ import { loadSttConfig, resolveModelChain, type SttConfig, type SttModelConfig }
 import { MockSttEngine } from "./engines/mockSttEngine";
 import { PythonSttEngine } from "./engines/pythonEngine";
 import { SarvamSttEngine } from "./engines/sarvamEngine";
+import { SarvamSdkSttEngine } from "./engines/sarvamSdkEngine";
 import { DeepgramSttEngine } from "./engines/deepgramEngine";
 import { evaluateSttQuality } from "./quality";
 import { SttError, type SttEngine, type SttResult } from "./types";
 import { buildSttEngine, registerSttEngine } from "./registry";
 
+// Sarvam runs through the native `sarvamai` Node SDK by default (no Python).
+// Set SARVAM_USE_PYTHON_ENGINE=true to fall back to the legacy Python adapter
+// (requires STT_PYTHON_BIN + stt/transcribe_sarvam.py + the sarvamai pip pkg).
+function sarvamPythonEngineEnabled(): boolean {
+  return /^(1|true|yes|on)$/i.test((process.env.SARVAM_USE_PYTHON_ENGINE ?? "").trim());
+}
+
+export function createSarvamEngine(config: SttConfig): SttEngine {
+  return sarvamPythonEngineEnabled()
+    ? new SarvamSttEngine(config)
+    : new SarvamSdkSttEngine(config);
+}
+
 // Self-register built-in engines so getEngineByKey / external code can look
 // them up by name without importing the concrete classes.
 registerSttEngine("mock", () => new MockSttEngine());
-registerSttEngine("sarvam", ({ config }) => new SarvamSttEngine(config));
+registerSttEngine("sarvam", ({ config }) => createSarvamEngine(config));
 registerSttEngine("deepgram", () => new DeepgramSttEngine());
 registerSttEngine("python", ({ config, modelConfig }) => {
   if (!modelConfig) {
@@ -48,7 +62,7 @@ export function createEngineForModel(model: SttModelConfig, config: SttConfig): 
  */
 export function getSttEngine(config: SttConfig = loadSttConfig()): SttEngine {
   if (config.mock) return new MockSttEngine();
-  if (config.provider === "sarvam") return new SarvamSttEngine(config);
+  if (config.provider === "sarvam") return createSarvamEngine(config);
   return createEngineForModel(config.primary, config);
 }
 
@@ -115,7 +129,7 @@ export async function transcribeWithChain(
           {
             provider: "sarvam",
             model: config.sarvam.model,
-            engine: new SarvamSttEngine(config),
+            engine: createSarvamEngine(config),
             qualityGate: false,
           },
           ...(config.localSttEnabled ? localAttempts(config) : []),
