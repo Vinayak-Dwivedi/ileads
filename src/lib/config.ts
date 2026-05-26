@@ -77,14 +77,19 @@ const EnvSchema = z.object({
     .string()
     .optional()
     .transform((v) => v === "true"),
+  SARVAM_BATCH_POLL_INTERVAL_SECONDS: z.coerce.number().int().positive().default(10),
   ASSEMBLYAI_API_KEY: z.string().optional(),
   DEEPGRAM_API_KEY: z.string().optional(),
   DEEPGRAM_MODEL: z.string().default("nova-2"),
   DEEPGRAM_LANGUAGE: z.string().default("multi"),
 
   // LLM / Audit
+  AUDIT_PROVIDER: z.enum(["openrouter", "gemini"]).default("openrouter"),
   OPENROUTER_API_KEY: z.string().optional(),
   OPENROUTER_AUDIT_MODEL: z.string().optional(),
+  GEMINI_API_KEY: z.string().optional(),
+  GEMINI_AUDIT_MODEL: z.string().optional(),
+  GEMINI_BASE_URL: z.string().optional(),
 
   // UI flags
   SHOW_MOCK_ACTIONS: z

@@ -69,7 +69,9 @@ export async function runLiveAuditForCall(
   if (!hasOpenRouterKey(config)) {
     throw new LiveAuditError(
       "OPENROUTER_API_KEY_MISSING",
-      "OpenRouter API key missing. Add OPENROUTER_API_KEY to .env and restart PM2.",
+      config.provider === "gemini"
+        ? "Gemini API key missing. Add GEMINI_API_KEY to .env and restart."
+        : "OpenRouter API key missing. Add OPENROUTER_API_KEY to .env and restart.",
     );
   }
 
@@ -181,7 +183,7 @@ export async function runLiveAuditForCall(
   if (!outcome.parsed) {
     throw new LiveAuditError(
       "OPENROUTER_INVALID_JSON",
-      `OpenRouter response did not contain valid JSON. First 200 chars: ${outcome.content.slice(0, 200)}`,
+      `AI returned an invalid response. Please retry. (First 200 chars: ${outcome.content.slice(0, 200)})`,
     );
   }
 

@@ -13,6 +13,7 @@ import "server-only";
  */
 
 export interface OpenRouterConfig {
+  provider?: "openrouter" | "gemini";
   apiKey: string;
   baseUrl: string;
   model: string;
@@ -87,16 +88,35 @@ function envNum(name: string, fallback: number): number {
 }
 
 export function loadOpenRouterConfig(): OpenRouterConfig {
+  const provider = (process.env.AUDIT_PROVIDER || "openrouter").trim().toLowerCase() as "openrouter" | "gemini";
+  const isGemini = provider === "gemini";
+
   const timeoutSeconds = envNum("OPENROUTER_TIMEOUT_SECONDS", 180);
   const fallbackRaw = process.env.OPENROUTER_AUDIT_FALLBACK_MODELS ?? "";
   const fallbackModels = fallbackRaw
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
+
+  let apiKey = "";
+  let baseUrl = "";
+  let model = "";
+
+  if (isGemini) {
+    apiKey = process.env.GEMINI_API_KEY?.trim() ?? "";
+    baseUrl = envStr("GEMINI_BASE_URL", "https://generativelanguage.googleapis.com/v1beta").replace(/\/+$/, "");
+    model = envStr("GEMINI_AUDIT_MODEL", "gemini-2.5-flash");
+  } else {
+    apiKey = process.env.OPENROUTER_API_KEY?.trim() ?? "";
+    baseUrl = envStr("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1").replace(/\/+$/, "");
+    model = envStr("OPENROUTER_AUDIT_MODEL", "google/gemini-2.5-flash");
+  }
+
   return {
-    apiKey: process.env.OPENROUTER_API_KEY?.trim() ?? "",
-    baseUrl: envStr("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1").replace(/\/+$/, ""),
-    model: envStr("OPENROUTER_AUDIT_MODEL", "google/gemini-2.5-flash"),
+    provider,
+    apiKey,
+    baseUrl,
+    model,
     fallbackModels,
     timeoutMs: Math.max(1000, Math.floor(timeoutSeconds * 1000)),
     httpReferer: process.env.OPENROUTER_HTTP_REFERER?.trim() || null,
@@ -210,7 +230,7 @@ function sleep(ms: number): Promise<void> {
 }
 
 /**
- * Run a chat completion against OpenRouter.
+ * Run a chat completion against OpenRouter or Direct Gemini.
  *
  * Does NOT throw on network/HTTP errors — returns an OpenRouterChatError
  * the caller can surface to the UI / DB.
@@ -225,27 +245,33 @@ export async function openrouterChat<T = unknown>(
     return {
       ok: false,
       code: "OPENROUTER_API_KEY_MISSING",
-      message:
-        "OpenRouter API key missing. Add OPENROUTER_API_KEY to .env and restart PM2.",
+      message: config.provider === "gemini"
+        ? "Gemini API key missing. Add GEMINI_API_KEY to .env and restart PM2."
+        : "OpenRouter API key missing. Add OPENROUTER_API_KEY to .env and restart PM2.",
       attempts: 0,
     };
   }
 
-  const maxRetries = Math.max(0, options.maxRetries ?? 4);
-  const url = `${config.baseUrl}/chat/completions`;
+  const maxRetries = Math.max(0, options.maxRetries ?? 2);
+  let url = `${config.baseUrl}/chat/completions`;
+  if (config.baseUrl.endsWith("/chat/completions")) {
+    url = config.baseUrl;
+  }
 
   const headers: Record<string, string> = {
     Authorization: `Bearer ${config.apiKey}`,
     "Content-Type": "application/json",
   };
-  if (config.httpReferer) headers["HTTP-Referer"] = config.httpReferer;
-  if (config.appTitle) headers["X-Title"] = config.appTitle;
+  if (config.provider !== "gemini") {
+    if (config.httpReferer) headers["HTTP-Referer"] = config.httpReferer;
+    if (config.appTitle) headers["X-Title"] = config.appTitle;
+  }
 
   const body: Record<string, unknown> = {
     model: config.model,
     messages: options.messages,
   };
-  if (config.fallbackModels.length > 0) {
+  if (config.provider !== "gemini" && config.fallbackModels.length > 0) {
     // OpenRouter-native fallback: if the primary is upstream-429 or
     // unavailable, it auto-routes to the next entry without raising.
     body.models = [config.model, ...config.fallbackModels];
@@ -277,13 +303,15 @@ export async function openrouterChat<T = unknown>(
         rawJson = text;
       }
 
+
+
       if (!response.ok) {
         // Retry on 429 / 5xx; fail fast on 4xx (except 408/429).
         const retryable = status === 408 || status === 429 || (status >= 500 && status < 600);
         lastError = {
           ok: false,
           code: "OPENROUTER_HTTP_ERROR",
-          message: `OpenRouter HTTP ${status}: ${truncate(text, 400)}`,
+          message: `LLM HTTP ${status}: ${truncate(text, 400)}`,
           status,
           attempts: attempt,
           rawResponse: rawJson,
@@ -298,7 +326,7 @@ export async function openrouterChat<T = unknown>(
         lastError = {
           ok: false,
           code: "OPENROUTER_EMPTY_RESPONSE",
-          message: "OpenRouter returned no content.",
+          message: "LLM returned no content.",
           attempts: attempt,
           rawResponse: rawJson,
         };
@@ -330,8 +358,8 @@ export async function openrouterChat<T = unknown>(
         ok: false,
         code: isAbort ? "OPENROUTER_TIMEOUT" : "OPENROUTER_NETWORK",
         message: isAbort
-          ? `OpenRouter request timed out after ${Math.round(config.timeoutMs / 1000)}s.`
-          : `OpenRouter network error: ${err instanceof Error ? err.message : String(err)}`,
+          ? `LLM request timed out after ${Math.round(config.timeoutMs / 1000)}s.`
+          : `LLM network error: ${err instanceof Error ? err.message : String(err)}`,
         attempts: attempt,
       };
       if (attempt > maxRetries) return lastError;
@@ -343,17 +371,13 @@ export async function openrouterChat<T = unknown>(
     lastError ?? {
       ok: false,
       code: "OPENROUTER_NETWORK",
-      message: "OpenRouter call failed with no recorded error.",
+      message: "LLM call failed with no recorded error.",
       attempts: maxRetries + 1,
     }
   );
 }
 
 function backoffMs(attempt: number, longer = false): number {
-  // Normal: 500ms, 1500ms, 4500ms ...
-  // 429-longer: 3s, 8s, 18s, 30s, 30s ...  — upstream RPM/TPM limits on
-  // free Gemma can take 30–60s to clear; the larger waits at the tail
-  // let us ride out a per-minute window without hammering the provider.
   if (longer) {
     const seq = [3000, 8000, 18000, 30000];
     return seq[Math.min(attempt - 1, seq.length - 1)] ?? 30000;

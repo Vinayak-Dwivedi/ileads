@@ -45,6 +45,8 @@ COPY --from=builder /app/public ./public
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/ecosystem.config.js ./ecosystem.config.js
 COPY --from=builder /app/scripts ./scripts
+COPY --from=builder /app/src ./src
+COPY --from=builder /app/tsconfig.json ./tsconfig.json
 COPY --from=builder /app/deploy ./deploy
 
 # Create storage directory for local audio uploads (just in case they use provider=local)

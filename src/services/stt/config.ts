@@ -138,12 +138,12 @@ export function loadSttConfig(): SttConfig {
   return {
     mock: envBool("MOCK_STT", false),
     showMockActions: envBool("SHOW_MOCK_ACTIONS", process.env.NODE_ENV === "development"),
-    provider: envProvider("STT_PROVIDER", "local") as "local" | "sarvam" | "deepgram",
+    provider: envProvider("STT_PROVIDER", "sarvam") as "local" | "sarvam" | "deepgram",
     pythonBin: envStr("STT_PYTHON_BIN", repoSubdir(".venv-stt", "bin", "python")),
     scriptDir: envStr("STT_SCRIPT_DIR", repoSubdir("stt")),
     runtimeDir: envStr("STT_RUNTIME_DIR", repoSubdir("runtime", "stt")),
     timeoutSeconds: envNum("STT_TIMEOUT_SECONDS", 420),
-    localSttEnabled: envBool("LOCAL_STT_ENABLED", true),
+    localSttEnabled: envBool("LOCAL_STT_ENABLED", false),
     sarvam: {
       apiKey: envStr("SARVAM_API_KEY", ""),
       model: envStr("SARVAM_STT_MODEL", "saaras:v3"),

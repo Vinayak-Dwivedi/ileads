@@ -1,13 +1,21 @@
 // Background queue worker for call processing.
 //
 // Polls for calls left in processingStatus="uploaded" by the Excel import,
-// runs local STT then live AI audit, and releases the processing lock.
+// runs STT (Sarvam) then live AI audit (OpenRouter/Gemini), and releases the
+// processing lock.
 //
-// One call at a time. Started by PM2 (see ecosystem.config.js) alongside the
-// web app, or directly via `npm run worker:queue` for development.
+// Supports concurrent processing of multiple calls in parallel, controlled by
+// the QUEUE_CONCURRENCY env var (default 3). Also supports automatic retry of
+// transient audit failures (HTTP 429/500/timeout) up to MAX_RETRIES times with
+// exponential backoff.
+//
+// Started by PM2 (see ecosystem.config.js) alongside the web app, or directly
+// via `npm run worker:queue` for development.
 //
 // Env:
 //   QUEUE_WORKER_POLL_MS       default 5000  — sleep between empty polls
+//   QUEUE_CONCURRENCY          default 3     — max parallel call processing
+//   QUEUE_MAX_RETRIES          default 3     — max audit retry attempts
 //   QUEUE_WORKER_RECOVER_STALE default true  — on startup, reset calls stuck
 //                                              in transcribing/auditing past
 //                                              the 30 min stale window back to
@@ -31,9 +39,19 @@ const POLL_MS = (() => {
   const v = Number(process.env.QUEUE_WORKER_POLL_MS ?? "5000");
   return Number.isFinite(v) && v >= 500 ? v : 5000;
 })();
+const CONCURRENCY = (() => {
+  const v = Number(process.env.QUEUE_CONCURRENCY ?? "3");
+  return Number.isFinite(v) && v >= 1 ? Math.min(v, 10) : 3;
+})();
+const MAX_RETRIES = (() => {
+  const v = Number(process.env.QUEUE_MAX_RETRIES ?? "3");
+  return Number.isFinite(v) && v >= 0 ? v : 3;
+})();
 const STALE_LOCK_MS = 30 * 60 * 1000;
 
 let shuttingDown = false;
+/** Number of calls currently being processed. */
+let activeCount = 0;
 
 function log(msg: string, extra?: Record<string, unknown>): void {
   const ts = new Date().toISOString();
@@ -52,6 +70,11 @@ function logErr(msg: string, err: unknown): void {
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/** Exponential backoff for retries: 30s, 90s, 270s capped at 5 min. */
+function retryBackoffMs(retryCount: number): number {
+  return Math.min(30_000 * Math.pow(3, retryCount), 5 * 60 * 1000);
 }
 
 /**
@@ -79,28 +102,59 @@ async function recoverStaleCalls(): Promise<void> {
 }
 
 /**
- * Atomically claim the oldest call in processingStatus="uploaded".
- * Uses a select-then-guarded-updateMany so a second worker (or a concurrent
- * manual action) cannot also claim it.
+ * Atomically claim up to `limit` calls in processingStatus="uploaded".
+ * Uses a select-then-guarded-updateMany so concurrent workers cannot
+ * double-claim the same call.
  */
-async function claimNext(): Promise<{ id: string; clientId: string } | null> {
-  const candidate = await prisma.call.findFirst({
-    where: { processingStatus: "uploaded" },
+async function claimBatch(
+  limit: number,
+): Promise<{ id: string; clientId: string }[]> {
+  if (limit <= 0) return [];
+
+  const candidates = await prisma.call.findMany({
+    where: {
+      processingStatus: "uploaded",
+      // Only pick calls whose processingStartedAt is null (new) or in the past
+      // (retry backoff elapsed). Calls with future processingStartedAt are
+      // waiting for their retry backoff to expire.
+      OR: [
+        { processingStartedAt: null },
+        { processingStartedAt: { lte: new Date() } },
+      ],
+    },
     orderBy: { createdAt: "asc" },
+    take: limit,
     select: { id: true, clientId: true },
   });
-  if (!candidate) return null;
 
-  const claimed = await prisma.call.updateMany({
-    where: { id: candidate.id, processingStatus: "uploaded" },
-    data: {
-      processingStatus: "transcribing",
-      processingStartedAt: new Date(),
-      processingError: null,
-    },
-  });
-  if (claimed.count === 0) return null;
-  return candidate;
+  const claimed: { id: string; clientId: string }[] = [];
+  for (const candidate of candidates) {
+    const result = await prisma.call.updateMany({
+      where: {
+        id: candidate.id,
+        processingStatus: "uploaded",
+      },
+      data: {
+        processingStatus: "transcribing",
+        processingStartedAt: new Date(),
+        processingError: null,
+      },
+    });
+    if (result.count > 0) {
+      claimed.push(candidate);
+    }
+  }
+  return claimed;
+}
+
+/** Check if an error code represents a transient/retryable failure. */
+function isTransientError(code: string): boolean {
+  return (
+    code.includes("TIMEOUT") ||
+    code.includes("HTTP_ERROR") ||
+    code.includes("NETWORK") ||
+    code.includes("EMPTY_RESPONSE")
+  );
 }
 
 async function processCall(callId: string, clientId: string): Promise<void> {
@@ -183,6 +237,43 @@ async function processCall(callId: string, clientId: string): Promise<void> {
   } catch (e) {
     const code = e instanceof LiveAuditError ? e.code : "UNKNOWN";
     const msg = e instanceof Error ? e.message : "Live audit failed.";
+
+    // Retry transient failures (429, 500, timeout, network) automatically.
+    if (isTransientError(code) && MAX_RETRIES > 0) {
+      // Read current retry count from the DB.
+      const callRow = await prisma.call.findUnique({
+        where: { id: callId },
+        select: { processingError: true },
+      });
+      const currentRetry = parseRetryCount(callRow?.processingError);
+      if (currentRetry < MAX_RETRIES) {
+        const nextRetry = currentRetry + 1;
+        const backoff = retryBackoffMs(currentRetry);
+        log(`Audit failed (transient) — scheduling retry ${nextRetry}/${MAX_RETRIES} in ${Math.round(backoff / 1000)}s`, {
+          callId,
+          code,
+          msg,
+        });
+        await prisma.call.update({
+          where: { id: callId },
+          data: {
+            processingStatus: "uploaded",
+            processingError: `[retry:${nextRetry}] ${code}: ${msg}`,
+            // Set processingStartedAt to a future time so claimBatch skips it
+            // until the backoff period has elapsed.
+            processingStartedAt: new Date(Date.now() + backoff),
+          },
+        });
+        publishCallEvent(callId, {
+          type: "status",
+          status: "uploaded",
+        });
+        return;
+      }
+      // Exhausted retries — fall through to permanent failure.
+      log(`Audit failed — retries exhausted (${MAX_RETRIES}/${MAX_RETRIES})`, { callId, code });
+    }
+
     await failProcessingLock(callId, `AUDIT ${code}: ${msg}`);
     publishCallEvent(callId, { type: "failed", stage: "audit", code, message: msg });
     void publishWebhookEvent(clientId, "call.audit.failed", {
@@ -195,38 +286,66 @@ async function processCall(callId: string, clientId: string): Promise<void> {
   }
 }
 
+/** Extract retry count from processingError field like "[retry:2] ..." */
+function parseRetryCount(error: string | null | undefined): number {
+  if (!error) return 0;
+  const match = error.match(/^\[retry:(\d+)\]/);
+  return match ? Number(match[1]) : 0;
+}
+
 async function loop(): Promise<void> {
-  log(`Queue worker started`, { pollMs: POLL_MS });
+  log(`Queue worker started`, { pollMs: POLL_MS, concurrency: CONCURRENCY, maxRetries: MAX_RETRIES });
   await recoverStaleCalls();
 
   while (!shuttingDown) {
-    let job: { id: string; clientId: string } | null = null;
+    // Calculate how many new jobs we can take.
+    const slotsAvailable = CONCURRENCY - activeCount;
+    if (slotsAvailable <= 0) {
+      // All slots full — wait a bit for one to finish.
+      await sleep(500);
+      continue;
+    }
+
+    let jobs: { id: string; clientId: string }[] = [];
     try {
-      job = await claimNext();
+      jobs = await claimBatch(slotsAvailable);
     } catch (e) {
-      logErr("Failed to claim next job — sleeping before retry.", e);
+      logErr("Failed to claim jobs — sleeping before retry.", e);
       await sleep(POLL_MS);
       continue;
     }
 
-    if (!job) {
+    if (jobs.length === 0) {
       await sleep(POLL_MS);
       continue;
     }
 
-    try {
-      await processCall(job.id, job.clientId);
-    } catch (e) {
-      logErr(`Unexpected error processing call ${job.id}`, e);
-      // Last-resort safety — mark the call failed so it doesn't sit half-locked.
-      try {
-        await failProcessingLock(
-          job.id,
-          e instanceof Error ? e.message : "Unhandled worker error.",
-        );
-      } catch (innerErr) {
-        logErr(`Also failed to mark call ${job.id} as failed`, innerErr);
-      }
+    // Fire off each job concurrently. We track activeCount so the loop
+    // knows not to over-claim.
+    for (const job of jobs) {
+      activeCount++;
+      processCall(job.id, job.clientId)
+        .catch((e) => {
+          logErr(`Unexpected error processing call ${job.id}`, e);
+          // Last-resort safety — mark the call failed so it doesn't sit half-locked.
+          return failProcessingLock(
+            job.id,
+            e instanceof Error ? e.message : "Unhandled worker error.",
+          ).catch((innerErr) => {
+            logErr(`Also failed to mark call ${job.id} as failed`, innerErr);
+          });
+        })
+        .finally(() => {
+          activeCount--;
+        });
+    }
+  }
+
+  // Wait for in-flight jobs to finish before shutting down.
+  if (activeCount > 0) {
+    log(`Waiting for ${activeCount} in-flight job(s) to finish...`);
+    while (activeCount > 0) {
+      await sleep(500);
     }
   }
 
@@ -238,7 +357,7 @@ function installSignalHandlers(): void {
   const handle = (sig: string) => {
     if (shuttingDown) return;
     shuttingDown = true;
-    log(`Received ${sig} — finishing current call (if any) then exiting.`);
+    log(`Received ${sig} — finishing ${activeCount} in-flight job(s) then exiting.`);
   };
   process.on("SIGINT", () => handle("SIGINT"));
   process.on("SIGTERM", () => handle("SIGTERM"));
