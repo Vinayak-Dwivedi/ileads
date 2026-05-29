@@ -51,6 +51,11 @@ export async function proxy(request: NextRequest) {
     return response;
   }
 
+  // Unauthenticated health probe for nginx / load balancers / uptime monitors.
+  if (pathname === "/api/health") {
+    return NextResponse.next();
+  }
+
   // Auth API endpoints are always reachable so login/logout work.
   if (pathname.startsWith("/api/auth/")) {
     return NextResponse.next();
